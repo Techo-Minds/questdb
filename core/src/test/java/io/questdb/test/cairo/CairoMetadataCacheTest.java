@@ -26,6 +26,9 @@ package io.questdb.test.cairo;
 
 import io.questdb.cairo.CairoTable;
 import io.questdb.cairo.TableToken;
+import io.questdb.cairo.sql.RecordCursorFactory;
+import io.questdb.griffin.CompiledQuery;
+import io.questdb.griffin.SqlCompiler;
 import io.questdb.griffin.SqlException;
 import io.questdb.test.AbstractCairoTest;
 import io.questdb.test.tools.TestUtils;
@@ -164,6 +167,27 @@ public class CairoMetadataCacheTest extends AbstractCairoTest {
                             "\t\tCairoColumn [name=foo, position=1, type=VARCHAR, isDedupKey=false, isDesignated=false, isSymbolTableStatic=true, symbolCached=false, symbolCapacity=0, isIndexed=false, indexBlockCapacity=256, writerIndex=1]\n" +
                             "\t\tCairoColumn [name=bah, position=2, type=SYMBOL, isDedupKey=false, isDesignated=false, isSymbolTableStatic=true, symbolCached=true, symbolCapacity=128, isIndexed=false, indexBlockCapacity=256, writerIndex=2]\n",
                     engine.metadataCacheToString0());
+        });
+    }
+
+    @Test
+    public void testAlterTableAlterColumnSymbolToUuid() throws Exception {
+        assertMemoryLeak(() -> {
+            ddl("create table x (ts timestamp, s symbol) timestamp(ts) partition by day wal;");
+            drainWalQueue();
+            SqlCompiler compiler = engine.getSqlCompiler();
+            CompiledQuery cq = compiler.compile("show columns from x", sqlExecutionContext);
+            RecordCursorFactory rcf = cq.getRecordCursorFactory();
+            assertCursor("column\ttype\tindexed\tindexBlockCapacity\tsymbolCached\tsymbolCapacity\tdesignated\tupsertKey\n" +
+                    "ts\tTIMESTAMP\tfalse\t0\tfalse\t0\ttrue\tfalse\n" +
+                    "s\tSYMBOL\tfalse\t256\ttrue\t128\tfalse\tfalse\n", rcf, false, true, true, sqlExecutionContext);
+            ddl("alter table x alter column s type uuid");
+            drainWalQueue();
+            assertCursor("column\ttype\tindexed\tindexBlockCapacity\tsymbolCached\tsymbolCapacity\tdesignated\tupsertKey\n" +
+                    "ts\tTIMESTAMP\tfalse\t0\tfalse\t0\ttrue\tfalse\n" +
+                    "s\tUUID\tfalse\t256\tfalse\t0\tfalse\tfalse\n", rcf, false, true, true, sqlExecutionContext);
+
+            compiler.close();
         });
     }
 
