@@ -29,6 +29,8 @@ import io.questdb.cairo.sql.Record;
 import io.questdb.cairo.sql.RecordCursor;
 import io.questdb.cairo.sql.RecordCursorFactory;
 import io.questdb.cairo.sql.TableMetadata;
+import io.questdb.cairo.wal.ApplyWal2TableJob;
+import io.questdb.cairo.wal.CheckWalTransactionsJob;
 import io.questdb.griffin.SqlCompiler;
 import io.questdb.griffin.SqlException;
 import io.questdb.griffin.SqlExecutionContext;
@@ -415,6 +417,11 @@ public class O3Test extends AbstractO3Test {
     @Test
     public void testColumnTopNewPartitionMiddleOfTableParallel() throws Exception {
         executeWithPool(4, O3Test::testColumnTopNewPartitionMiddleOfTable0);
+    }
+
+    @Test
+    public void testDeduplicationShouldNotDoubleColumnSizeOnDisk() throws Exception {
+        executeWithPool(0, O3Test::deduplicationShouldNotDoubleColumnSizeOnDisk);
     }
 
     @Test
@@ -1310,6 +1317,36 @@ public class O3Test extends AbstractO3Test {
                 "select count() from " + countReferenceSQL,
                 "select count() from " + countAssertSQL
         );
+    }
+
+    private static void deduplicationShouldNotDoubleColumnSizeOnDisk(CairoEngine engine,
+                                                                     SqlCompiler compiler,
+                                                                     SqlExecutionContext ectx) throws Exception {
+        engine.ddl("create table test (ts timestamp, s symbol) timestamp(ts) partition by day wal dedup upsert keys(ts, s)\n", ectx);
+        engine.insert("insert into test (ts, s) values (0, 'a'), (86401*1000000, 'b')", ectx);
+
+        drainWalQueue(engine);
+
+        TableToken x = engine.getTableTokenIfExists("test");
+        assert x != null;
+
+        long initialSize;
+        try (Path p = new Path().of(engine.getConfiguration().getRoot()).concat(x.getDirNameUtf8()).concat("1970-01-01")) {
+            initialSize = Files.getDirSize(p); // gives 12
+            assert initialSize != 0;
+        }
+
+        engine.insert("insert into test (ts, s) values (0, 'a'), (86401*1000000, 'b')", ectx);
+
+        drainWalQueue(engine);
+
+        long finalSize;
+        try (Path p = new Path().of(engine.getConfiguration().getRoot()).concat(x.getDirNameUtf8()).concat("1970-01-01.1")) {
+            finalSize = Files.getDirSize(p); // before fix, gives 24
+            assert finalSize != 0;
+        }
+
+        Assert.assertEquals(initialSize, finalSize);
     }
 
     private static void dropTableY(CairoEngine engine, SqlExecutionContext sqlExecutionContext) throws SqlException {
@@ -8442,5 +8479,14 @@ public class O3Test extends AbstractO3Test {
                         "cc\t" + ts1 + "\t11111\tdd\t22222\n" +
                         "cc\t" + ts2 + "\t11111\tdd\t22222\n"
         );
+    }
+
+    protected static void drainWalQueue(CairoEngine engine) {
+        try (final ApplyWal2TableJob walApplyJob = new ApplyWal2TableJob(engine, 1, 1)) {
+            walApplyJob.drain(0);
+            new CheckWalTransactionsJob(engine).run(0);
+            // run once again as there might be notifications to handle now
+            walApplyJob.drain(0);
+        }
     }
 }
