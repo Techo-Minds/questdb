@@ -469,6 +469,7 @@ public class O3OpenColumnJob extends AbstractQueueConsumerJob<O3OpenColumnTask> 
 
                     assert dedupMergeVarColumnSize >= 0;
                     dstDataAppendOffset2 = dstDataAppendOffset1 + dedupMergeVarColumnSize;
+                    // nw todo: shrink it back to this size?
                 }
             } else {
                 dstAuxAppendOffset2 = dstAuxAppendOffset1;
