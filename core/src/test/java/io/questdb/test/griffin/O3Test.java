@@ -420,8 +420,13 @@ public class O3Test extends AbstractO3Test {
     }
 
     @Test
-    public void testDeduplicationShouldNotDoubleColumnSizeOnDisk() throws Exception {
-        executeWithPool(0, O3Test::deduplicationShouldNotDoubleColumnSizeOnDisk);
+    public void testDeduplicationShouldNotDoubleColumnSizeOnDisk1() throws Exception {
+        executeWithPool(0, O3Test::deduplicationShouldNotDoubleColumnSizeOnDisk1);
+    }
+
+    @Test
+    public void testDeduplicationShouldNotDoubleColumnSizeOnDisk2() throws Exception {
+        executeWithPool(0, O3Test::deduplicationShouldNotDoubleColumnSizeOnDisk2);
     }
 
     @Test
@@ -1319,21 +1324,21 @@ public class O3Test extends AbstractO3Test {
         );
     }
 
-    private static void deduplicationShouldNotDoubleColumnSizeOnDisk(CairoEngine engine,
-                                                                     SqlCompiler compiler,
-                                                                     SqlExecutionContext ectx) throws Exception {
+    private static void deduplicationShouldNotDoubleColumnSizeOnDisk1(CairoEngine engine,
+                                                                      SqlCompiler compiler,
+                                                                      SqlExecutionContext ectx) throws Exception {
         engine.ddl("create table test (ts timestamp, s symbol) timestamp(ts) partition by day wal dedup upsert keys(ts, s)\n", ectx);
         engine.insert("insert into test (ts, s) values (0, 'a'), (86401*1000000, 'b')", ectx);
 
         drainWalQueue(engine);
 
         TableToken x = engine.getTableTokenIfExists("test");
-        assert x != null;
+
 
         long initialSize;
         try (Path p = new Path().of(engine.getConfiguration().getRoot()).concat(x.getDirNameUtf8()).concat("1970-01-01")) {
             initialSize = Files.getDirSize(p); // gives 12
-            assert initialSize != 0;
+            Assert.assertEquals(initialSize, 12);
         }
 
         engine.insert("insert into test (ts, s) values (0, 'a'), (86401*1000000, 'b')", ectx);
@@ -1343,7 +1348,37 @@ public class O3Test extends AbstractO3Test {
         long finalSize;
         try (Path p = new Path().of(engine.getConfiguration().getRoot()).concat(x.getDirNameUtf8()).concat("1970-01-01.1")) {
             finalSize = Files.getDirSize(p); // before fix, gives 24
-            assert finalSize != 0;
+            Assert.assertNotEquals(finalSize, 0);
+        }
+
+        Assert.assertEquals(initialSize, finalSize);
+    }
+
+    private static void deduplicationShouldNotDoubleColumnSizeOnDisk2(CairoEngine engine,
+                                                                      SqlCompiler compiler,
+                                                                      SqlExecutionContext ectx) throws Exception {
+        engine.ddl("create table test (ts timestamp, i int) timestamp(ts) partition by day wal dedup upsert keys(ts, i)\n", ectx);
+        engine.insert("insert into test (ts, i) values (0, 1), (1, 2), (86401*1000000, 3)", ectx);
+
+        drainWalQueue(engine);
+
+        TableToken x = engine.getTableTokenIfExists("test");
+        Assert.assertNotNull(x);
+
+        long initialSize;
+        try (Path p = new Path().of(engine.getConfiguration().getRoot()).concat(x.getDirNameUtf8()).concat("1970-01-01")) {
+            initialSize = Files.getDirSize(p); // gives 12
+            Assert.assertEquals(initialSize, 24);
+        }
+
+        engine.insert("insert into test (ts, i) values (1, 2)", ectx);
+
+        drainWalQueue(engine);
+
+        long finalSize;
+        try (Path p = new Path().of(engine.getConfiguration().getRoot()).concat(x.getDirNameUtf8()).concat("1970-01-01.1")) {
+            finalSize = Files.getDirSize(p); // before fix, gives 24
+            Assert.assertNotEquals(finalSize, 0);
         }
 
         Assert.assertEquals(initialSize, finalSize);
