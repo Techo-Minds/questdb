@@ -28,6 +28,7 @@ import io.questdb.cairo.WalJobFactory;
 import io.questdb.cairo.security.SecurityContextFactory;
 import io.questdb.cutlass.auth.LineAuthenticatorFactory;
 import io.questdb.cutlass.http.*;
+import io.questdb.cutlass.mqtt.MqttAuthenticatorFactory;
 import io.questdb.cutlass.pgwire.PgWireAuthenticatorFactory;
 import io.questdb.network.SocketFactory;
 import io.questdb.std.QuietCloseable;
@@ -58,6 +59,11 @@ public interface FactoryProvider extends QuietCloseable {
 
     @NotNull
     SocketFactory getLineSocketFactory();
+
+    MqttAuthenticatorFactory getMqttAuthenticatorFactory();
+
+    @NotNull
+    SocketFactory getMqttSocketFactory();
 
     @NotNull
     SocketFactory getPGWireSocketFactory();

@@ -34,6 +34,8 @@ import io.questdb.cutlass.line.tcp.DefaultLineTcpReceiverConfiguration;
 import io.questdb.cutlass.line.tcp.LineTcpReceiverConfiguration;
 import io.questdb.cutlass.line.udp.DefaultLineUdpReceiverConfiguration;
 import io.questdb.cutlass.line.udp.LineUdpReceiverConfiguration;
+import io.questdb.cutlass.mqtt.DefaultMqttServerConfiguration;
+import io.questdb.cutlass.mqtt.MqttServerConfiguration;
 import io.questdb.cutlass.pgwire.DefaultPGWireConfiguration;
 import io.questdb.cutlass.pgwire.PGWireConfiguration;
 import io.questdb.metrics.DefaultMetricsConfiguration;
@@ -47,6 +49,7 @@ public class DefaultServerConfiguration implements ServerConfiguration {
     private final DefaultLineUdpReceiverConfiguration lineUdpReceiverConfiguration = new DefaultLineUdpReceiverConfiguration();
     private final DefaultMemoryConfiguration memoryConfiguration = new DefaultMemoryConfiguration();
     private final DefaultMetricsConfiguration metricsConfiguration = new DefaultMetricsConfiguration();
+    private final MqttServerConfiguration mqttServerConfiguration = new DefaultMqttServerConfiguration();
     private final DefaultPGWireConfiguration pgWireConfiguration = new DefaultPGWireConfiguration();
     private final PublicPassthroughConfiguration publicPassthroughConfiguration = new DefaultPublicPassthroughConfiguration();
     private final WorkerPoolConfiguration walApplyPoolConfiguration = new DefaultWalApplyWorkerPoolConfiguration();
@@ -93,6 +96,11 @@ public class DefaultServerConfiguration implements ServerConfiguration {
     @Override
     public MetricsConfiguration getMetricsConfiguration() {
         return metricsConfiguration;
+    }
+
+    @Override
+    public MqttServerConfiguration getMqttServerConfiguration() {
+        return mqttServerConfiguration;
     }
 
     @Override

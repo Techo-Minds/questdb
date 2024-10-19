@@ -31,6 +31,8 @@ import io.questdb.cairo.security.SecurityContextFactory;
 import io.questdb.cutlass.auth.DefaultLineAuthenticatorFactory;
 import io.questdb.cutlass.auth.LineAuthenticatorFactory;
 import io.questdb.cutlass.http.*;
+import io.questdb.cutlass.mqtt.DefaultMqttAuthenticatorFactory;
+import io.questdb.cutlass.mqtt.MqttAuthenticatorFactory;
 import io.questdb.cutlass.pgwire.DefaultPgWireAuthenticatorFactory;
 import io.questdb.cutlass.pgwire.PgWireAuthenticatorFactory;
 import io.questdb.network.PlainSocketFactory;
@@ -72,6 +74,16 @@ public class DefaultFactoryProvider implements FactoryProvider {
 
     @Override
     public @NotNull SocketFactory getLineSocketFactory() {
+        return PlainSocketFactory.INSTANCE;
+    }
+
+    @Override
+    public MqttAuthenticatorFactory getMqttAuthenticatorFactory() {
+        return DefaultMqttAuthenticatorFactory.INSTANCE;
+    }
+
+    @Override
+    public @NotNull SocketFactory getMqttSocketFactory() {
         return PlainSocketFactory.INSTANCE;
     }
 

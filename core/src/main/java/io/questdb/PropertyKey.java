@@ -490,7 +490,14 @@ public enum PropertyKey implements ConfigPropertyKey {
     CAIRO_PARTITION_ENCODER_PARQUET_COMPRESSION_CODEC("cairo.partition.encoder.parquet.compression.codec"),
     CAIRO_PARTITION_ENCODER_PARQUET_COMPRESSION_LEVEL("cairo.partition.encoder.parquet.compression.level"),
     CAIRO_PARTITION_ENCODER_PARQUET_ROW_GROUP_SIZE("cairo.partition.encoder.parquet.row.group.size"),
-    CAIRO_PARTITION_ENCODER_PARQUET_DATA_PAGE_SIZE("cairo.partition.encoder.parquet.data.page.size");
+    CAIRO_PARTITION_ENCODER_PARQUET_DATA_PAGE_SIZE("cairo.partition.encoder.parquet.data.page.size"),
+    MQTT_ENABLED("mqtt.enabled"),
+    MQTT_CONNECTION_LIMIT("mqtt.connection.limit"),
+    MQTT_NET_BIND_TO("mqtt.net.bind.to"),
+    MQTT_NET_IDLE_TIMEOUT("mqtt.net.idle.timeout"),
+    MQTT_NET_CONNECTION_RECV_BUF("mqtt.net.connection.recv.buf"),
+    MQTT_NET_CONNECTION_SEND_BUF("mqtt.net.connection.send.buf");
+
 
     private static final Map<String, PropertyKey> nameMapping;
     private final boolean debug;

@@ -28,6 +28,7 @@ import io.questdb.cairo.TableWriterMetrics;
 import io.questdb.cairo.wal.WalMetrics;
 import io.questdb.cutlass.http.processors.JsonQueryMetrics;
 import io.questdb.cutlass.line.LineMetrics;
+import io.questdb.cutlass.mqtt.MqttMetrics;
 import io.questdb.cutlass.pgwire.PGWireMetrics;
 import io.questdb.metrics.*;
 import io.questdb.std.MemoryTag;
@@ -43,6 +44,7 @@ public class Metrics implements Scrapable {
     private final JsonQueryMetrics jsonQuery;
     private final LineMetrics line;
     private final MetricsRegistry metricsRegistry;
+    private final MqttMetrics mqttMetrics;
     private final PGWireMetrics pgWire;
     private final Runtime runtime = Runtime.getRuntime();
     private final VirtualLongGauge.StatProvider jvmFreeMemRef = runtime::freeMemory;
@@ -64,6 +66,7 @@ public class Metrics implements Scrapable {
         createMemoryGauges(metricsRegistry);
         this.metricsRegistry = metricsRegistry;
         this.workerMetrics = new WorkerMetrics(metricsRegistry);
+        this.mqttMetrics = new MqttMetrics(metricsRegistry);
     }
 
     public static Metrics disabled() {
@@ -72,6 +75,10 @@ public class Metrics implements Scrapable {
 
     public static Metrics enabled() {
         return new Metrics(true, new MetricsRegistryImpl());
+    }
+
+    public MqttMetrics getMqttMetrics() {
+        return mqttMetrics;
     }
 
     public MetricsRegistry getRegistry() {

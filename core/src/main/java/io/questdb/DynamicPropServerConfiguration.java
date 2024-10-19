@@ -31,6 +31,7 @@ import io.questdb.cutlass.http.HttpServerConfiguration;
 import io.questdb.cutlass.json.JsonException;
 import io.questdb.cutlass.line.tcp.LineTcpReceiverConfiguration;
 import io.questdb.cutlass.line.udp.LineUdpReceiverConfiguration;
+import io.questdb.cutlass.mqtt.MqttServerConfiguration;
 import io.questdb.cutlass.pgwire.PGWireConfiguration;
 import io.questdb.log.Log;
 import io.questdb.log.LogFactory;
@@ -284,6 +285,11 @@ public class DynamicPropServerConfiguration implements DynamicServerConfiguratio
     @Override
     public MetricsConfiguration getMetricsConfiguration() {
         return delegate.get().getMetricsConfiguration();
+    }
+
+    @Override
+    public MqttServerConfiguration getMqttServerConfiguration() {
+        return delegate.get().getMqttServerConfiguration();
     }
 
     @Override

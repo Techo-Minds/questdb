@@ -40,6 +40,8 @@ import io.questdb.cutlass.line.udp.AbstractLineProtoUdpReceiver;
 import io.questdb.cutlass.line.udp.LineUdpReceiver;
 import io.questdb.cutlass.line.udp.LineUdpReceiverConfiguration;
 import io.questdb.cutlass.line.udp.LinuxMMLineUdpReceiver;
+import io.questdb.cutlass.mqtt.MqttServer;
+import io.questdb.cutlass.mqtt.MqttServerConfiguration;
 import io.questdb.cutlass.pgwire.CircuitBreakerRegistry;
 import io.questdb.cutlass.pgwire.PGWireConfiguration;
 import io.questdb.cutlass.pgwire.PGWireServer;
@@ -237,6 +239,37 @@ public class Services {
             });
         }
         return server;
+    }
+
+    @Nullable
+    public MqttServer createMqttServer(
+            MqttServerConfiguration configuration,
+            CairoEngine cairoEngine,
+            WorkerPoolManager workerPoolManager,
+            Metrics metrics
+    ) {
+        if (!configuration.isEnabled()) {
+            return null;
+        }
+
+        // The pool is:
+        // - DEDICATED when PropertyKey.PG_WORKER_COUNT is > 0
+        // - SHARED otherwise
+        final WorkerPool workerPool = workerPoolManager.getInstance(
+                configuration,
+                metrics,
+                Requester.MQTT_SERVER
+        );
+//
+//        CircuitBreakerRegistry registry = new CircuitBreakerRegistry(configuration, cairoEngine.getConfiguration());
+
+        return new MqttServer(
+                configuration,
+                cairoEngine,
+                workerPool,
+                metrics,
+                null
+        );
     }
 
     @Nullable

@@ -36,6 +36,7 @@ import io.questdb.cutlass.line.*;
 import io.questdb.cutlass.line.tcp.LineTcpReceiverConfiguration;
 import io.questdb.cutlass.line.tcp.LineTcpReceiverConfigurationHelper;
 import io.questdb.cutlass.line.udp.LineUdpReceiverConfiguration;
+import io.questdb.cutlass.mqtt.MqttServerConfiguration;
 import io.questdb.cutlass.pgwire.PGWireConfiguration;
 import io.questdb.cutlass.text.CsvFileIndexer;
 import io.questdb.cutlass.text.TextConfiguration;
@@ -208,6 +209,7 @@ public class PropServerConfiguration implements ServerConfiguration {
     private final boolean lineUdpUnicast;
     private final DateLocale locale;
     private final Log log;
+    private final boolean logLevelVerbose;
     private final boolean logSqlQueryProgressExe;
     private final int maxFileNameLength;
     private final long maxHttpQueryResponseRowLimit;
@@ -223,6 +225,7 @@ public class PropServerConfiguration implements ServerConfiguration {
     private final boolean metricsEnabled;
     private final MicrosecondClock microsecondClock;
     private final int mkdirMode;
+    private final MqttServerConfiguration mqttServerConfiguration = new PropMqttServerConfiguration();
     private final int multipartHeaderBufferSize;
     private final long multipartIdleSpinCount;
     private final int o3CallbackQueueCapacity;
@@ -250,6 +253,7 @@ public class PropServerConfiguration implements ServerConfiguration {
     private final PGWireConfiguration pgWireConfiguration = new PropPGWireConfiguration();
     private final String posthogApiKey;
     private final boolean posthogEnabled;
+    private final PropMqttServerDispatcherConfiguration propMqttServerDispatcherConfiguration = new PropMqttServerDispatcherConfiguration();
     private final PropPGWireDispatcherConfiguration propPGWireDispatcherConfiguration = new PropPGWireDispatcherConfiguration();
     private final String publicDirectory;
     private final PublicPassthroughConfiguration publicPassthroughConfiguration = new PropPublicPassthroughConfiguration();
@@ -484,9 +488,15 @@ public class PropServerConfiguration implements ServerConfiguration {
     private int lineUdpBindIPV4Address;
     private int lineUdpDefaultPartitionBy;
     private int lineUdpPort;
-    private final boolean logLevelVerbose;
     private MimeTypesCache mimeTypesCache;
     private long minIdleMsBeforeWriterRelease;
+    private int mqttConnectionLimit;
+    private boolean mqttEnabled;
+    private int mqttNetBindIPv4Address;
+    private int mqttNetBindPort;
+    private long mqttNetConnectionRecvBuf;
+    private long mqttNetConnectionSendBuf;
+    private long mqttNetIdleConnectionTimeout;
     private int netTestConnectionBufferSize;
     private int pgBinaryParamsCapacity;
     private int pgCharacterStoreCapacity;
@@ -925,6 +935,23 @@ public class PropServerConfiguration implements ServerConfiguration {
             final int forceRecvFragmentationChunkSize = getInt(properties, env, PropertyKey.DEBUG_FORCE_RECV_FRAGMENTATION_CHUNK_SIZE, Integer.MAX_VALUE);
             this.httpForceSendFragmentationChunkSize = getInt(properties, env, PropertyKey.DEBUG_HTTP_FORCE_SEND_FRAGMENTATION_CHUNK_SIZE, forceSendFragmentationChunkSize);
             this.httpForceRecvFragmentationChunkSize = getInt(properties, env, PropertyKey.DEBUG_HTTP_FORCE_RECV_FRAGMENTATION_CHUNK_SIZE, forceRecvFragmentationChunkSize);
+
+
+            // mqtt
+            this.mqttEnabled = getBoolean(properties, env, PropertyKey.MQTT_ENABLED, true);
+
+            if (mqttEnabled) {
+                mqttConnectionLimit = getInt(properties, env, PropertyKey.MQTT_CONNECTION_LIMIT, 64);
+                parseBindTo(properties, env, PropertyKey.MQTT_NET_BIND_TO, "0.0.0.0:1883", (a, p) -> {
+                    mqttNetBindIPv4Address = a;
+                    mqttNetBindPort = p;
+                });
+            }
+
+            mqttNetIdleConnectionTimeout = getLong(properties, env, PropertyKey.MQTT_NET_IDLE_TIMEOUT, 300_000);
+            mqttNetConnectionRecvBuf = getLong(properties, env, PropertyKey.MQTT_NET_CONNECTION_RECV_BUF, 4096);
+            mqttNetConnectionSendBuf = getLong(properties, env, PropertyKey.MQTT_NET_CONNECTION_SEND_BUF, 4096);
+
 
             this.pgEnabled = getBoolean(properties, env, PropertyKey.PG_ENABLED, true);
             if (pgEnabled) {
@@ -1456,6 +1483,11 @@ public class PropServerConfiguration implements ServerConfiguration {
     @Override
     public MetricsConfiguration getMetricsConfiguration() {
         return metricsConfiguration;
+    }
+
+    @Override
+    public MqttServerConfiguration getMqttServerConfiguration() {
+        return mqttServerConfiguration;
     }
 
     @Override
@@ -4182,6 +4214,262 @@ public class PropServerConfiguration implements ServerConfiguration {
         @Override
         public boolean isEnabled() {
             return metricsEnabled;
+        }
+    }
+
+    private class PropMqttServerConfiguration implements MqttServerConfiguration {
+
+        @Override
+        public int getBinParamCountCapacity() {
+            return 0;
+        }
+
+        @Override
+        public int getCharacterStoreCapacity() {
+            return 0;
+        }
+
+        @Override
+        public int getCharacterStorePoolCapacity() {
+            return 0;
+        }
+
+        @Override
+        public SqlExecutionCircuitBreakerConfiguration getCircuitBreakerConfiguration() {
+            return null;
+        }
+
+        @Override
+        public int getConnectionPoolInitialCapacity() {
+            return 0;
+        }
+
+        @Override
+        public DateLocale getDefaultDateLocale() {
+            return null;
+        }
+
+        @Override
+        public String getDefaultPassword() {
+            return "";
+        }
+
+        @Override
+        public String getDefaultUsername() {
+            return "";
+        }
+
+        @Override
+        public IODispatcherConfiguration getDispatcherConfiguration() {
+            return propMqttServerDispatcherConfiguration;
+        }
+
+        @Override
+        public FactoryProvider getFactoryProvider() {
+            return factoryProvider;
+        }
+
+        @Override
+        public int getForceRecvFragmentationChunkSize() {
+            return 0;
+        }
+
+        @Override
+        public int getForceSendFragmentationChunkSize() {
+            return 0;
+        }
+
+        @Override
+        public int getInsertCacheBlockCount() {
+            return 0;
+        }
+
+        @Override
+        public int getInsertCacheRowCount() {
+            return 0;
+        }
+
+        @Override
+        public int getMaxBlobSizeOnQuery() {
+            return 0;
+        }
+
+        @Override
+        public int getNamedStatementCacheCapacity() {
+            return 0;
+        }
+
+        @Override
+        public int getNamesStatementPoolCapacity() {
+            return 0;
+        }
+
+        @Override
+        public NetworkFacade getNetworkFacade() {
+            return NetworkFacadeImpl.INSTANCE;
+        }
+
+        @Override
+        public int getPendingWritersCacheSize() {
+            return 0;
+        }
+
+        @Override
+        public String getReadOnlyPassword() {
+            return "";
+        }
+
+        @Override
+        public String getReadOnlyUsername() {
+            return "";
+        }
+
+        @Override
+        public int getRecvBufferSize() {
+            return 0;
+        }
+
+        @Override
+        public int getSelectCacheBlockCount() {
+            return 0;
+        }
+
+        @Override
+        public int getSelectCacheRowCount() {
+            return 0;
+        }
+
+        @Override
+        public int getSendBufferSize() {
+            return 0;
+        }
+
+        @Override
+        public String getServerVersion() {
+            return "";
+        }
+
+        @Override
+        public int getUpdateCacheBlockCount() {
+            return 0;
+        }
+
+        @Override
+        public int getUpdateCacheRowCount() {
+            return 0;
+        }
+
+        @Override
+        public int getWorkerCount() {
+            return 0;
+        }
+
+        @Override
+        public boolean isInsertCacheEnabled() {
+            return false;
+        }
+
+        @Override
+        public boolean isReadOnlyUserEnabled() {
+            return false;
+        }
+
+        @Override
+        public boolean isSelectCacheEnabled() {
+            return false;
+        }
+
+        @Override
+        public boolean isUpdateCacheEnabled() {
+            return false;
+        }
+
+        @Override
+        public boolean readOnlySecurityContext() {
+            return false;
+        }
+    }
+
+    private class PropMqttServerDispatcherConfiguration implements IODispatcherConfiguration {
+
+        @Override
+        public int getBindIPv4Address() {
+            return mqttNetBindIPv4Address;
+        }
+
+        @Override
+        public int getBindPort() {
+            return mqttNetBindPort;
+        }
+
+        @Override
+        public MillisecondClock getClock() {
+            return MillisecondClockImpl.INSTANCE;
+        }
+
+        @Override
+        public String getDispatcherLogName() {
+            return "mqtt-server";
+        }
+
+        @Override
+        public EpollFacade getEpollFacade() {
+            return EpollFacadeImpl.INSTANCE;
+        }
+
+        @Override
+        public long getHeartbeatInterval() {
+            return -1L;
+        }
+
+        @Override
+        public boolean getHint() {
+            return false;
+        }
+
+        @Override
+        public KqueueFacade getKqueueFacade() {
+            return KqueueFacadeImpl.INSTANCE;
+        }
+
+        @Override
+        public int getLimit() {
+            return mqttConnectionLimit;
+        }
+
+        @Override
+        public NetworkFacade getNetworkFacade() {
+            return NetworkFacadeImpl.INSTANCE;
+        }
+
+        @Override
+        public long getQueueTimeout() {
+            return -1;
+        }
+
+        @Override
+        public int getRcvBufSize() {
+            return (int) mqttNetConnectionRecvBuf;
+        }
+
+        @Override
+        public SelectFacade getSelectFacade() {
+            return SelectFacadeImpl.INSTANCE;
+        }
+
+        @Override
+        public int getSndBufSize() {
+            return (int) mqttNetConnectionSendBuf;
+        }
+
+        @Override
+        public int getTestConnectionBufferSize() {
+            return netTestConnectionBufferSize;
+        }
+
+        @Override
+        public long getTimeout() {
+            return mqttNetIdleConnectionTimeout;
         }
     }
 

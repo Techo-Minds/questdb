@@ -27,6 +27,8 @@ open module io.questdb {
     requires static org.jetbrains.annotations;
     requires static java.management;
     requires jdk.management;
+    requires java.naming;
+    requires java.logging;
 
     uses io.questdb.griffin.FunctionFactory;
     exports io.questdb;
@@ -118,6 +120,7 @@ open module io.questdb {
     exports io.questdb.griffin.engine.functions.json;
     exports io.questdb.std.filewatch;
     exports io.questdb.griffin.engine.table.parquet;
+    exports io.questdb.cutlass.mqtt;
 
     provides io.questdb.griffin.FunctionFactory with
 

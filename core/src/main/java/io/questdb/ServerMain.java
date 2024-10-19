@@ -39,6 +39,7 @@ import io.questdb.cutlass.auth.EllipticCurveAuthenticatorFactory;
 import io.questdb.cutlass.auth.LineAuthenticatorFactory;
 import io.questdb.cutlass.http.*;
 import io.questdb.cutlass.line.tcp.StaticChallengeResponseMatcher;
+import io.questdb.cutlass.mqtt.MqttServer;
 import io.questdb.cutlass.pgwire.PGWireConfiguration;
 import io.questdb.cutlass.pgwire.PGWireServer;
 import io.questdb.cutlass.pgwire.ReadOnlyUsersAwareSecurityContextFactory;
@@ -75,6 +76,7 @@ public class ServerMain implements Closeable {
     private FileWatcher fileWatcher;
     private HttpServer httpServer;
     private boolean initialized;
+    private MqttServer mqttServer;
     private WorkerPoolManager workerPoolManager;
 
     public ServerMain(String... args) {
@@ -401,6 +403,14 @@ public class ServerMain implements Closeable {
         // pg wire
         freeOnExit.register(pgWireServer = services().createPGWireServer(
                 config.getPGWireConfiguration(),
+                engine,
+                workerPoolManager,
+                metrics
+        ));
+
+        // mqtt
+        freeOnExit.register(mqttServer = services().createMqttServer(
+                config.getMqttServerConfiguration(),
                 engine,
                 workerPoolManager,
                 metrics

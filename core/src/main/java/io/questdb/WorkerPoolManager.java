@@ -148,7 +148,8 @@ public abstract class WorkerPoolManager implements Scrapable {
         LINE_TCP_IO("line-tcp-io"),
         LINE_TCP_WRITER("line-tcp-writer"),
         OTHER("other"),
-        WAL_APPLY("wal-apply");
+        WAL_APPLY("wal-apply"),
+        MQTT_SERVER("mqtt");
 
         private final String requester;
 
