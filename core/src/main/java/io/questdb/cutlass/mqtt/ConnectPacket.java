@@ -68,15 +68,15 @@ public class ConnectPacket implements ControlPacket {
             byte2     [           Remaining Length              ]
         */
         int pos = 0;
-        byte fhb = Unsafe.getUnsafe().getByte(ptr);
+        byte firstHeaderByte = Unsafe.getUnsafe().getByte(ptr);
 
-        byte type = (byte) ((fhb & 0xF0) >> 4);
+        byte type = (byte) ((firstHeaderByte & 0xF0) >> 4);
 
         if (type != PacketType.CONNECT) {
             throw new UnsupportedOperationException("passed wrong packet type, expected CONNECT");
         }
 
-        byte flag = (byte) (fhb & 0x0F);
+        byte flag = (byte) (firstHeaderByte & 0x0F);
 
         if (flag != 0b0000) {
             throw new MqttException();
@@ -84,10 +84,10 @@ public class ConnectPacket implements ControlPacket {
 
         pos++;
         // 2.1.4
-        long l = VariableByteInteger.decode(ptr + pos);
-        int remainingLength = VariableByteInteger.left(l);
-        int offset = VariableByteInteger.right(l);
-        pos += offset;
+        long messageLengthTuple = VariableByteInteger.decode(ptr + pos);
+        int messageLength = VariableByteInteger.left(messageLengthTuple);
+        int messageLengthOffset = VariableByteInteger.right(messageLengthTuple);
+        pos += messageLengthOffset;
 
         /*
             3.1.2 CONNECT VARIABLE HEADER
@@ -129,26 +129,23 @@ public class ConnectPacket implements ControlPacket {
 
         /*
             3.1.2.4 Clean Start
-            If set, any existing session must be discarded.
-            If not set, then Server should resume the last session,
-            or create a new one if there is no existing session.
+            1 -> discard existing session.
+            0 or not set -> resume last session, or create a new one.
         */
         cleanStart = ((connectFlags >> 1) & 1) == 1;
 
         /*
             3.1.2.5 Will Flag
-            If set, a Will Message included in the packet must be stored
-            on the server. This message is included in the CONNECT payload.
-            When the connection ends, the Will Message must be sent unless
-            it has been removed by a DISCONNECT packet.
+            True -> store will message on server, contained in payload.
+            On disconnect, send will message unless handled by DISCONNECT.
 
         */
         willFlag = ((connectFlags >> 2) & 1) == 1;
 
         /*
             3.1.2.6 Will QoS
-            If Will Flag == 0, Will QoS must be 0
-            If Will Flag == 1, then QoS can be 0, 1 or 2.
+            Will Flag == 0 -> Will QoS == 0
+            Will Flag == 1 -> Will QoS == 0 or 1 or 2
         */
         willQoS = (connectFlags & 0b00011000) >> 3;
 
@@ -158,8 +155,9 @@ public class ConnectPacket implements ControlPacket {
 
         /*
             3.1.2.7 Will Retain
-            If set, Will Message should be retained when published.
-            If Will Flag == 0, Will Retain must be 0.
+            True -> retain will message when published.
+            False -> don't.
+            If Will Flag == 0, Will Retain == 0
         */
 
         willRetain = ((connectFlags >> 5) & 1) == 1;
@@ -175,13 +173,11 @@ public class ConnectPacket implements ControlPacket {
         */
 
         userName = ((connectFlags >> 6) & 1) == 1;
-
         /*
             3.1.2.9 Password Flag
             If set, a Password must be present in the payload,
             and vice versa.
         */
-
         passwordFlag = ((connectFlags >> 7) & 1) == 1;
 
         /*
@@ -189,16 +185,9 @@ public class ConnectPacket implements ControlPacket {
             2 Byte Integer, time interval in seconds.
             Maximum time interval between Client finishes sending
             a Control Packet and the time it starts sending the next.
-            If zero, this feature is disabled, and the Client is not obliged
-            to send packets on a schedule.
-            If Keep Alive is non-zero, and no other packets are being sent,
-            the client must send a PINGREQ packet.
-            If Server returns a Server Keep Alive in the CONNACK packet,
-            the client must use that value instead.
-            Clients can send PINGREQ at any time and check for corresponding
-            PINGRESP to check that the server and network are available.
-            If a PINGRESP is not received after a reasonable amount of time,
-            the connection should be closed.
+            0 -> disabled.
+            non-zero -> clientsmust send PINGREQ and server can respond with PINGRESP.
+            Close connection if PINGRESP no received etc.
         */
         keepAlive = TwoByteInteger.decode(ptr + ++pos); // b8, b9
         pos += 2;
@@ -210,10 +199,10 @@ public class ConnectPacket implements ControlPacket {
             The length of the properties, as a Variable Byte Integer
         */
 
-        long pl = VariableByteInteger.decode(ptr + pos); // b...
-        int propertyLength = VariableByteInteger.left(pl);
-        int ploffset = VariableByteInteger.right(l);
-        pos += ploffset;
+        long propertyLengthTuple = VariableByteInteger.decode(ptr + pos); // b...
+        int propertyLength = VariableByteInteger.left(propertyLengthTuple);
+        int propertyLengthOffset = VariableByteInteger.right(propertyLengthTuple);
+        pos += propertyLengthOffset;
 
         int connectPropertiesStart = pos;
 
@@ -225,10 +214,9 @@ public class ConnectPacket implements ControlPacket {
                     /*
                         3.1.2.11.2 Session Expiry Interval
                         A four byte integer representing the session expiry interval in seconds.
-                        If included more than once, it is a Protocol Error.
-                        If zero or absent, the Session ends when the Network Connection is closed.
-                        If UINT_MAX, the session does not expire.
-                        If this is non-zero, the Client and Server must store the Session State.
+                        0 -> session ends with network connection closes.
+                        UINT_MAX -> session doesn't expire.
+                        non-zero -> client and server must store the session state.
                     */
                     sessionExpiryInterval = Unsafe.getUnsafe().getInt(ptr + pos);
                     pos += 4;
@@ -237,10 +225,10 @@ public class ConnectPacket implements ControlPacket {
                     /*
                         3.1.2.11.3 Receive Maximum
                         A two byte integer representing the Receive Maximum value.
-                        Cannot be zero.
+                        Must be non-zero.
                     */
                     if (receiveMaximum > 0) {
-                        throw new MqttException(); // protocl error, already handled receive maximum
+                        throw new MqttException(); // protocol error, already handled receive maximum
                     }
                     receiveMaximum = Unsafe.getUnsafe().getShort(ptr + pos);
                     pos += 2;
@@ -273,8 +261,8 @@ public class ConnectPacket implements ControlPacket {
                         A two byte integer indicating the highest value the Client will
                         accept as a Topic Alias. The Server must not send any Topic Alias
                         to the Client greater than this number.
-                        When zero, the Client does not accept Topic Aliases.
-                        If absent or zero, the Server must not send any aliases to the client.
+                        0 -> client does not accept aliases
+                        if 0 or absent, server should not send aliases.
                     */
                     break;
                 case PROP_REQUEST_PROBLEM_INFORMATION: // 23
@@ -283,11 +271,8 @@ public class ConnectPacket implements ControlPacket {
                         A byte of either 0 or 1. Defaults to 1.
                         Client uses this to indicate whether Reason String or
                         User Properties are sent in the case of failures.
-                        If 0, the Server may return a Reason String or User Properties
-                        on a CONNACK or DISCONNECT packet, but must not send on any packet
-                        other than PUBLISH, CONNACK or DISCONNECT.
-                        If Client receives these in any other packet, and the value is 0,
-                        it uses a DISCONNECT packet with Reason Coed 0x82 (Protocol Error).
+                        0 -> server may return a reason string or user properties on a CONNACK
+                        or DISCONNECT packet.
                     */
                     requestProblemInformation = Unsafe.getUnsafe().getByte(ptr + pos);
                     assert requestProblemInformation == 0 || requestProblemInformation == 1;
@@ -298,8 +283,6 @@ public class ConnectPacket implements ControlPacket {
                         3.1.2.11.8 User Property
                         UTF-8 String Pair which can occur multiple times.
                         The same name can appear more than once.
-                        Used to send connection related properties from Client
-                        to the Server.
                     */
                     // todo: implement UTF-8 String Pairs and storage for these user properties
                     break;
@@ -307,7 +290,7 @@ public class ConnectPacket implements ControlPacket {
                     /*
                         3.1.2.11.9 Authentication Method
                         A UTF-8 Encoded String containing the name of the authentication method
-                        used for extended authentication. Protocol Error if included more than once.
+                        used for extended authentication.
                         If absent, extended authentication is not performed.
                     */
                     // todo: authentication method
@@ -315,31 +298,29 @@ public class ConnectPacket implements ControlPacket {
                 case PROP_AUTHENTICATION_DATA: // 22
                     /*
                         3.1.2.11.10 Authentication Data
-                        Binary Data containing the authentication data. Protocol Error to include
-                        if there is no authentication method.
-                        Protocol Error to include more than once.
+                        Binary Data containing the authentication data.
                     */
                     // todo: authentication data
                     break;
             }
         }
 
-            /*
-                3.1.3 CONNECT Payload
-                The Payload contains one or more length prefixed fields, the
-                presence of which is determined by flags in the Variable Header.
-                If present, the fields must appear in the following order:
-                Client Identifier, Will Properties, Will Topic, Will Payload, User Name, Password
+        /*
+            3.1.3 CONNECT Payload
+            The Payload contains one or more length prefixed fields, the
+            presence of which is determined by flags in the Variable Header.
+            If present, the fields must appear in the following order:
+            Client Identifier, Will Properties, Will Topic, Will Payload, User Name, Password
 
-                3.1.3.1 Client Identifier (ClientID)
-                Must be the first field in the payload.
-                Is used to identify state held for the session between Client and Server.
-                Must be a UTF-8 Encoded String
-                Must support 1-23 Alphanumeric (caps included) characters.
-                May support more.
-                Server may allow Client to give a 0 length id. Server must then provide
-                a unique id in response.
-             */
+            3.1.3.1 Client Identifier (ClientID)
+            Must be the first field in the payload.
+            Is used to identify state held for the session between Client and Server.
+            Must be a UTF-8 Encoded String
+            Must support 1-23 Alphanumeric (caps included) characters.
+            May support more.
+            Server may allow Client to give a 0 length id. Server must then provide
+            a unique id in response.
+         */
 
 
         long clientIdLength = TwoByteInteger.decode(ptr + pos);
@@ -348,17 +329,15 @@ public class ConnectPacket implements ControlPacket {
         clientId = new DirectUtf8String().of(ptr + pos, ptr + pos + clientIdLength);
         pos += (int) clientIdLength;
 
-
-            /*
-                3.1.3.2 Will Properties
-                If Will Flag is 1, Will Properties is next. This contains Application Message
-                properties to be sent alongside the Will Message when it is published.
-             */
+        /*
+            3.1.3.2 Will Properties
+            If Will Flag is 1, Will Properties is next.
+        */
         if (willFlag) {
 
-            long wfi = VariableByteInteger.decode(ptr + pos);
-            int willPropertiesLength = VariableByteInteger.left(wfi);
-            int willPropertiesOffset = VariableByteInteger.right(wfi);
+            long willPropertiesTuple = VariableByteInteger.decode(ptr + pos);
+            int willPropertiesLength = VariableByteInteger.left(willPropertiesTuple);
+            int willPropertiesOffset = VariableByteInteger.right(willPropertiesTuple);
             pos += willPropertiesOffset;
 
             int willPropertiesStart = pos;
@@ -371,7 +350,6 @@ public class ConnectPacket implements ControlPacket {
                          /*
                             3.1.3.2.2 Will Delay Interval
                             A four byte integer representing the Will Delay Interval in seconds.
-                            Protocol Error to include more than once.
                             If absent, defaults to 0, and there is no delay.
                          */
                         // todo: sort out protocol errors here
@@ -384,7 +362,6 @@ public class ConnectPacket implements ControlPacket {
                                 Either a 0 or 1 byte.
                                 If 0, no format has been sent.
                                 If 1, its UTF-8 encoded.
-                                Protocol error to include more than once.
                              */
                         payloadFormatIndicator = Unsafe.getUnsafe().getByte(ptr + pos);
                         pos++;
@@ -392,11 +369,7 @@ public class ConnectPacket implements ControlPacket {
                     case PROP_MESSAGE_EXPIRY_INTERVAL: // 2
                             /*
                                 3.1.3.2.4 Message Expiry Interval
-                                Four byte integer. Protocol Error to include more than once.
-                                If present, represents the lifetime of the Will Message in seconds,
-                                and is sent as the Publication Expiry Interval when Server
-                                publishes the message.
-                                If absent, no Message Expiry Interval is sent.
+                                Four byte integer representing lifetime of will message.
                              */
                         messageExpiryInterval = Unsafe.getUnsafe().getInt(ptr + pos);
                         pos += 4;
@@ -411,37 +384,27 @@ public class ConnectPacket implements ControlPacket {
                             /*
                                 3.1.3.2.6 Response Topic
                                 UTF-8 Encoded String used for the Topic Name for a response message.
-                                Protocol Error to include more than once.
                              */
                         // todo:
                         break;
                     case PROP_CORRELATION_DATA: // 9
-                            /*
-                                3.1.3.2.7 Correlation Data
-                                Binary data used by Request Message sender to identify
-                                which request the received Response Message is associated with.
-                                Protoocl Error to include more than once.
-                                If not present, the Requester does not require any correlation data.
-                             */
+                    /*
+                        3.1.3.2.7 Correlation Data
+                        Binary data used by requester to correlate a PUBACK response.
+                     */
                         // todo
                         break;
                     case PROP_USER_PROPERTY: // 38
-                              /*
+                    /*
                         3.1.2.11.8 User Property
-                        UTF-8 String Pair which can occur multiple times.
-                        The same name can appear more than once.
-                        Used to send connection related properties from Client
-                        to the Server.
+                        UTF-8 String Pair, can appear multiples times.
                     */
                         // todo: implement UTF-8 String Pairs and storage for these user properties
                         break;
                 }
             }
-
                 /*
                     3.1.3.3 Will Topic
-                    If Will Flag is 1, next field is Will Topic, a
-                    UTF-8 Encoded String.
                  */
             // todo
 
@@ -457,7 +420,6 @@ public class ConnectPacket implements ControlPacket {
 
                 /*
                     3.1.3.6 Password
-
                 */
             // todo
         }
