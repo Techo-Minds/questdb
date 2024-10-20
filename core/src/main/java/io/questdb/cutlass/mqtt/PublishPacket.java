@@ -77,7 +77,7 @@ public class PublishPacket implements ControlPacket, Sinkable {
     }
 
     @Override
-    public void parse(long ptr) throws MqttException {
+    public int parse(long ptr) throws MqttException {
         /*
             3.1.1 Fixed Header
             Bit        7    6    5    4          3    2    1    0
@@ -156,7 +156,7 @@ public class PublishPacket implements ControlPacket, Sinkable {
                             publishes the message.
                             If absent, no Message Expiry Interval is sent.
                          */
-                    messageExpiryInterval = Unsafe.getUnsafe().getInt(ptr + pos);
+                    messageExpiryInterval = FourByteInteger.decode(ptr + pos);
                     pos += 4;
                     break;
                 case PROP_TOPIC_ALIAS: // 35
@@ -221,6 +221,7 @@ public class PublishPacket implements ControlPacket, Sinkable {
 
         payloadLength = remainingLength - pos + 2;
         payloadPtr = ptr + pos;
+        return pos;
     }
 
     @Override

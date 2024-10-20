@@ -24,21 +24,25 @@
 
 package io.questdb.cutlass.mqtt;
 
-import io.questdb.std.Unsafe;
+public class PingreqPacket implements ControlPacket {
 
-public class FirstHeaderByte {
-
-    public static byte decode(long ptr) {
-        return Unsafe.getUnsafe().getByte(ptr);
+    @Override
+    public void clear() {
+        throw new UnsupportedOperationException();
     }
 
-    public static byte getFlag(byte b) {
-        return (byte) (b & 0x0F);
+    @Override
+    public int getType() {
+        return -1;
     }
 
-    public static byte getType(byte b) {
-        return (byte) ((b & 0xF0) >> 4);
-
+    @Override
+    public int parse(long ptr) throws MqttException {
+        throw new UnsupportedOperationException();
     }
 
+    @Override
+    public int unparse(long ptr) throws MqttException {
+        return -1;
+    }
 }

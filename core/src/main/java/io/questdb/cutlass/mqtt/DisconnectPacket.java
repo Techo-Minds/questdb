@@ -26,19 +26,36 @@ package io.questdb.cutlass.mqtt;
 
 import io.questdb.std.Unsafe;
 
-public class FirstHeaderByte {
+public class DisconnectPacket implements ControlPacket {
+    public static DisconnectPacket INSTANCE = new DisconnectPacket();
 
-    public static byte decode(long ptr) {
-        return Unsafe.getUnsafe().getByte(ptr);
-    }
 
-    public static byte getFlag(byte b) {
-        return (byte) (b & 0x0F);
-    }
-
-    public static byte getType(byte b) {
-        return (byte) ((b & 0xF0) >> 4);
+    @Override
+    public void clear() {
 
     }
 
+    @Override
+    public int getType() {
+        return PacketType.DISCONNECT;
+    }
+
+    @Override
+    public int parse(long ptr) throws MqttException {
+        return -1;
+    }
+
+    @Override
+    public int unparse(long ptr) throws MqttException {
+        int pos = 0;
+        byte fhb = (byte) (PacketType.DISCONNECT << 4);
+
+        // 3.2.1
+        Unsafe.getUnsafe().putByte(ptr, fhb);
+        pos++;
+
+        // remaining length
+        pos += VariableByteInteger.encode(ptr + pos, 0);
+        return pos;
+    }
 }

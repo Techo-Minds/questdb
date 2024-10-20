@@ -52,6 +52,22 @@ public class ConnectPacket implements ControlPacket {
     boolean willRetain;
 
     public void clear() {
+        cleanStart = true;
+        clientId = null;
+        keepAlive = -1;
+        maximumPacketSize = -1;
+        messageExpiryInterval = -1;
+        passwordFlag = false;
+        payloadFormatIndicator = -1;
+        receiveMaximum = -1;
+        requestProblemInformation = 1;
+        sessionExpiryInterval = -1;
+        topicAliasMaximum = -1;
+        userName = false;
+        willDelayInterval = 0;
+        willFlag = false;
+        willQoS = 0;
+        willRetain = false;
 
     }
 
@@ -61,7 +77,7 @@ public class ConnectPacket implements ControlPacket {
 
     // assume we are at the very start of the packet
     @Override
-    public void parse(long ptr) throws MqttException {
+    public int parse(long ptr) throws MqttException {
           /*
             2.1.1 Fixed Header
             Bit        7    6    5    4          3    2    1    0
@@ -187,8 +203,8 @@ public class ConnectPacket implements ControlPacket {
             Maximum time interval between Client finishes sending
             a Control Packet and the time it starts sending the next.
             0 -> disabled.
-            non-zero -> clientsmust send PINGREQ and server can respond with PINGRESP.
-            Close connection if PINGRESP no received etc.
+            non-zero -> clients must send PINGREQ and server can respond with PINGRESP.
+            Close connection if PINGRESP not received etc.
         */
         keepAlive = TwoByteInteger.decode(ptr + ++pos); // b8, b9
         pos += 2;
@@ -219,7 +235,7 @@ public class ConnectPacket implements ControlPacket {
                         UINT_MAX -> session doesn't expire.
                         non-zero -> client and server must store the session state.
                     */
-                    sessionExpiryInterval = Unsafe.getUnsafe().getInt(ptr + pos);
+                    sessionExpiryInterval = FourByteInteger.decode(ptr + pos);
                     pos += 4;
                     break;
                 case PROP_RECEIVE_MAXIMUM: // 33
@@ -248,7 +264,7 @@ public class ConnectPacket implements ControlPacket {
                     if (maximumPacketSize > 0) {
                         throw new MqttException(); // protocol error, already handled receive maximum
                     }
-                    maximumPacketSize = Unsafe.getUnsafe().getInt(ptr + pos);
+                    maximumPacketSize = FourByteInteger.decode(ptr + pos);
                     pos += 4;
                     if (maximumPacketSize == 0) {
                         throw new MqttException(); // protocol error, cannot be 0
@@ -355,7 +371,7 @@ public class ConnectPacket implements ControlPacket {
                             If absent, defaults to 0, and there is no delay.
                          */
                         // todo: sort out protocol errors here
-                        willDelayInterval = Unsafe.getUnsafe().getInt(ptr + pos);
+                        willDelayInterval = FourByteInteger.decode(ptr + pos);
                         pos += 4;
                         break;
                     case PROP_PAYLOAD_FORMAT_INDICATOR: // 1
@@ -373,7 +389,7 @@ public class ConnectPacket implements ControlPacket {
                                 3.1.3.2.4 Message Expiry Interval
                                 Four byte integer representing lifetime of will message.
                              */
-                        messageExpiryInterval = Unsafe.getUnsafe().getInt(ptr + pos);
+                        messageExpiryInterval = FourByteInteger.decode(ptr + pos);
                         pos += 4;
                     case PROP_CONTENT_TYPE: // 3
                             /*
@@ -425,6 +441,8 @@ public class ConnectPacket implements ControlPacket {
                 */
             // todo
         }
+
+        return pos;
     }
 
     @Override

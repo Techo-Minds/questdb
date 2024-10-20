@@ -44,7 +44,7 @@ public class ConnackPacket implements ControlPacket {
     public int serverKeepAlive = -1; // 2 byte integer
     public DirectUtf8Sequence serverReference = null;
     public int sessionExpiryInterval = -1; // 4 byte integer
-    public boolean sessionPresent = false;
+    public byte sessionPresent = -1;
     public byte sharedSubscriptionAvailable = -1;
     public byte subscriptionIdentifiersAvailable = -1;
     public int topicAliasMaximum = -1; // 2 byte integer
@@ -55,13 +55,13 @@ public class ConnackPacket implements ControlPacket {
     public void clear() {
         reasonCode = -1;
         sessionExpiryInterval = -1;
-        sessionPresent = false;
+        sessionPresent = -1;
         receiveMaximum = -1;
         maximumQoS = -1;
         retainAvailable = -1;
         maximumPacketSize = -1;
         assignedClientIdentifier = null;
-        topicAliasMaximum = 0;
+        topicAliasMaximum = -1;
         reasonString = null;
         wildcardSubscriptionAvailable = -1;
         subscriptionIdentifiersAvailable = -1;
@@ -135,18 +135,18 @@ public class ConnackPacket implements ControlPacket {
 
     @Override
     public int getType() {
-        return 0;
+        return PacketType.CONNACK;
     }
 
     // no payload
 
     @Override
-    public void parse(long ptr) throws MqttException {
-
+    public int parse(long ptr) throws MqttException {
+        return -1;
     }
 
     public ConnackPacket success() {
-        sessionPresent = false;
+        sessionPresent = 0;
         reasonCode = ReasonCode.REASON_SUCCESS;
         receiveMaximum = 1;
         maximumQoS = 0;
@@ -158,7 +158,7 @@ public class ConnackPacket implements ControlPacket {
     @Override
     public int unparse(long ptr) throws MqttException {
         int pos = 0;
-        byte fhb = 0x20;
+        byte fhb = PacketType.CONNACK << 4;
 
         // 3.2.1
         Unsafe.getUnsafe().putByte(ptr, fhb);
@@ -174,15 +174,14 @@ public class ConnackPacket implements ControlPacket {
         // Seven 0 bits with last bit corresponding to Session Present flag.
         // If true, server is using a prior session.
         // If Clean Start is true, then must be set to 0
-        Unsafe.getUnsafe().putByte(ptr + pos, (byte) (sessionPresent ? 1 : 0));
+        Unsafe.getUnsafe().putByte(ptr + pos, sessionPresent);
         pos++;
 
         // 3.2.2.2 Connect Reason Code
         // If 0, success
         Unsafe.getUnsafe().putByte(ptr + pos, (byte) reasonCode);
         pos++;
-
-
+        
         // 3.2.2.3 CONNACK Properties
         // 3.2.2.3.1 Properties Length
         pos += VariableByteInteger.encode(ptr + pos, getPropertiesLength());

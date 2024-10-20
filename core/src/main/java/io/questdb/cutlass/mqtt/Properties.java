@@ -24,21 +24,5 @@
 
 package io.questdb.cutlass.mqtt;
 
-import io.questdb.std.Unsafe;
-
-public class FirstHeaderByte {
-
-    public static byte decode(long ptr) {
-        return Unsafe.getUnsafe().getByte(ptr);
-    }
-
-    public static byte getFlag(byte b) {
-        return (byte) (b & 0x0F);
-    }
-
-    public static byte getType(byte b) {
-        return (byte) ((b & 0xF0) >> 4);
-
-    }
-
+public class Properties {
 }

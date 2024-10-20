@@ -31,7 +31,7 @@ public interface ControlPacket {
 
     int getType();
 
-    void parse(long ptr) throws MqttException;
+    int parse(long ptr) throws MqttException;
 
     // returns new offset
     int unparse(long ptr) throws MqttException;

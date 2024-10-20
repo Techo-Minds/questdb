@@ -36,6 +36,7 @@ import io.questdb.log.Log;
 import io.questdb.log.LogFactory;
 import io.questdb.network.*;
 import io.questdb.std.MemoryTag;
+import io.questdb.std.Misc;
 import io.questdb.std.Os;
 import io.questdb.std.Unsafe;
 import io.questdb.std.str.DirectUtf8String;
@@ -54,14 +55,14 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
     private boolean connected = false;
     private CairoEngine engine;
     private long recvBuffer;
+    private long recvBufferPtr;
     private long recvBufferReadOffset = 0;
     private long recvBufferWriteOffset = 0;
-    private long recvPos;
     private long sendBuffer;
     private long sendBufferLimit;
+    private long sendBufferPtr;
     private long sendBufferReadOffset = 0;
     private long sendBufferWriteOffset = 0;
-    private long sendPos;
     private SuspendEvent suspendEvent;
 
 
@@ -75,15 +76,19 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
         this.engine = engine;
     }
 
+    @Override
+    public void close() {
+        Misc.free(authenticator);
+    }
+
     public boolean handleClientOperation(int operation)
             throws HeartBeatException, PeerIsSlowToReadException, ServerDisconnectException, PeerIsSlowToWriteException, QueryPausedException, PeerDisconnectedException, BadProtocolException, MqttException {
-        boolean keepGoing;
         switch (operation) {
             case IOOperation.READ:
-                keepGoing = handleClientRecv();
+                handleClientRecv();
                 break;
             case IOOperation.WRITE:
-//                keepGoing = handleClientSend();
+//                handleClientSend();
                 break;
             case IOOperation.HEARTBEAT:
                 throw registerDispatcherHeartBeat();
@@ -93,17 +98,18 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
         return false; // return useful;
     }
 
-
     @Override
     public MqttConnectionContext of(long fd, @NotNull IODispatcher<MqttConnectionContext> dispatcher) {
         super.of(fd, dispatcher);
 
         if (recvBuffer == 0) {
-            this.recvBuffer = Unsafe.malloc(recvBufferSize, MemoryTag.NATIVE_PGW_CONN);
+            this.recvBuffer = Unsafe.malloc(recvBufferSize, MemoryTag.NATIVE_MQTT_CONN);
+            this.recvBufferPtr = recvBuffer;
         }
         if (sendBuffer == 0) {
-            this.sendBuffer = Unsafe.malloc(sendBufferSize, MemoryTag.NATIVE_PGW_CONN);
+            this.sendBuffer = Unsafe.malloc(sendBufferSize, MemoryTag.NATIVE_MQTT_CONN);
             this.sendBufferLimit = (sendBuffer + sendBufferSize);
+            this.sendBufferPtr = sendBuffer;
         }
         authenticator.init(socket, recvBuffer, recvBuffer + recvBufferSize, sendBuffer, sendBufferLimit);
         return this;
@@ -117,7 +123,7 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
         this.suspendEvent = suspendEvent;
     }
 
-    private boolean handleClientRecv() throws PeerIsSlowToReadException, PeerIsSlowToWriteException, ServerDisconnectException, MqttException {
+    private boolean handleClientRecv() throws PeerIsSlowToReadException, PeerIsSlowToWriteException, ServerDisconnectException, MqttException, PeerDisconnectedException {
         boolean busyRecv = true;
         try {
             // this is address of where header ended in our receive buffer
@@ -125,38 +131,40 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
             long headerEnd = recvBuffer;
             int read = 0;
 
-            read = socket.recv(recvBuffer, recvBufferSize);
-            byte fhb = Unsafe.getUnsafe().getByte(recvBuffer);
-            byte type = (byte) ((fhb & 0xF0) >> 4);
+            read = socket.recv(recvBufferPtr, recvBufferSize);
+
+            LOG.debug().$("recv [fd=").$(getFd()).$(", count=").$(read).I$();
+            if (read < 0) {
+                throw registerDispatcherDisconnect(DISCONNECT_REASON_UNKNOWN_OPERATION);
+            }
+
+            busyRecv = false;
+
+            byte fhb = FirstHeaderByte.decode(recvBufferPtr);
+            byte type = FirstHeaderByte.getType(fhb);
 
             if (type != PacketType.CONNECT && !connected) {
-                throw new MqttException(); // protocolerror
+                throw new MqttException(); // protocol error
             }
 
             switch (type) {
                 case PacketType.CONNECT:
-
-                    LOG.debug().$("recv [fd=").$(getFd()).$(", count=").$(read).I$();
-                    if (read < 0) {
-                        throw registerDispatcherDisconnect(DISCONNECT_REASON_UNKNOWN_OPERATION);
-                    }
-
                     // parse connect
                     connectPacket.clear();
-                    connectPacket.parse(recvBuffer);
+                    connectPacket.parse(recvBufferPtr);
 
                     // send connack
                     connackPacket.clear();
-                    sendBufferSize = connackPacket.success().unparse(sendBuffer);
-                    socket.send(sendBuffer, sendBufferSize);
-
+                    int connackPacketLength = connackPacket.success().unparse(sendBufferPtr);
+                    socket.send(sendBufferPtr, connackPacketLength);
 
                     connected = true;
+                    sendBufferPtr = sendBuffer;
+                    recvBufferPtr = recvBuffer;
                     break;
                 case PacketType.PUBLISH:
                     // parse publish
-                    publishPacket.parse(recvBuffer);
-
+                    int publishPacketLength = publishPacket.parse(recvBufferPtr);
 
                     // make table if needed
                     TableToken tableToken = engine.getTableTokenIfExists("mqtt");
@@ -198,6 +206,17 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
                         row.append();
                         walWriter.commit();
                     }
+                    break;
+                case PacketType.PINGREQ:
+                    int length = PingrespPacket.INSTANCE.unparse(sendBufferPtr);
+                    socket.send(sendBufferPtr, length);
+                    sendBufferPtr = sendBuffer;
+                    recvBufferPtr = recvBuffer;
+                    break;
+                case PacketType.DISCONNECT:
+                    close();
+                    throw PeerDisconnectedException.INSTANCE;
+                    //return false;
             }
         } catch (Exception ex) {
             throw ex;
