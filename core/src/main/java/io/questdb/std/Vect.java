@@ -340,9 +340,7 @@ public final class Vect {
     public static native long sumLong(long pLong, long count);
 
     public static native long sumShort(long pLong, long count);
-
-    public static native double varSamp(long pDouble, long count);
-
+    
     private static native int memcmp(long src, long dst, long len);
 
     private static native void memcpy0(long src, long dst, long len);
