@@ -181,7 +181,7 @@ public class ConnackPacket implements ControlPacket {
         // If 0, success
         Unsafe.getUnsafe().putByte(ptr + pos, (byte) reasonCode);
         pos++;
-        
+
         // 3.2.2.3 CONNACK Properties
         // 3.2.2.3.1 Properties Length
         pos += VariableByteInteger.encode(ptr + pos, getPropertiesLength());
@@ -250,7 +250,7 @@ public class ConnackPacket implements ControlPacket {
             pos += reasonString.size();
         }
 
-        // 3.2.2.3.10 User Property
+//        // 3.2.2.3.10 User Property
 //        if (userProperties != null) {
 //            for (int i = 0; i < userProperties.length; i++) {
 //                Unsafe.getUnsafe().getByte(ptr + pos, MqttProperties.PROP_USER_PROPERTY);
@@ -259,6 +259,7 @@ public class ConnackPacket implements ControlPacket {
 //                pos += reasonString.size();
 //            }
 //        }
+
         // 3.2.2.3.11 Wildcard Subscription Available
         if (wildcardSubscriptionAvailable != -1) {
             Unsafe.getUnsafe().putByte(ptr + pos, MqttProperties.PROP_WILDCARD_SUBSCRIPTION_AVAILABLE);

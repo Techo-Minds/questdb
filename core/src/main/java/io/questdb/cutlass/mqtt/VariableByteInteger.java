@@ -52,26 +52,8 @@ import io.questdb.std.Unsafe;
     while ((encodedByte AND 128) != 0)
  */
 public class VariableByteInteger {
-
-    // return two ints, encoded in a long
-    // high bits is the variable integer
-    // low bits is the number of bytes used
-    public static long decode(long ptr) throws MqttException {
-        int m = 1;
-        int v = 0;
-        byte b;
-        int i = 0;
-        do {
-            b = Unsafe.getUnsafe().getByte(ptr + i);
-            v += (b & 127) * m;
-            if (m > 128 * 128 * 128) {
-                throw new MqttException(); // malformed variable byte integer
-            }
-            m *= 128;
-            i++;
-        } while ((b & 128) != 0);
-        return (((long) v)) << 32 | (i & 0xffffffffL);
-    }
+    public int length;
+    public int value;
 
     public static int encode(long ptr, int value) {
         int x = value;
@@ -88,11 +70,21 @@ public class VariableByteInteger {
         return i;
     }
 
-    public static int left(long l) {
-        return (int) (l >> 32);
-    }
-
-    public static int right(long l) {
-        return (int) l;
+    public void decode(long ptr) throws MqttException {
+        int m = 1;
+        int v = 0;
+        byte b;
+        int i = 0;
+        do {
+            b = Unsafe.getUnsafe().getByte(ptr + i);
+            v += (b & 127) * m;
+            if (m > 128 * 128 * 128) {
+                throw new MqttException(); // malformed variable byte integer
+            }
+            m *= 128;
+            i++;
+        } while ((b & 128) != 0);
+        value = v;
+        length = i;
     }
 }

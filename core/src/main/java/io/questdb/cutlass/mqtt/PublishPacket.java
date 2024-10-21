@@ -51,7 +51,7 @@ public class PublishPacket implements ControlPacket, Sinkable {
     public int topicAlias; // 3.3.2.3.4
     public DirectUtf8Sequence topicName;
     public CharSequenceObjHashMap<DirectUtf8Sequence> userProperties = new CharSequenceObjHashMap<>(); // 3.3.2.3.7
-
+    private VariableByteInteger vbi = new VariableByteInteger();
 
     @Override
     public void clear() {
@@ -102,10 +102,10 @@ public class PublishPacket implements ControlPacket, Sinkable {
         pos++;
 
         // 3.3.1.4 Remaining Length
-        long l = VariableByteInteger.decode(ptr + pos);
-        int remainingLength = VariableByteInteger.left(l);
-        int offset = VariableByteInteger.right(l);
-        pos += offset;
+
+        vbi.decode(ptr + pos);
+        int remainingLength = (int) vbi.value;
+        pos += vbi.length;
 
         // 3.3.2.1 Topic Name
 
@@ -125,10 +125,9 @@ public class PublishPacket implements ControlPacket, Sinkable {
         // 3.3.2.3 PUBLISH Properties
 
         // 3.3.1.4 Property Length
-        long l2 = VariableByteInteger.decode(ptr + pos);
-        int propertiesLength = VariableByteInteger.left(l2);
-        int offset2 = VariableByteInteger.right(l2);
-        pos += offset2;
+        vbi.decode(ptr + pos);
+        int propertiesLength = vbi.value;
+        pos += vbi.length;
 
         int propertiesStart = pos;
 
@@ -202,10 +201,9 @@ public class PublishPacket implements ControlPacket, Sinkable {
                         3.3.2.3.8 Subscription Identifier
                         Variable Byte Integer, with value of 1 to 268,435,455
                      */
-                    long l3 = VariableByteInteger.decode(ptr + pos);
-                    subscriptionIdentifier = VariableByteInteger.left(l3);
-                    int subscriptionIdentifierOffset = VariableByteInteger.right(l3);
-                    pos += subscriptionIdentifierOffset;
+                    vbi.decode(ptr + pos);
+                    subscriptionIdentifier = (int) vbi.value;
+                    pos += vbi.length;
                     break;
                 case PROP_CONTENT_TYPE: // 3
                     /*

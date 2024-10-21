@@ -31,6 +31,19 @@ import io.questdb.std.str.Utf8String;
 // https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901018
 public interface ControlPacket {
 
+    static int binaryDecodeLength(byte[] binary) {
+        return binary.length + 2;
+    }
+
+    static byte[] nextBinaryData(long ptr) {
+        int length = TwoByteInteger.decode(ptr);
+        byte[] retVal = new byte[length];
+        for (int i = 0; i < length; i++) {
+            retVal[i] = nextByte(ptr + 2 + i);
+        }
+        return retVal;
+    }
+
     static byte nextByte(long ptr) {
         return Unsafe.getUnsafe().getByte(ptr);
     }
@@ -43,7 +56,7 @@ public interface ControlPacket {
         return TwoByteInteger.decode(ptr);
     }
 
-    static Utf8String nextUtf8String(long ptr) {
+    static Utf8String nextUtf8s(long ptr) {
         long length = TwoByteInteger.decode(ptr);
         DirectUtf8String direct = new DirectUtf8String().of(ptr + 2, ptr + 2 + length);
         return new Utf8String(String.valueOf(direct));

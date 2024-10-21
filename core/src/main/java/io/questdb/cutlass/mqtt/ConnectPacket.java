@@ -24,6 +24,7 @@
 
 package io.questdb.cutlass.mqtt;
 
+import io.questdb.std.CharSequenceObjHashMap;
 import io.questdb.std.Unsafe;
 import io.questdb.std.str.Utf8String;
 
@@ -32,6 +33,8 @@ import static io.questdb.cutlass.mqtt.MqttProperties.*;
 
 public class ConnectPacket implements ControlPacket {
 
+    byte[] authenticationData;
+    Utf8String authenticationMethod = null;
     boolean cleanStart;
     Utf8String clientId = null;
     int keepAlive = -1;
@@ -44,10 +47,12 @@ public class ConnectPacket implements ControlPacket {
     int sessionExpiryInterval = -1;
     short topicAliasMaximum = -1;
     boolean userName;
+    CharSequenceObjHashMap<Utf8String> userProperties = new CharSequenceObjHashMap<>();
     int willDelayInterval = 0;
     boolean willFlag;
-    int willQoS;
+    int willQoS = 0;
     boolean willRetain;
+    private VariableByteInteger vbi;
 
     public void clear() {
         cleanStart = true;
@@ -66,7 +71,9 @@ public class ConnectPacket implements ControlPacket {
         willFlag = false;
         willQoS = 0;
         willRetain = false;
-
+        userProperties.clear();
+        authenticationMethod = null;
+        authenticationData = null;
     }
 
     public int getType() {
@@ -83,26 +90,25 @@ public class ConnectPacket implements ControlPacket {
             byte2     [           Remaining Length              ]
         */
         int pos = 0;
-        byte firstHeaderByte = Unsafe.getUnsafe().getByte(ptr);
-
-        byte type = (byte) ((firstHeaderByte & 0xF0) >> 4);
+        byte firstHeaderByte = Unsafe.getUnsafe().getByte(ptr + pos);
+        byte type = FirstHeaderByte.getType(firstHeaderByte);
 
         if (type != PacketType.CONNECT) {
             throw new UnsupportedOperationException("passed wrong packet type, expected CONNECT");
         }
 
-        byte flag = (byte) (firstHeaderByte & 0x0F);
+        byte flag = FirstHeaderByte.getFlag(firstHeaderByte);
 
         if (flag != 0b0000) {
             throw new MqttException();
         }
 
         pos++;
+
         // 2.1.4
-        long messageLengthTuple = VariableByteInteger.decode(ptr + pos);
-        int messageLength = VariableByteInteger.left(messageLengthTuple);
-        int messageLengthOffset = VariableByteInteger.right(messageLengthTuple);
-        pos += messageLengthOffset;
+        vbi.decode(ptr + pos);
+        int messageLength = (int) vbi.value;
+        pos += vbi.length;
 
         /*
             3.1.2 CONNECT VARIABLE HEADER
@@ -214,10 +220,9 @@ public class ConnectPacket implements ControlPacket {
             The length of the properties, as a Variable Byte Integer
         */
 
-        long propertyLengthTuple = VariableByteInteger.decode(ptr + pos); // b...
-        int propertyLength = VariableByteInteger.left(propertyLengthTuple);
-        int propertyLengthOffset = VariableByteInteger.right(propertyLengthTuple);
-        pos += propertyLengthOffset;
+        vbi.decode(ptr + pos);
+        int propertyLength = (int) vbi.value;
+        pos += vbi.length;
 
         int connectPropertiesStart = pos;
 
@@ -299,7 +304,14 @@ public class ConnectPacket implements ControlPacket {
                         UTF-8 String Pair which can occur multiple times.
                         The same name can appear more than once.
                     */
-                    // todo: implement UTF-8 String Pairs and storage for these user properties
+                    Utf8String key = ControlPacket.nextUtf8s(ptr + pos);
+                    pos += ControlPacket.utf8sDecodeLength(key);
+
+                    Utf8String value = ControlPacket.nextUtf8s(ptr + pos);
+                    pos += ControlPacket.utf8sDecodeLength(value);
+                    CharSequence keyChars = key.isAscii() ? key.asAsciiCharSequence() : key.toString();
+
+                    userProperties.put(keyChars, value);
                     break;
                 case PROP_AUTHENTICATION_METHOD: // 21
                     /*
@@ -308,14 +320,16 @@ public class ConnectPacket implements ControlPacket {
                         used for extended authentication.
                         If absent, extended authentication is not performed.
                     */
-                    // todo: authentication method
+                    authenticationMethod = ControlPacket.nextUtf8s(ptr + pos);
+                    pos += ControlPacket.utf8sDecodeLength(authenticationMethod);
                     break;
                 case PROP_AUTHENTICATION_DATA: // 22
                     /*
                         3.1.2.11.10 Authentication Data
                         Binary Data containing the authentication data.
                     */
-                    // todo: authentication data
+                    authenticationData = ControlPacket.nextBinaryData(ptr + pos);
+                    pos += ControlPacket.binaryDecodeLength(authenticationData);
                     break;
             }
         }
@@ -337,8 +351,7 @@ public class ConnectPacket implements ControlPacket {
             a unique id in response.
          */
 
-
-        clientId = ControlPacket.nextUtf8String(ptr + pos);
+        clientId = ControlPacket.nextUtf8s(ptr + pos);
         pos += ControlPacket.utf8sDecodeLength(clientId);
 
         /*
@@ -347,10 +360,9 @@ public class ConnectPacket implements ControlPacket {
         */
         if (willFlag) {
 
-            long willPropertiesTuple = VariableByteInteger.decode(ptr + pos);
-            int willPropertiesLength = VariableByteInteger.left(willPropertiesTuple);
-            int willPropertiesOffset = VariableByteInteger.right(willPropertiesTuple);
-            pos += willPropertiesOffset;
+            vbi.decode(ptr + pos);
+            int willPropertiesLength = (int) vbi.value;
+            pos += vbi.length;
 
             int willPropertiesStart = pos;
 
