@@ -51,6 +51,52 @@ public class MqttProperties {
     public static final byte PROP_USER_PROPERTY = 0x26;
     public static final byte PROP_WILDCARD_SUBSCRIPTION_AVAILABLE = 0x28;
     public static final byte PROP_WILL_DELAY_INTERVAL = 0x18;
+    public static boolean initialised = false;
+    public static String[] propNames = new String[256];
+
+    public static String getPropName(byte prop) {
+        assert initialised;
+        return propNames[prop & 0xFF];
+    }
+
+    public static synchronized void init() {
+        if (initialised) {
+            return;
+        }
+
+        setPropName(PROP_ASSIGNED_CLIENT_IDENTIFIER, "Assigned Client Identifier");
+        setPropName(PROP_AUTHENTICATION_DATA, "Authentication Data");
+        setPropName(PROP_AUTHENTICATION_METHOD, "Authentication Method");
+        setPropName(PROP_CONTENT_TYPE, "Content Type");
+        setPropName(PROP_CORRELATION_DATA, "Correlation Data");
+        setPropName(PROP_MAXIMUM_PACKET_SIZE, "Maximum Packet Size");
+        setPropName(PROP_MAXIMUM_QOS, "Maximum QoS");
+        setPropName(PROP_MESSAGE_EXPIRY_INTERVAL, "Message Expiry Interval");
+        setPropName(PROP_PAYLOAD_FORMAT_INDICATOR, "Payload Format Indicator");
+        setPropName(PROP_REASON_STRING, "Reason String");
+        setPropName(PROP_RECEIVE_MAXIMUM, "Receive Maximum");
+        setPropName(PROP_REQUEST_PROBLEM_INFORMATION, "Request Problem Information");
+        setPropName(PROP_RESPONSE_INFORMATION, "Response Information");
+        setPropName(PROP_RESPONSE_TOPIC, "Response Topic");
+        setPropName(PROP_RETAIN_AVAILABLE, "Retain Available");
+        setPropName(PROP_SERVER_KEEP_ALIVE, "Server Keep Alive");
+        setPropName(PROP_SERVER_REFERENCE, "Server Reference");
+        setPropName(PROP_SESSION_EXPIRY_INTERVAL, "Session Expiry Interval");
+        setPropName(PROP_SHARED_SUBSCRIPTION_AVAILABLE, "Shared Subscription Available");
+        setPropName(PROP_SUBSCRIPTION_IDENTIFIER, "Subscription Identifier");
+        setPropName(PROP_SUBSCRIPTION_IDENTIFIERS_AVAILABLE, "Subscription Identifiers Available");
+        setPropName(PROP_TOPIC_ALIAS, "Topic Alias");
+        setPropName(PROP_TOPIC_ALIAS_MAXIMUM, "Topic Alias Maximum");
+        setPropName(PROP_USER_PROPERTY, "User Property");
+        setPropName(PROP_WILDCARD_SUBSCRIPTION_AVAILABLE, "Wildcard Subscription Available");
+        setPropName(PROP_WILL_DELAY_INTERVAL, "Will Delay Interval");
+
+        initialised = true;
+    }
+
+    private static void setPropName(byte prop, String name) {
+        propNames[prop & 0xFF] = name;
+    }
 }
 
 

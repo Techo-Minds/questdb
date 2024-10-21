@@ -24,8 +24,34 @@
 
 package io.questdb.cutlass.mqtt;
 
+import io.questdb.std.Unsafe;
+import io.questdb.std.str.DirectUtf8String;
+import io.questdb.std.str.Utf8String;
+
 // https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901018
 public interface ControlPacket {
+
+    static byte nextByte(long ptr) {
+        return Unsafe.getUnsafe().getByte(ptr);
+    }
+
+    static long nextFourByteInteger(long ptr) {
+        return FourByteInteger.decode(ptr);
+    }
+
+    static int nextTwoByteInteger(long ptr) {
+        return TwoByteInteger.decode(ptr);
+    }
+
+    static Utf8String nextUtf8String(long ptr) {
+        long length = TwoByteInteger.decode(ptr);
+        DirectUtf8String direct = new DirectUtf8String().of(ptr + 2, ptr + 2 + length);
+        return new Utf8String(String.valueOf(direct));
+    }
+
+    static int utf8sDecodeLength(Utf8String s) {
+        return s.size() + 2;
+    }
 
     void clear();
 
@@ -35,8 +61,6 @@ public interface ControlPacket {
 
     // returns new offset
     int unparse(long ptr) throws MqttException;
-
-
 
 
 

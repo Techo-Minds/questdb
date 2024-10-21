@@ -24,5 +24,8 @@
 
 package io.questdb.cutlass.mqtt;
 
-public class Properties {
+public interface MqttProperty {
+    public byte getId();
+
+    public int getSize();
 }

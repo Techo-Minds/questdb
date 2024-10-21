@@ -25,8 +25,6 @@
 package io.questdb.cutlass.mqtt;
 
 import io.questdb.std.Unsafe;
-import io.questdb.std.str.DirectUtf8String;
-import io.questdb.std.str.Utf8Sequence;
 import io.questdb.std.str.Utf8String;
 
 import static io.questdb.cutlass.mqtt.MqttProperties.*;
@@ -35,7 +33,7 @@ import static io.questdb.cutlass.mqtt.MqttProperties.*;
 public class ConnectPacket implements ControlPacket {
 
     boolean cleanStart;
-    Utf8Sequence clientId = null;
+    Utf8String clientId = null;
     int keepAlive = -1;
     int maximumPacketSize = -1;
     int messageExpiryInterval = -1;
@@ -340,12 +338,8 @@ public class ConnectPacket implements ControlPacket {
          */
 
 
-        long clientIdLength = TwoByteInteger.decode(ptr + pos);
-        pos += 2;
-
-        clientId = new DirectUtf8String().of(ptr + pos, ptr + pos + clientIdLength);
-        clientId = new Utf8String(String.valueOf(clientId));
-        pos += (int) clientIdLength;
+        clientId = ControlPacket.nextUtf8String(ptr + pos);
+        pos += ControlPacket.utf8sDecodeLength(clientId);
 
         /*
             3.1.3.2 Will Properties
