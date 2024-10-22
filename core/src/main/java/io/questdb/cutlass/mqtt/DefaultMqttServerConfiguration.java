@@ -179,7 +179,7 @@ public class DefaultMqttServerConfiguration implements MqttServerConfiguration {
 
     @Override
     public int getSendBufferSize() {
-        return 1024 * 1024;
+        return 4096;
     }
 
     @Override

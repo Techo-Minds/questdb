@@ -25,21 +25,14 @@
 package io.questdb.cutlass.mqtt;
 
 import io.questdb.cairo.CairoEngine;
-import io.questdb.cairo.TableToken;
-import io.questdb.cairo.wal.WalWriter;
 import io.questdb.cutlass.auth.SocketAuthenticator;
 import io.questdb.cutlass.pgwire.BadProtocolException;
-import io.questdb.griffin.SqlException;
-import io.questdb.griffin.SqlExecutionContext;
-import io.questdb.griffin.SqlExecutionContextImpl;
 import io.questdb.log.Log;
 import io.questdb.log.LogFactory;
 import io.questdb.network.*;
 import io.questdb.std.MemoryTag;
 import io.questdb.std.Misc;
-import io.questdb.std.Os;
 import io.questdb.std.Unsafe;
-import io.questdb.std.str.DirectUtf8String;
 import org.jetbrains.annotations.NotNull;
 
 import static io.questdb.network.IODispatcher.DISCONNECT_REASON_UNKNOWN_OPERATION;
@@ -65,7 +58,6 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
     private long sendBufferWriteOffset = 0;
     private SuspendEvent suspendEvent;
 
-
     public MqttConnectionContext(
             CairoEngine engine,
             MqttServerConfiguration configuration) {
@@ -75,6 +67,7 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
                 engine.getMetrics().getMqttMetrics().getConnectionCountGauge());
         this.engine = engine;
         this.nf = configuration.getNetworkFacade();
+        TableFacade.init(engine);
     }
 
     @Override
@@ -176,46 +169,7 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
                     // parse publish
                     int publishPacketLength = publishPacket.parse(recvBuffer);
 
-                    // make table if needed
-                    TableToken tableToken = engine.getTableTokenIfExists("mqtt");
-                    if (tableToken == null) {
-                        try (SqlExecutionContext executionContext = new SqlExecutionContextImpl(engine, 1).with(engine.getConfiguration().getFactoryProvider().getSecurityContextFactory().getRootContext(),
-                                null,
-                                null)) {
-                            engine.ddl("" +
-                                            "CREATE TABLE mqtt ( timestamp TIMESTAMP, " +
-                                            "topic VARCHAR, " +
-                                            "qos BYTE, " +
-                                            "retain BOOLEAN, " +
-                                            "clientId VARCHAR, " +
-                                            "payloadBinary BINARY, " +
-                                            "payloadVarchar VARCHAR) " +
-                                            " TIMESTAMP(timestamp) PARTITION BY DAY WAL;",
-                                    executionContext);
-                        } catch (SqlException ignore) {
-                            throw new RuntimeException();
-                        }
-                        tableToken = engine.getTableTokenIfExists("mqtt");
-                        if (tableToken == null) {
-                            throw new RuntimeException();
-                        }
-                    }
-
-                    // commit to wal
-                    try (WalWriter walWriter = engine.getWalWriter(tableToken)) {
-                        var row = walWriter.newRow(Os.currentTimeMicros());
-                        row.putVarchar(1, publishPacket.topicName);
-                        row.putByte(2, publishPacket.qos);
-                        row.putBool(3, publishPacket.retain == 1);
-                        row.putVarchar(4, connectPacket.clientId);
-                        if (publishPacket.payloadFormatIndicator == 1) {
-                            row.putVarchar(6, new DirectUtf8String().of(publishPacket.payloadPtr, publishPacket.payloadPtr + publishPacket.payloadLength));
-                        } else {
-                            row.putBin(5, publishPacket.payloadPtr, publishPacket.payloadLength);
-                        }
-                        row.append();
-                        walWriter.commit();
-                    }
+                    TableFacade.appendRow(publishPacket, connectPacket);
 
                     if (publishPacket.qos == 1) {
                         pubackPacket.packetIdentifier = publishPacket.packetIdentifier;
@@ -232,6 +186,8 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
                     close();
                     throw PeerDisconnectedException.INSTANCE;
             }
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         } finally {
 
         }
@@ -258,7 +214,7 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
             // The socket is not ready for read.
             throw PeerIsSlowToWriteException.INSTANCE;
         }
-        
+
         return n;
     }
 

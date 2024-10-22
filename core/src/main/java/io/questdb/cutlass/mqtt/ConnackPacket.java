@@ -331,7 +331,12 @@ public class ConnackPacket implements ControlPacket {
 
         // 3.2.2.3.18 Authentication Data
         if (authenticationData != null) {
-            throw new UnsupportedOperationException();
+            TwoByteInteger.encode(ptr + pos, authenticationData.length);
+            pos += 2;
+            for (int i = 0; i < authenticationData.length; i++) {
+                Unsafe.getUnsafe().putByte(ptr + pos, authenticationData[i]);
+                pos++;
+            }
         }
 
         return pos;
