@@ -43,19 +43,19 @@ import org.jetbrains.annotations.NotNull;
  * @see <a href="https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Online">Welford's algorithm</a>
  */
 public class CorrGroupByFunction extends DoubleFunction implements GroupByFunction, BinaryFunction {
-    protected final Function xFunction;
-    protected final Function yFunction;
+    protected final Function xFunc;
+    protected final Function yFunc;
     protected int valueIndex;
 
     protected CorrGroupByFunction(@NotNull Function arg0, @NotNull Function arg1) {
-        this.xFunction = arg0;
-        this.yFunction = arg1;
+        this.yFunc = arg0;
+        this.xFunc = arg1;
     }
 
     @Override
     public void computeFirst(MapValue mapValue, Record record, long rowId) {
-        final double x = xFunction.getDouble(record);
-        final double y = yFunction.getDouble(record);
+        final double y = yFunc.getDouble(record);
+        final double x = xFunc.getDouble(record);
         mapValue.putDouble(valueIndex, 0);
         mapValue.putDouble(valueIndex + 1, 0);
         mapValue.putDouble(valueIndex + 2, 0);
@@ -63,38 +63,38 @@ public class CorrGroupByFunction extends DoubleFunction implements GroupByFuncti
         mapValue.putDouble(valueIndex + 4, 0);
         mapValue.putLong(valueIndex + 5, 0);
 
-        if (Numbers.isFinite(x) && Numbers.isFinite(y)) {
-            aggregate(mapValue, x, y);
+        if (Numbers.isFinite(y) && Numbers.isFinite(x)) {
+            aggregate(mapValue, y, x);
         }
     }
 
     @Override
     public void computeNext(MapValue mapValue, Record record, long rowId) {
-        final double x = xFunction.getDouble(record);
-        final double y = yFunction.getDouble(record);
-        if (Numbers.isFinite(x) && Numbers.isFinite(y)) {
-            aggregate(mapValue, x, y);
+        final double y = yFunc.getDouble(record);
+        final double x = xFunc.getDouble(record);
+        if (Numbers.isFinite(y) && Numbers.isFinite(x)) {
+            aggregate(mapValue, y, x);
         }
     }
 
     @Override
     public double getDouble(Record rec) {
-        double sumX = rec.getDouble(valueIndex + 1);
-        double sumY = rec.getDouble(valueIndex + 3);
+        double sumY = rec.getDouble(valueIndex + 1);
+        double sumX = rec.getDouble(valueIndex + 3);
         double sumXY = rec.getDouble(valueIndex + 4);
         double count = rec.getLong(valueIndex + 5);
         if (count <= 0) {
             return Double.NaN;
         }
-        if (sumX == 0 || sumY == 0) {
+        if (sumY == 0 || sumX == 0) {
             return Double.NaN;
         }
-        return sumXY / Math.sqrt(sumX * sumY);
+        return sumXY / Math.sqrt(sumY * sumX);
     }
 
     @Override
     public Function getLeft() {
-        return xFunction;
+        return yFunc;
     }
 
     @Override
@@ -104,7 +104,7 @@ public class CorrGroupByFunction extends DoubleFunction implements GroupByFuncti
 
     @Override
     public Function getRight() {
-        return yFunction;
+        return xFunc;
     }
 
     @Override
@@ -154,26 +154,26 @@ public class CorrGroupByFunction extends DoubleFunction implements GroupByFuncti
         return false;
     }
 
-    protected void aggregate(MapValue mapValue, double x, double y) {
-        double meanX = mapValue.getDouble(valueIndex);
-        double sumX = mapValue.getDouble(valueIndex + 1);
-        double meanY = mapValue.getDouble(valueIndex + 2);
-        double sumY = mapValue.getDouble(valueIndex + 3);
+    protected void aggregate(MapValue mapValue, double y, double x) {
+        double meanY = mapValue.getDouble(valueIndex);
+        double sumY = mapValue.getDouble(valueIndex + 1);
+        double meanX = mapValue.getDouble(valueIndex + 2);
+        double sumX = mapValue.getDouble(valueIndex + 3);
         double sumXY = mapValue.getDouble(valueIndex + 4);
         long count = mapValue.getLong(valueIndex + 5) + 1;
 
-        double oldMeanX = meanX;
-        meanX += (x - meanX) / count;
-        sumX += (x - meanX) * (x - oldMeanX);
         double oldMeanY = meanY;
         meanY += (y - meanY) / count;
         sumY += (y - meanY) * (y - oldMeanY);
-        sumXY += (x - oldMeanX) * (y - meanY);
+        double oldMeanX = meanX;
+        meanX += (x - meanX) / count;
+        sumX += (x - meanX) * (x - oldMeanX);
+        sumXY += (y - oldMeanY) * (x - meanX);
 
-        mapValue.putDouble(valueIndex, meanX);
-        mapValue.putDouble(valueIndex + 1, sumX);
-        mapValue.putDouble(valueIndex + 2, meanY);
-        mapValue.putDouble(valueIndex + 3, sumY);
+        mapValue.putDouble(valueIndex, meanY);
+        mapValue.putDouble(valueIndex + 1, sumY);
+        mapValue.putDouble(valueIndex + 2, meanX);
+        mapValue.putDouble(valueIndex + 3, sumX);
         mapValue.putDouble(valueIndex + 4, sumXY);
         mapValue.addLong(valueIndex + 5, 1L);
     }
