@@ -24,13 +24,16 @@
 
 package io.questdb.cutlass.mqtt;
 
+import io.questdb.std.Chars;
 import io.questdb.std.ObjObjHashMap;
 import io.questdb.std.Unsafe;
 import io.questdb.std.str.DirectUtf8Sequence;
+import io.questdb.std.str.Utf8String;
 import io.questdb.std.str.Utf8s;
 
 // 3.2 CONNACK - Connect acknowledgement
 public class ConnackPacket implements ControlPacket {
+
     public DirectUtf8Sequence assignedClientIdentifier = null;
     public byte[] authenticationData = null;
     public DirectUtf8Sequence authenticationMethod = null;
@@ -48,7 +51,7 @@ public class ConnackPacket implements ControlPacket {
     public byte sharedSubscriptionAvailable = -1;
     public byte subscriptionIdentifiersAvailable = -1;
     public int topicAliasMaximum = -1; // 2 byte integer
-    public ObjObjHashMap.Entry<String, String>[] userProperties = null;
+    public ObjObjHashMap.Entry<String, Utf8String>[] userProperties = null;
     public byte wildcardSubscriptionAvailable = -1;
 
     @Override
@@ -122,9 +125,10 @@ public class ConnackPacket implements ControlPacket {
         }
         if (userProperties != null) {
             for (int i = 0; i < userProperties.length; i++) {
-                l++;
+                l += 2;
                 l += userProperties[i].key.length();
-                l += userProperties[i].value.length();
+                l += 2;
+                l += userProperties[i].value.size();
             }
         }
         if (wildcardSubscriptionAvailable != -1) {
@@ -250,15 +254,21 @@ public class ConnackPacket implements ControlPacket {
             pos += reasonString.size();
         }
 
-//        // 3.2.2.3.10 User Property
-//        if (userProperties != null) {
-//            for (int i = 0; i < userProperties.length; i++) {
-//                Unsafe.getUnsafe().getByte(ptr + pos, MqttProperties.PROP_USER_PROPERTY);
-//                pos++;
-//                Utf8s.strCpy(userProperties[i].key, userProperties[i].value.length(), ptr + pos);
-//                pos += reasonString.size();
-//            }
-//        }
+        // 3.2.2.3.10 User Property
+        if (userProperties != null) {
+            for (int i = 0; i < userProperties.length; i++) {
+                Unsafe.getUnsafe().getByte(ptr + pos, MqttProperties.PROP_USER_PROPERTY);
+                pos++;
+                TwoByteInteger.encode(ptr + pos, userProperties[i].key.length());
+                pos += 2;
+                Chars.copyStrChars(userProperties[i].key, 0, userProperties[i].key.length(), ptr + pos);
+                pos += userProperties[i].key.length();
+                TwoByteInteger.encode(ptr + pos, userProperties[i].value.size());
+                pos += 2;
+                Utf8s.strCpy(userProperties[i].value, userProperties[i].value.size(), ptr + pos);
+                pos += userProperties[i].value.size();
+            }
+        }
 
         // 3.2.2.3.11 Wildcard Subscription Available
         if (wildcardSubscriptionAvailable != -1) {
@@ -325,11 +335,4 @@ public class ConnackPacket implements ControlPacket {
     }
 
 
-    private byte[] toByteArray(long ptr, int size) {
-        byte[] bytes = new byte[size];
-        for (int i = 0; i < size; i++) {
-            bytes[i] = Unsafe.getUnsafe().getByte(ptr + i);
-        }
-        return bytes;
-    }
 }

@@ -37,22 +37,30 @@ public class ConnectPacket implements ControlPacket {
     Utf8String authenticationMethod = null;
     boolean cleanStart;
     Utf8String clientId = null;
+    Utf8String contentType = null;
+    byte[] correlationData = null;
     int keepAlive = -1;
     int maximumPacketSize = -1;
     int messageExpiryInterval = -1;
+    byte[] password = null;
     boolean passwordFlag;
     byte payloadFormatIndicator = -1;
     short receiveMaximum = -1;
     byte requestProblemInformation = 1;
+    Utf8String responseTopic = null;
     int sessionExpiryInterval = -1;
     short topicAliasMaximum = -1;
-    boolean userName;
     CharSequenceObjHashMap<Utf8String> userProperties = new CharSequenceObjHashMap<>();
+    Utf8String username = null;
+    boolean usernameFlag;
+    VariableByteInteger vbi = new VariableByteInteger();
     int willDelayInterval = 0;
     boolean willFlag;
+    byte[] willPayload = null;
+    CharSequenceObjHashMap<Utf8String> willProperties = new CharSequenceObjHashMap<>();
     int willQoS = 0;
     boolean willRetain;
-    private VariableByteInteger vbi;
+    Utf8String willTopic = null;
 
     public void clear() {
         cleanStart = true;
@@ -66,7 +74,7 @@ public class ConnectPacket implements ControlPacket {
         requestProblemInformation = 1;
         sessionExpiryInterval = -1;
         topicAliasMaximum = -1;
-        userName = false;
+        usernameFlag = false;
         willDelayInterval = 0;
         willFlag = false;
         willQoS = 0;
@@ -74,6 +82,10 @@ public class ConnectPacket implements ControlPacket {
         userProperties.clear();
         authenticationMethod = null;
         authenticationData = null;
+        contentType = null;
+        responseTopic = null;
+        willProperties = null;
+        correlationData = null;
     }
 
     public int getType() {
@@ -107,7 +119,7 @@ public class ConnectPacket implements ControlPacket {
 
         // 2.1.4
         vbi.decode(ptr + pos);
-        int messageLength = (int) vbi.value;
+        int messageLength = vbi.value;
         pos += vbi.length;
 
         /*
@@ -193,7 +205,7 @@ public class ConnectPacket implements ControlPacket {
             and vice versa.
         */
 
-        userName = ((connectFlags >> 6) & 1) == 1;
+        usernameFlag = ((connectFlags >> 6) & 1) == 1;
         /*
             3.1.2.9 Password Flag
             If set, a Password must be present in the payload,
@@ -221,7 +233,7 @@ public class ConnectPacket implements ControlPacket {
         */
 
         vbi.decode(ptr + pos);
-        int propertyLength = (int) vbi.value;
+        int propertyLength = vbi.value;
         pos += vbi.length;
 
         int connectPropertiesStart = pos;
@@ -361,7 +373,7 @@ public class ConnectPacket implements ControlPacket {
         if (willFlag) {
 
             vbi.decode(ptr + pos);
-            int willPropertiesLength = (int) vbi.value;
+            int willPropertiesLength = vbi.value;
             pos += vbi.length;
 
             int willPropertiesStart = pos;
@@ -376,7 +388,6 @@ public class ConnectPacket implements ControlPacket {
                             A four byte integer representing the Will Delay Interval in seconds.
                             If absent, defaults to 0, and there is no delay.
                          */
-                        // todo: sort out protocol errors here
                         willDelayInterval = FourByteInteger.decode(ptr + pos);
                         pos += 4;
                         break;
@@ -402,50 +413,68 @@ public class ConnectPacket implements ControlPacket {
                                 3.1.3.2.5 Content Type
                                 UTF-8 Encoded String describing the content of the Will Message.
                              */
-                        // todo: utf8 reading
+                        contentType = ControlPacket.nextUtf8s(ptr + pos);
+                        pos += ControlPacket.utf8sDecodeLength(contentType);
                         break;
                     case PROP_RESPONSE_TOPIC: // 8
                             /*
                                 3.1.3.2.6 Response Topic
                                 UTF-8 Encoded String used for the Topic Name for a response message.
                              */
-                        // todo:
+                        responseTopic = ControlPacket.nextUtf8s(ptr + pos);
+                        pos += ControlPacket.utf8sDecodeLength(responseTopic);
                         break;
                     case PROP_CORRELATION_DATA: // 9
                     /*
                         3.1.3.2.7 Correlation Data
                         Binary data used by requester to correlate a PUBACK response.
                      */
-                        // todo
+                        correlationData = ControlPacket.nextBinaryData(ptr + pos);
+                        pos += ControlPacket.binaryDecodeLength(correlationData);
                         break;
                     case PROP_USER_PROPERTY: // 38
                     /*
                         3.1.2.11.8 User Property
                         UTF-8 String Pair, can appear multiples times.
                     */
-                        // todo: implement UTF-8 String Pairs and storage for these user properties
+                        Utf8String key = ControlPacket.nextUtf8s(ptr + pos);
+                        pos += ControlPacket.utf8sDecodeLength(key);
+
+                        Utf8String value = ControlPacket.nextUtf8s(ptr + pos);
+                        pos += ControlPacket.utf8sDecodeLength(value);
+                        CharSequence keyChars = key.isAscii() ? key.asAsciiCharSequence() : key.toString();
+
+                        willProperties.put(keyChars, value);
                         break;
                 }
             }
                 /*
                     3.1.3.3 Will Topic
                  */
-            // todo
+            willTopic = ControlPacket.nextUtf8s(ptr + pos);
+            pos += ControlPacket.utf8sDecodeLength(willTopic);
 
                 /*
                     3.1.3.4 Will Payload
                 */
-            // todo
+            willPayload = ControlPacket.nextBinaryData(ptr + pos);
+            pos += ControlPacket.binaryDecodeLength(willPayload);
+        }
 
-                /*
+            /*
                     3.1.3.5 User Name
                  */
-            // todo
+        if (usernameFlag) {
+            username = ControlPacket.nextUtf8s(ptr + pos);
+            pos += ControlPacket.utf8sDecodeLength(username);
+        }
 
                 /*
                     3.1.3.6 Password
                 */
-            // todo
+        if (password != null) {
+            password = ControlPacket.nextBinaryData(ptr + pos);
+            pos += ControlPacket.binaryDecodeLength(password);
         }
 
         return pos;

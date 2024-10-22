@@ -26,17 +26,50 @@ package io.questdb.cutlass.mqtt;
 
 import io.questdb.std.Unsafe;
 
-public class TwoByteInteger {
-    public static int decode(long ptr) {
-        int b0 = Unsafe.getUnsafe().getByte(ptr);
-        int b1 = Unsafe.getUnsafe().getByte(ptr + 1);
-        return (b1 | (b0 << 8)) & 0xFFFF;
+public class PubackPacket implements ControlPacket {
+    int packetIdentifier;
+    int reasonCode;
+
+    @Override
+    public void clear() {
+
     }
 
-    public static void encode(long ptr, int i) {
-        byte b0 = (byte) ((i >> 8) & 0xFF);
-        byte b1 = (byte) (i & 0xFF);
-        Unsafe.getUnsafe().putByte(ptr, b0);
-        Unsafe.getUnsafe().putByte(ptr + 1, b1);
+    public int getPropertiesLength() {
+        return 0;
+    }
+
+    @Override
+    public int getType() {
+        return PacketType.PUBACK;
+    }
+
+    @Override
+    public int parse(long ptr) throws MqttException {
+        return 0;
+    }
+
+    @Override
+    public int unparse(long ptr) throws MqttException {
+        int pos = 0;
+        byte fhb = 0b01000000;
+
+        Unsafe.getUnsafe().putByte(ptr, fhb);
+        pos++;
+
+        int remainingLength = getPropertiesLength() + 4;
+        pos += VariableByteInteger.encode(ptr + pos, remainingLength);
+
+        TwoByteInteger.encode(ptr + pos, packetIdentifier);
+        pos += 2;
+
+        Unsafe.getUnsafe().putByte(ptr, (byte) reasonCode);
+        pos++;
+
+        Unsafe.getUnsafe().putByte(ptr + pos, (byte) getPropertiesLength());
+        pos++;
+
+        // other properties todo
+        return pos;
     }
 }

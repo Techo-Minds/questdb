@@ -62,6 +62,14 @@ public interface ControlPacket {
         return new Utf8String(String.valueOf(direct));
     }
 
+    public static byte[] toByteArray(long ptr, int size) {
+        byte[] bytes = new byte[size];
+        for (int i = 0; i < size; i++) {
+            bytes[i] = Unsafe.getUnsafe().getByte(ptr + i);
+        }
+        return bytes;
+    }
+
     static int utf8sDecodeLength(Utf8String s) {
         return s.size() + 2;
     }

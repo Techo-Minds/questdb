@@ -50,6 +50,7 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
     private static int sendBufferSize = 4096;
     private final ConnackPacket connackPacket = new ConnackPacket();
     private final ConnectPacket connectPacket = new ConnectPacket();
+    private final PubackPacket pubackPacket = new PubackPacket();
     private final PublishPacket publishPacket = new PublishPacket();
     private SocketAuthenticator authenticator;
     private boolean connected = false;
@@ -205,6 +206,14 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
                         }
                         row.append();
                         walWriter.commit();
+                    }
+
+                    if (publishPacket.qos == 1) {
+                        pubackPacket.packetIdentifier = publishPacket.packetIdentifier;
+                        pubackPacket.reasonCode = ReasonCode.REASON_SUCCESS;
+                        int size = pubackPacket.unparse(sendBufferPtr);
+                        socket.send(sendBufferPtr, size);
+                        sendBufferPtr = sendBuffer;
                     }
                     break;
                 case PacketType.PINGREQ:

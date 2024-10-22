@@ -27,7 +27,10 @@ package io.questdb.cutlass.mqtt;
 import io.questdb.std.CharSequenceObjHashMap;
 import io.questdb.std.Misc;
 import io.questdb.std.Unsafe;
-import io.questdb.std.str.*;
+import io.questdb.std.str.CharSink;
+import io.questdb.std.str.Sinkable;
+import io.questdb.std.str.StringSink;
+import io.questdb.std.str.Utf8String;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.TestOnly;
 
@@ -36,7 +39,7 @@ import static io.questdb.cutlass.mqtt.MqttProperties.*;
 // 3.3 PUBLISH - Publish Message
 public class PublishPacket implements ControlPacket, Sinkable {
 
-    public DirectUtf8Sequence contentType; // 3.3.2.3.9
+    public Utf8String contentType; // 3.3.2.3.9
     public byte[] correlationData; // 3.3.2.3.6
     public byte dup; // 3.3.1.1
     public long messageExpiryInterval; // 3.3.2.3.3
@@ -45,12 +48,12 @@ public class PublishPacket implements ControlPacket, Sinkable {
     public long payloadLength; // 3.3.3
     public long payloadPtr; // 3.3.3
     public byte qos; // 3.3.1.2
-    public DirectUtf8Sequence responseTopic; // 3.3.2.3.5
+    public Utf8String responseTopic; // 3.3.2.3.5
     public byte retain; // 3.3.1.3
     public int subscriptionIdentifier; // 3.3.2.3.8
     public int topicAlias; // 3.3.2.3.4
-    public DirectUtf8Sequence topicName;
-    public CharSequenceObjHashMap<DirectUtf8Sequence> userProperties = new CharSequenceObjHashMap<>(); // 3.3.2.3.7
+    public Utf8String topicName;
+    public CharSequenceObjHashMap<Utf8String> userProperties = new CharSequenceObjHashMap<>(); // 3.3.2.3.7
     private VariableByteInteger vbi = new VariableByteInteger();
 
     @Override
@@ -97,8 +100,6 @@ public class PublishPacket implements ControlPacket, Sinkable {
         qos = (byte) ((byte) (fhb & 0b00000110) >> 1);
         retain = (byte) ((fhb & 0b00000001) & 1);
 
-        assert qos >= 0 && qos <= 2;
-
         pos++;
 
         // 3.3.1.4 Remaining Length
@@ -109,11 +110,8 @@ public class PublishPacket implements ControlPacket, Sinkable {
 
         // 3.3.2.1 Topic Name
 
-        long topicNameLength = TwoByteInteger.decode(ptr + pos);
-        pos += 2;
-
-        topicName = new DirectUtf8String().of(ptr + pos, ptr + pos + topicNameLength);
-        pos += (int) topicNameLength;
+        topicName = ControlPacket.nextUtf8s(ptr + pos);
+        pos += ControlPacket.utf8sDecodeLength(topicName);
 
         // 3.3.2.2 Packet Identifier
         // Exists only if QoS is 1 or 2
@@ -176,10 +174,9 @@ public class PublishPacket implements ControlPacket, Sinkable {
                         UTF-8 Encoded string used as topic name for a response message.
                         If present, the packet is a request.
                      */
-                    final int responseTopicSize = Unsafe.getUnsafe().getShort(ptr + pos);
-                    ptr += 2;
-                    responseTopic = new DirectUtf8String().of(ptr + pos, ptr + pos + responseTopicSize);
-                    ptr += responseTopicSize;
+                    responseTopic = ControlPacket.nextUtf8s(ptr + pos);
+                    pos += ControlPacket.utf8sDecodeLength(responseTopic);
+                    break;
                 case PROP_CORRELATION_DATA: // 9
                     /*
                         3.3.2.3.6 Correlation Data
@@ -194,7 +191,14 @@ public class PublishPacket implements ControlPacket, Sinkable {
                     }
                     break;
                 case PROP_USER_PROPERTY: // 38
-                    // todo:
+                    Utf8String key = ControlPacket.nextUtf8s(ptr + pos);
+                    pos += ControlPacket.utf8sDecodeLength(key);
+
+                    Utf8String value = ControlPacket.nextUtf8s(ptr + pos);
+                    pos += ControlPacket.utf8sDecodeLength(value);
+                    CharSequence keyChars = key.isAscii() ? key.asAsciiCharSequence() : key.toString();
+
+                    userProperties.put(keyChars, value);
                     break;
                 case PROP_SUBSCRIPTION_IDENTIFIER: // 11
                     /*
@@ -210,10 +214,9 @@ public class PublishPacket implements ControlPacket, Sinkable {
                         3.3.2.3.9 Content Type
                         UTF-8 Encoded String describing content of the message.
                      */
-                    final int contentTypeSize = Unsafe.getUnsafe().getShort(ptr + pos);
-                    ptr += 2;
-                    contentType = new DirectUtf8String().of(ptr + pos, ptr + pos + contentTypeSize);
-                    ptr += contentTypeSize;
+                    contentType = ControlPacket.nextUtf8s(ptr + pos);
+                    pos += ControlPacket.utf8sDecodeLength(contentType);
+                    break;
             }
         }
 
