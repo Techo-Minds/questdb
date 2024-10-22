@@ -63,7 +63,7 @@ public class PubackPacket implements ControlPacket {
         TwoByteInteger.encode(ptr + pos, packetIdentifier);
         pos += 2;
 
-        Unsafe.getUnsafe().putByte(ptr, (byte) reasonCode);
+        Unsafe.getUnsafe().putByte(ptr + pos, (byte) reasonCode);
         pos++;
 
         Unsafe.getUnsafe().putByte(ptr + pos, (byte) getPropertiesLength());

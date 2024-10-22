@@ -70,6 +70,26 @@ public class VariableByteInteger {
         return i;
     }
 
+    public static int encodedSize(int value) {
+        if (value <= 127) {
+            return 1;
+        }
+
+        if (value <= 16383) {
+            return 2;
+        }
+
+        if (value <= 2097151) {
+            return 3;
+        }
+
+        if (value <= 268435455) {
+            return 4;
+        }
+
+        throw new UnsupportedOperationException();
+    }
+
     public void decode(long ptr) throws MqttException {
         int m = 1;
         int v = 0;

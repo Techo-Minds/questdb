@@ -28,8 +28,8 @@ import io.questdb.std.Unsafe;
 
 public class TwoByteInteger {
     public static int decode(long ptr) {
-        int b0 = Unsafe.getUnsafe().getByte(ptr);
-        int b1 = Unsafe.getUnsafe().getByte(ptr + 1);
+        int b0 = Unsafe.getUnsafe().getByte(ptr) & 0xFF;
+        int b1 = Unsafe.getUnsafe().getByte(ptr + 1) & 0xFF;
         return (b1 | (b0 << 8)) & 0xFFFF;
     }
 

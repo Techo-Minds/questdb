@@ -55,13 +55,12 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
     private SocketAuthenticator authenticator;
     private boolean connected = false;
     private CairoEngine engine;
+    private NetworkFacade nf;
     private long recvBuffer;
-    private long recvBufferPtr;
     private long recvBufferReadOffset = 0;
     private long recvBufferWriteOffset = 0;
     private long sendBuffer;
     private long sendBufferLimit;
-    private long sendBufferPtr;
     private long sendBufferReadOffset = 0;
     private long sendBufferWriteOffset = 0;
     private SuspendEvent suspendEvent;
@@ -75,6 +74,7 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
                 LOG,
                 engine.getMetrics().getMqttMetrics().getConnectionCountGauge());
         this.engine = engine;
+        this.nf = configuration.getNetworkFacade();
     }
 
     @Override
@@ -105,15 +105,31 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
 
         if (recvBuffer == 0) {
             this.recvBuffer = Unsafe.malloc(recvBufferSize, MemoryTag.NATIVE_MQTT_CONN);
-            this.recvBufferPtr = recvBuffer;
         }
         if (sendBuffer == 0) {
             this.sendBuffer = Unsafe.malloc(sendBufferSize, MemoryTag.NATIVE_MQTT_CONN);
             this.sendBufferLimit = (sendBuffer + sendBufferSize);
-            this.sendBufferPtr = sendBuffer;
         }
         authenticator.init(socket, recvBuffer, recvBuffer + recvBufferSize, sendBuffer, sendBufferLimit);
         return this;
+    }
+
+    public void send(int length) throws PeerDisconnectedException, PeerIsSlowToReadException {
+        // disconnected
+        int n = socket.send(sendBuffer, length);
+        if (n < 0) {
+            LOG.error()
+                    .$("disconnected [errno=").$(nf.errno())
+                    .$(", fd=").$(socket.getFd())
+                    .I$();
+            throw PeerDisconnectedException.INSTANCE;
+        }
+
+        if (n == 0) {
+            // test how many times we tried to send before parking up
+            throw PeerIsSlowToReadException.INSTANCE;
+        }
+
     }
 
     public void setAuthenticator(SocketAuthenticator authenticator) {
@@ -124,24 +140,19 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
         this.suspendEvent = suspendEvent;
     }
 
-    private boolean handleClientRecv() throws PeerIsSlowToReadException, PeerIsSlowToWriteException, ServerDisconnectException, MqttException, PeerDisconnectedException {
+    private boolean handleClientRecv() throws PeerIsSlowToReadException, PeerIsSlowToWriteException, ServerDisconnectException, MqttException, PeerDisconnectedException, BadProtocolException {
         boolean busyRecv = true;
         try {
             // this is address of where header ended in our receive buffer
             // we need to being processing request content starting from this address
-            long headerEnd = recvBuffer;
-            int read = 0;
-
-            read = socket.recv(recvBufferPtr, recvBufferSize);
+            int read = recv();
 
             LOG.debug().$("recv [fd=").$(getFd()).$(", count=").$(read).I$();
             if (read < 0) {
                 throw registerDispatcherDisconnect(DISCONNECT_REASON_UNKNOWN_OPERATION);
             }
 
-            busyRecv = false;
-
-            byte fhb = FirstHeaderByte.decode(recvBufferPtr);
+            byte fhb = FirstHeaderByte.decode(recvBuffer);
             byte type = FirstHeaderByte.getType(fhb);
 
             if (type != PacketType.CONNECT && !connected) {
@@ -152,20 +163,18 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
                 case PacketType.CONNECT:
                     // parse connect
                     connectPacket.clear();
-                    connectPacket.parse(recvBufferPtr);
+                    connectPacket.parse(recvBuffer);
 
                     // send connack
                     connackPacket.clear();
-                    int connackPacketLength = connackPacket.success().unparse(sendBufferPtr);
-                    socket.send(sendBufferPtr, connackPacketLength);
+                    int connackPacketLength = connackPacket.success().unparse(sendBuffer);
+                    send(connackPacketLength);
 
                     connected = true;
-                    sendBufferPtr = sendBuffer;
-                    recvBufferPtr = recvBuffer;
                     break;
                 case PacketType.PUBLISH:
                     // parse publish
-                    int publishPacketLength = publishPacket.parse(recvBufferPtr);
+                    int publishPacketLength = publishPacket.parse(recvBuffer);
 
                     // make table if needed
                     TableToken tableToken = engine.getTableTokenIfExists("mqtt");
@@ -211,27 +220,23 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
                     if (publishPacket.qos == 1) {
                         pubackPacket.packetIdentifier = publishPacket.packetIdentifier;
                         pubackPacket.reasonCode = ReasonCode.REASON_SUCCESS;
-                        int size = pubackPacket.unparse(sendBufferPtr);
-                        socket.send(sendBufferPtr, size);
-                        sendBufferPtr = sendBuffer;
+                        int size = pubackPacket.unparse(sendBuffer);
+                        send(size);
                     }
                     break;
                 case PacketType.PINGREQ:
-                    int length = PingrespPacket.INSTANCE.unparse(sendBufferPtr);
-                    socket.send(sendBufferPtr, length);
-                    sendBufferPtr = sendBuffer;
-                    recvBufferPtr = recvBuffer;
+                    int length = PingrespPacket.INSTANCE.unparse(sendBuffer);
+                    send(length);
                     break;
                 case PacketType.DISCONNECT:
                     close();
                     throw PeerDisconnectedException.INSTANCE;
-                    //return false;
             }
-        } catch (Exception ex) {
-            throw ex;
+        } finally {
+
         }
 
-        return busyRecv;
+        return true;
     }
 
     private byte[] toByteArray(long ptr, int size) {
@@ -240,6 +245,21 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
             bytes[i] = Unsafe.getUnsafe().getByte(ptr + i);
         }
         return bytes;
+    }
+
+    int recv() throws PeerDisconnectedException, PeerIsSlowToWriteException, BadProtocolException {
+        int n = socket.recv(recvBuffer, recvBufferSize);
+        LOG.debug().$("recv [n=").$(n).I$();
+        if (n < 0) {
+            LOG.info().$("disconnected on read [code=").$(n).I$();
+            throw PeerDisconnectedException.INSTANCE;
+        }
+        if (n == 0) {
+            // The socket is not ready for read.
+            throw PeerIsSlowToWriteException.INSTANCE;
+        }
+        
+        return n;
     }
 
 }

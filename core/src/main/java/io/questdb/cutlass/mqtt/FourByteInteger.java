@@ -28,10 +28,10 @@ import io.questdb.std.Unsafe;
 
 public class FourByteInteger {
     public static int decode(long ptr) {
-        int b0 = Unsafe.getUnsafe().getByte(ptr);
-        int b1 = Unsafe.getUnsafe().getByte(ptr + 1);
-        int b2 = Unsafe.getUnsafe().getByte(ptr + 2);
-        int b3 = Unsafe.getUnsafe().getByte(ptr + 3);
+        int b0 = Unsafe.getUnsafe().getByte(ptr) & 0xFF;
+        int b1 = Unsafe.getUnsafe().getByte(ptr + 1) & 0xFF;
+        int b2 = Unsafe.getUnsafe().getByte(ptr + 2) & 0xFF;
+        int b3 = Unsafe.getUnsafe().getByte(ptr + 3) & 0xFF;
         return b0 << 24 | b1 << 16 | b2 << 8 | b3;
     }
 

@@ -153,7 +153,7 @@ public class ConnackPacket implements ControlPacket {
         sessionPresent = 0;
         reasonCode = ReasonCode.REASON_SUCCESS;
         receiveMaximum = 1;
-        maximumQoS = 0;
+        maximumQoS = 1;
         retainAvailable = 0;
         return this;
     }
@@ -168,8 +168,11 @@ public class ConnackPacket implements ControlPacket {
         Unsafe.getUnsafe().putByte(ptr, fhb);
         pos++;
 
+
+        int propertiesLength = getPropertiesLength();
+
         // remaining length
-        int remainingLength = getPropertiesLength() + 2;
+        int remainingLength = propertiesLength + 2 + VariableByteInteger.encodedSize(propertiesLength);
         pos += VariableByteInteger.encode(ptr + pos, remainingLength);
 
         // 3.2.2
@@ -188,7 +191,7 @@ public class ConnackPacket implements ControlPacket {
 
         // 3.2.2.3 CONNACK Properties
         // 3.2.2.3.1 Properties Length
-        pos += VariableByteInteger.encode(ptr + pos, getPropertiesLength());
+        pos += VariableByteInteger.encode(ptr + pos, propertiesLength);
 
         // 3.2.2.3.2 Session Expiry Interval
         if (sessionExpiryInterval != -1) {
