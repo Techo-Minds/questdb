@@ -32,56 +32,21 @@ import io.questdb.griffin.SqlExecutionContext;
 import io.questdb.griffin.SqlExecutionContextImpl;
 import io.questdb.std.ObjList;
 import io.questdb.std.Os;
+import io.questdb.std.QuietCloseable;
 import io.questdb.std.Rnd;
 import io.questdb.std.str.DirectUtf8String;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
-public class TableFacade {
-    static int numWals = 1;
+// this should be owned by the server and injected into each client
+public class TableFacade implements QuietCloseable {
     static Rnd rnd = new Rnd();
-    private static CairoEngine engine;
-    private static AtomicBoolean initialised = new AtomicBoolean(false);
-    private static ObjList<LockedWalWriter> walWriters = new ObjList<>();
+    private final CairoEngine engine;
+    private final int maxCommitLag = 5000;
+    private final int minCommitLag = 1000;
+    private final int numWals = 4;
+    private ObjList<LockedWalWriter> walWriters = new ObjList<>();
 
-    public static void appendRow(PublishPacket publishPacket, ConnectPacket connectPacket) throws InterruptedException {
-        int slot = rnd.nextInt(walWriters.size());
-        slot--;
-
-        if (slot < 0) {
-            slot++;
-        }
-
-        LockedWalWriter lww = walWriters.getQuick(slot);
-        WalWriter w = lww.acquire();
-
-
-        // commit to wal
-        var row = w.newRow(Os.currentTimeMicros());
-        row.putVarchar(1, publishPacket.topicName);
-        row.putByte(2, publishPacket.qos);
-        row.putBool(3, publishPacket.retain == 1);
-        row.putVarchar(4, connectPacket.clientId);
-        if (publishPacket.payloadFormatIndicator == 1) {
-            row.putVarchar(6, new DirectUtf8String().of(publishPacket.payloadPtr, publishPacket.payloadPtr + publishPacket.payloadLength));
-        } else {
-            row.putBin(5, publishPacket.payloadPtr, publishPacket.payloadLength);
-        }
-        row.append();
-        lww.release();
-    }
-
-    public static LockedWalWriter getWalWriter() {
-        rnd.nextInt(walWriters.size());
-        return walWriters.getQuick(walWriters.size() - 1);
-    }
-
-    public static synchronized void init(CairoEngine engine2) {
-        if (initialised.get()) {
-            return;
-        }
-
-        engine = engine2;
+    public TableFacade(CairoEngine engine) {
+        this.engine = engine;
 
         // make table if needed
         TableToken tableToken = engine.getTableTokenIfExists("mqtt");
@@ -110,12 +75,77 @@ public class TableFacade {
 
         for (int i = 0; i < numWals; i++) {
             WalWriter w = engine.getWalWriter(engine.getTableTokenIfExists("mqtt"));
-            LockedWalWriter lww = new LockedWalWriter(w);
+            LockedWalWriter lww = new LockedWalWriter(w, minCommitLag, maxCommitLag);
 
             walWriters.add(lww);
         }
 
-        initialised.set(true);
+    }
+
+    public void appendRow(PublishPacket publishPacket, ConnectPacket connectPacket) throws InterruptedException {
+        int slot = getSlot();
+
+        LockedWalWriter lww = walWriters.getQuick(slot);
+        WalWriter w = lww.acquire();
+
+        // commit to wal
+        long timestamp = Os.currentTimeMicros();
+        var row = w.newRow(timestamp);
+        row.putVarchar(1, publishPacket.topicName);
+        row.putByte(2, publishPacket.qos);
+        row.putBool(3, publishPacket.retain == 1);
+        row.putVarchar(4, connectPacket.clientId);
+        if (publishPacket.payloadFormatIndicator == 1) {
+            row.putVarchar(6, new DirectUtf8String().of(publishPacket.payloadPtr, publishPacket.payloadPtr + publishPacket.payloadLength));
+        } else {
+            row.putBin(5, publishPacket.payloadPtr, publishPacket.payloadLength);
+        }
+        row.append();
+        lww.release();
+
+        // now check one other log
+        // todo: clock strategy.. we need to be committing regularly on a timer,
+        // not just on next rows
+        int otherLogIndex = getSlot();
+        if (otherLogIndex != slot) {
+            lww = walWriters.getQuick(otherLogIndex);
+            if (lww.checkForCommit(timestamp)) {
+                w = lww.acquire();
+                if (lww.needToCommit) {
+                    w.commit();
+                }
+                lww.release();
+            }
+        }
+    }
+
+    @Override
+    public void close() {
+        for (int i = 0; i < walWriters.size(); i++) {
+            LockedWalWriter lww = walWriters.getQuick(i);
+            lww.acquire();
+            lww.close();
+            walWriters.remove(i);
+        }
+    }
+
+    public int getSlot() {
+        int slot = rnd.nextInt(walWriters.size());
+        slot--;
+
+        if (slot < 0) {
+            slot++;
+        }
+        return slot;
+    }
+
+    public LockedWalWriter getWalWriter() {
+        rnd.nextInt(walWriters.size());
+        return walWriters.getQuick(walWriters.size() - 1);
+    }
+
+    public synchronized void init(CairoEngine engine2) {
+
     }
 
 

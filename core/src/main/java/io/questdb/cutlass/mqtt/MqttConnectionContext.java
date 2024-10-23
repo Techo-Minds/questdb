@@ -45,6 +45,7 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
     private final ConnectPacket connectPacket = new ConnectPacket();
     private final PubackPacket pubackPacket = new PubackPacket();
     private final PublishPacket publishPacket = new PublishPacket();
+    private final TableFacade tableFacade;
     private SocketAuthenticator authenticator;
     private boolean connected = false;
     private CairoEngine engine;
@@ -60,14 +61,15 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
 
     public MqttConnectionContext(
             CairoEngine engine,
-            MqttServerConfiguration configuration) {
+            MqttServerConfiguration configuration,
+            TableFacade tableFacade) {
         super(configuration.getFactoryProvider().getMqttSocketFactory(),
                 configuration.getNetworkFacade(),
                 LOG,
                 engine.getMetrics().getMqttMetrics().getConnectionCountGauge());
         this.engine = engine;
         this.nf = configuration.getNetworkFacade();
-        TableFacade.init(engine);
+        this.tableFacade = tableFacade;
     }
 
     @Override
@@ -169,7 +171,7 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
                     // parse publish
                     int publishPacketLength = publishPacket.parse(recvBuffer);
 
-                    TableFacade.appendRow(publishPacket, connectPacket);
+                    tableFacade.appendRow(publishPacket, connectPacket);
 
                     if (publishPacket.qos == 1) {
                         pubackPacket.packetIdentifier = publishPacket.packetIdentifier;

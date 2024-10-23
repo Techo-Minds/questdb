@@ -33,18 +33,26 @@ import java.util.concurrent.TimeUnit;
 
 public class LockedWalWriter implements QuietCloseable {
     private final SimpleReadWriteLock lock = new SimpleReadWriteLock();
+    private final int maxCommitLag;
+    private final int minCommitLag;
     private final WalWriter walWriter;
-    long lastWrite = 0;
+    volatile long lastWrite = 0;
     boolean needToCommit;
 
-    public LockedWalWriter(WalWriter walWriter) {
+    public LockedWalWriter(WalWriter walWriter, int minCommitLag, int maxCommitLag) {
         this.walWriter = walWriter;
+        this.minCommitLag = minCommitLag;
+        this.maxCommitLag = maxCommitLag;
     }
 
     public WalWriter acquire() {
         lock.writeLock().lock();
         onAcquire();
         return walWriter;
+    }
+
+    public boolean checkForCommit(long currentTimestamp) {
+        return currentTimestamp - lastWrite > TimeUnit.MILLISECONDS.toMicros(minCommitLag);
     }
 
     @Override
@@ -60,10 +68,7 @@ public class LockedWalWriter implements QuietCloseable {
     }
 
     public void onAcquire() {
-        long currentTimestamp = Os.currentTimeMicros();
-        if (currentTimestamp - lastWrite > TimeUnit.SECONDS.toMicros(1)) {
-            needToCommit = true;
-        }
+        needToCommit = checkForCommit(Os.currentTimeMicros());
     }
 
     public void release() {
@@ -71,13 +76,5 @@ public class LockedWalWriter implements QuietCloseable {
             commit();
         }
         lock.writeLock().unlock();
-    }
-
-    public WalWriter tryAcquire() throws InterruptedException {
-        if (lock.writeLock().tryLock(5, TimeUnit.MILLISECONDS)) {
-            onAcquire();
-            return walWriter;
-        }
-        return null;
     }
 }

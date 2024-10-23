@@ -49,6 +49,7 @@ public class MqttServer implements Closeable {
     private final MqttConnectionContextFactory contextFactory;
     private final IODispatcher<MqttConnectionContext> dispatcher;
     private final ObjList<MqttProcessor> processors;
+    private final TableFacade tableFacade;
     private final int workerCount;
     private final WorkerPool workerPool;
     CircuitBreakerRegistry registry;
@@ -65,15 +66,18 @@ public class MqttServer implements Closeable {
         for (int i = 0; i < workerCount; i++) {
             this.processors.set(i, new MqttProcessor());
         }
+        this.tableFacade = new TableFacade(engine);
         this.contextFactory = new MqttConnectionContextFactory(
                 engine,
                 configuration,
                 circuitBreakerRegistry,
-                metrics
+                metrics,
+                tableFacade
         );
         this.dispatcher = IODispatchers.create(configuration.getDispatcherConfiguration(), contextFactory);
         this.workerPool = pool;
         this.registry = circuitBreakerRegistry;
+
 
         this.workerPool.assign(this.dispatcher);
 
@@ -125,6 +129,7 @@ public class MqttServer implements Closeable {
     public void close() throws IOException {
         Misc.free(dispatcher);
         Misc.free(contextFactory);
+        tableFacade.close();
     }
 
     private static class MqttConnectionContextFactory extends IOContextFactoryImpl<MqttConnectionContext> {
@@ -133,14 +138,16 @@ public class MqttServer implements Closeable {
                 CairoEngine engine,
                 MqttServerConfiguration configuration,
                 CircuitBreakerRegistry registry,
-                Metrics metrics
+                Metrics metrics,
+                TableFacade tableFacade
         ) {
             super(
                     () -> {
 //
                         MqttConnectionContext mqttConnectionContext = new MqttConnectionContext(
                                 engine,
-                                configuration
+                                configuration,
+                                tableFacade
                         );
                         FactoryProvider factoryProvider = configuration.getFactoryProvider();
                         SocketAuthenticator authenticator = factoryProvider.getMqttAuthenticatorFactory().getMqttAuthenticator(configuration);
