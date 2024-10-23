@@ -44,6 +44,11 @@ public class PubackPacket implements ControlPacket {
         return PacketType.PUBACK;
     }
 
+    public void of(int packetIdentifier, int reasonCode) {
+        this.packetIdentifier = packetIdentifier;
+        this.reasonCode = reasonCode;
+    }
+
     @Override
     public int parse(long ptr) throws MqttException {
         return 0;

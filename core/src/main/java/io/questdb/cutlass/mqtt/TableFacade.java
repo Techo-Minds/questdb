@@ -143,10 +143,5 @@ public class TableFacade implements QuietCloseable {
         rnd.nextInt(walWriters.size());
         return walWriters.getQuick(walWriters.size() - 1);
     }
-
-    public synchronized void init(CairoEngine engine2) {
-
-    }
-
-
+    
 }

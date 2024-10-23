@@ -35,6 +35,7 @@ import io.questdb.std.Misc;
 import io.questdb.std.Unsafe;
 import org.jetbrains.annotations.NotNull;
 
+import static io.questdb.network.IODispatcher.DISCONNECT_REASON_PROTOCOL_VIOLATION;
 import static io.questdb.network.IODispatcher.DISCONNECT_REASON_UNKNOWN_OPERATION;
 
 public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
@@ -151,7 +152,7 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
             byte type = FirstHeaderByte.getType(fhb);
 
             if (type != PacketType.CONNECT && !connected) {
-                throw new MqttException(); // protocol error
+                throw registerDispatcherDisconnect(DISCONNECT_REASON_PROTOCOL_VIOLATION);
             }
 
             switch (type) {
@@ -174,8 +175,7 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
                     tableFacade.appendRow(publishPacket, connectPacket);
 
                     if (publishPacket.qos == 1) {
-                        pubackPacket.packetIdentifier = publishPacket.packetIdentifier;
-                        pubackPacket.reasonCode = ReasonCode.REASON_SUCCESS;
+                        pubackPacket.of(publishPacket.packetIdentifier, ReasonCode.REASON_SUCCESS);
                         int size = pubackPacket.unparse(sendBuffer);
                         send(size);
                     }
