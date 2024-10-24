@@ -76,7 +76,13 @@ public interface ControlPacket {
 
     void clear();
 
-    int getType();
+    byte getType();
+
+    default void guardWrongPacket(int packetType) {
+        if (packetType != getType()) {
+            throw new UnsupportedOperationException("passed wrong packet type, expected " + PacketType.nameOf(getType()));
+        }
+    }
 
     int parse(long ptr) throws MqttException;
 

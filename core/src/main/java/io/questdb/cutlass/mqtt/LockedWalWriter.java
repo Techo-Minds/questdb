@@ -30,14 +30,16 @@ import io.questdb.std.QuietCloseable;
 import io.questdb.std.SimpleReadWriteLock;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class LockedWalWriter implements QuietCloseable {
     private final SimpleReadWriteLock lock = new SimpleReadWriteLock();
     private final int maxCommitLag;
     private final int minCommitLag;
     private final WalWriter walWriter;
-    volatile long lastWrite = 0;
+    AtomicLong lastWrite = new AtomicLong(0);
     boolean needToCommit;
+
 
     public LockedWalWriter(WalWriter walWriter, int minCommitLag, int maxCommitLag) {
         this.walWriter = walWriter;
@@ -52,7 +54,8 @@ public class LockedWalWriter implements QuietCloseable {
     }
 
     public boolean checkForCommit(long currentTimestamp) {
-        return currentTimestamp - lastWrite > TimeUnit.MILLISECONDS.toMicros(minCommitLag);
+        long _lastWrite = lastWrite.get();
+        return currentTimestamp - _lastWrite > TimeUnit.MILLISECONDS.toMicros(minCommitLag);
     }
 
     @Override
@@ -64,7 +67,11 @@ public class LockedWalWriter implements QuietCloseable {
     public void commit() {
         this.walWriter.commit();
         needToCommit = false;
-        lastWrite = Os.currentTimeMicros();
+        lastWrite.set(Os.currentTimeMicros());
+    }
+
+    public long getSequencerTxn() {
+        return this.walWriter.getSequencerTxn();
     }
 
     public void onAcquire() {

@@ -25,7 +25,27 @@
 package io.questdb.cairo.wal;
 
 import io.questdb.Metrics;
-import io.questdb.cairo.*;
+import io.questdb.cairo.AlterTableContextException;
+import io.questdb.cairo.BitmapIndexUtils;
+import io.questdb.cairo.CairoConfiguration;
+import io.questdb.cairo.CairoException;
+import io.questdb.cairo.ColumnType;
+import io.questdb.cairo.ColumnTypeDriver;
+import io.questdb.cairo.ColumnVersionReader;
+import io.questdb.cairo.CommitMode;
+import io.questdb.cairo.DdlListener;
+import io.questdb.cairo.EmptySymbolMapReader;
+import io.questdb.cairo.GeoHashes;
+import io.questdb.cairo.PartitionBy;
+import io.questdb.cairo.SecurityContext;
+import io.questdb.cairo.SymbolMapReader;
+import io.questdb.cairo.SymbolMapReaderImpl;
+import io.questdb.cairo.TableToken;
+import io.questdb.cairo.TableUtils;
+import io.questdb.cairo.TableWriter;
+import io.questdb.cairo.TableWriterAPI;
+import io.questdb.cairo.TxReader;
+import io.questdb.cairo.VarcharTypeDriver;
 import io.questdb.cairo.sql.SymbolTable;
 import io.questdb.cairo.sql.TableRecordMetadata;
 import io.questdb.cairo.sql.TableReferenceOutOfDateException;
@@ -44,10 +64,34 @@ import io.questdb.griffin.engine.ops.AlterOperation;
 import io.questdb.griffin.engine.ops.UpdateOperation;
 import io.questdb.log.Log;
 import io.questdb.log.LogFactory;
-import io.questdb.std.*;
+import io.questdb.std.AtomicIntList;
+import io.questdb.std.BinarySequence;
+import io.questdb.std.BoolList;
+import io.questdb.std.CharSequenceIntHashMap;
+import io.questdb.std.Chars;
+import io.questdb.std.Files;
+import io.questdb.std.FilesFacade;
+import io.questdb.std.IntList;
+import io.questdb.std.Long256;
+import io.questdb.std.LongList;
+import io.questdb.std.MemoryTag;
+import io.questdb.std.Misc;
+import io.questdb.std.Numbers;
+import io.questdb.std.ObjList;
+import io.questdb.std.Os;
+import io.questdb.std.Utf8StringIntHashMap;
+import io.questdb.std.Uuid;
 import io.questdb.std.datetime.microtime.Timestamps;
 import io.questdb.std.datetime.millitime.MillisecondClock;
-import io.questdb.std.str.*;
+import io.questdb.std.str.DirectUtf8Sequence;
+import io.questdb.std.str.LPSZ;
+import io.questdb.std.str.Path;
+import io.questdb.std.str.SingleCharCharSequence;
+import io.questdb.std.str.StringSink;
+import io.questdb.std.str.Utf8Sequence;
+import io.questdb.std.str.Utf8String;
+import io.questdb.std.str.Utf8StringSink;
+import io.questdb.std.str.Utf8s;
 import org.jetbrains.annotations.NotNull;
 
 import static io.questdb.cairo.TableUtils.*;
@@ -336,6 +380,17 @@ public class WalWriter implements TableWriterAPI {
 
     public long getSegmentRowCount() {
         return segmentRowCount;
+    }
+
+    public long getSequencerTxn() {
+        long seqTxn;
+        do {
+            seqTxn = sequencer.nextTxn(tableToken, walId, getColumnStructureVersion(), segmentId, lastSegmentTxn, txnMinTimestamp, txnMaxTimestamp, segmentRowCount - currentTxnStartRowNum);
+            if (seqTxn == NO_TXN) {
+                applyMetadataChangeLog(Long.MAX_VALUE);
+            }
+        } while (seqTxn == NO_TXN);
+        return lastSeqTxn = seqTxn;
     }
 
     @Override
@@ -1169,17 +1224,6 @@ public class WalWriter implements TableWriterAPI {
     private MemoryMA getDataColumn(int column) {
         assert column < columnCount : "Column index is out of bounds: " + column + " >= " + columnCount;
         return columns.getQuick(getDataColumnOffset(column));
-    }
-
-    private long getSequencerTxn() {
-        long seqTxn;
-        do {
-            seqTxn = sequencer.nextTxn(tableToken, walId, getColumnStructureVersion(), segmentId, lastSegmentTxn, txnMinTimestamp, txnMaxTimestamp, segmentRowCount - currentTxnStartRowNum);
-            if (seqTxn == NO_TXN) {
-                applyMetadataChangeLog(Long.MAX_VALUE);
-            }
-        } while (seqTxn == NO_TXN);
-        return lastSeqTxn = seqTxn;
     }
 
     private boolean hasDirtyColumns(long currentTxnStartRowNum) {

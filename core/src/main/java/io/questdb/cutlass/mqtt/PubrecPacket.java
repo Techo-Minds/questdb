@@ -26,36 +26,55 @@ package io.questdb.cutlass.mqtt;
 
 import io.questdb.std.Unsafe;
 
-public class DisconnectPacket implements ControlPacket {
-    public static DisconnectPacket INSTANCE = new DisconnectPacket();
-
+public class PubrecPacket implements ControlPacket {
+    int packetIdentifier;
+    int reasonCode;
 
     @Override
     public void clear() {
 
     }
 
+    public int getPropertiesLength() {
+        return 0;
+    }
+
     @Override
     public byte getType() {
-        return PacketType.DISCONNECT;
+        return PacketType.PUBREC;
+    }
+
+    public void of(int packetIdentifier, int reasonCode) {
+        this.packetIdentifier = packetIdentifier;
+        this.reasonCode = reasonCode;
     }
 
     @Override
     public int parse(long ptr) throws MqttException {
-        return -1;
+        return 0;
     }
 
     @Override
     public int unparse(long ptr) throws MqttException {
         int pos = 0;
-        byte fhb = (byte) (PacketType.DISCONNECT << 4);
+        byte fhb = 0b01010000;
 
-        // 3.2.1
         Unsafe.getUnsafe().putByte(ptr, fhb);
         pos++;
 
-        // remaining length
-        pos += VariableByteInteger.encode(ptr + pos, 0);
+        int remainingLength = getPropertiesLength() + 3 + VariableByteInteger.encodedSize(getPropertiesLength());
+        pos += VariableByteInteger.encode(ptr + pos, remainingLength);
+
+        TwoByteInteger.encode(ptr + pos, packetIdentifier);
+        pos += 2;
+
+        Unsafe.getUnsafe().putByte(ptr + pos, (byte) reasonCode);
+        pos++;
+
+        pos += VariableByteInteger.encode(ptr + pos, getPropertiesLength());
+
+
+        // other properties todo
         return pos;
     }
 }

@@ -82,10 +82,10 @@ public class TableFacade implements QuietCloseable {
 
     }
 
-    public void appendRow(PublishPacket publishPacket, ConnectPacket connectPacket) throws InterruptedException {
-        int slot = getSlot();
+    public int appendRow(PublishPacket publishPacket, ConnectPacket connectPacket) throws InterruptedException {
+        int index = getSlot();
 
-        LockedWalWriter lww = walWriters.getQuick(slot);
+        LockedWalWriter lww = walWriters.getQuick(index);
         WalWriter w = lww.acquire();
 
         // commit to wal
@@ -107,7 +107,7 @@ public class TableFacade implements QuietCloseable {
         // todo: clock strategy.. we need to be committing regularly on a timer,
         // not just on next rows
         int otherLogIndex = getSlot();
-        if (otherLogIndex != slot) {
+        if (otherLogIndex != index) {
             lww = walWriters.getQuick(otherLogIndex);
             if (lww.checkForCommit(timestamp)) {
                 w = lww.acquire();
@@ -117,6 +117,8 @@ public class TableFacade implements QuietCloseable {
                 lww.release();
             }
         }
+
+        return index;
     }
 
     @Override
@@ -140,8 +142,11 @@ public class TableFacade implements QuietCloseable {
     }
 
     public LockedWalWriter getWalWriter() {
-        rnd.nextInt(walWriters.size());
-        return walWriters.getQuick(walWriters.size() - 1);
+        return getWalWriter(rnd.nextInt(walWriters.size()));
     }
-    
+
+    public LockedWalWriter getWalWriter(int index) {
+        return walWriters.getQuick(index);
+    }
+
 }

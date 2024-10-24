@@ -26,9 +26,10 @@ package io.questdb.cutlass.mqtt;
 
 import io.questdb.std.Unsafe;
 
-public class PubackPacket implements ControlPacket {
+public class PubrelPacket implements ControlPacket {
     int packetIdentifier;
     int reasonCode;
+    VariableByteInteger vbi = new VariableByteInteger();
 
     @Override
     public void clear() {
@@ -41,7 +42,7 @@ public class PubackPacket implements ControlPacket {
 
     @Override
     public byte getType() {
-        return PacketType.PUBACK;
+        return PacketType.PUBREL;
     }
 
     public void of(int packetIdentifier, int reasonCode) {
@@ -51,18 +52,45 @@ public class PubackPacket implements ControlPacket {
 
     @Override
     public int parse(long ptr) throws MqttException {
-        return 0;
+        int pos = 0;
+        byte firstHeaderByte = Unsafe.getUnsafe().getByte(ptr + pos);
+        byte type = FirstHeaderByte.getType(firstHeaderByte);
+
+        guardWrongPacket(type);
+        byte flag = FirstHeaderByte.getFlag(firstHeaderByte);
+        
+
+        pos++;
+
+        // 2.1.4
+        vbi.decode(ptr + pos);
+        int messageLength = vbi.value;
+        pos += vbi.length;
+
+        packetIdentifier = TwoByteInteger.decode(ptr + pos);
+        pos += 2;
+
+        reasonCode = Unsafe.getUnsafe().getByte(ptr + pos);
+        pos++;
+
+        // 3.3.1.4 Property Length
+        vbi.decode(ptr + pos);
+        int propertiesLength = vbi.value;
+        pos += vbi.length;
+
+        // todo
+        return pos;
     }
 
     @Override
     public int unparse(long ptr) throws MqttException {
         int pos = 0;
-        byte fhb = 0b01000000;
+        byte fhb = 0b0110;
 
         Unsafe.getUnsafe().putByte(ptr, fhb);
         pos++;
 
-        int remainingLength = getPropertiesLength() + VariableByteInteger.encodedSize(getPropertiesLength());
+        int remainingLength = getPropertiesLength() + 4;
         pos += VariableByteInteger.encode(ptr + pos, remainingLength);
 
         TwoByteInteger.encode(ptr + pos, packetIdentifier);
@@ -71,8 +99,8 @@ public class PubackPacket implements ControlPacket {
         Unsafe.getUnsafe().putByte(ptr + pos, (byte) reasonCode);
         pos++;
 
-        pos += VariableByteInteger.encode(ptr + pos, getPropertiesLength());
-
+        Unsafe.getUnsafe().putByte(ptr + pos, (byte) getPropertiesLength());
+        pos++;
 
         // other properties todo
         return pos;

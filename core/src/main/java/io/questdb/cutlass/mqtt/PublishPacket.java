@@ -75,7 +75,7 @@ public class PublishPacket implements ControlPacket, Sinkable {
     }
 
     @Override
-    public int getType() {
+    public byte getType() {
         return PacketType.PUBLISH;
     }
 

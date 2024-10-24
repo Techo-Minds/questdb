@@ -138,7 +138,7 @@ public class ConnackPacket implements ControlPacket {
     }
 
     @Override
-    public int getType() {
+    public byte getType() {
         return PacketType.CONNACK;
     }
 
@@ -153,7 +153,7 @@ public class ConnackPacket implements ControlPacket {
         sessionPresent = 0;
         reasonCode = ReasonCode.REASON_SUCCESS;
         receiveMaximum = 1;
-        maximumQoS = 1;
+        maximumQoS = 2;
         retainAvailable = 0;
         return this;
     }

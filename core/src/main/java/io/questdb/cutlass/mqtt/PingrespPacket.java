@@ -36,7 +36,7 @@ public class PingrespPacket implements ControlPacket {
     }
 
     @Override
-    public int getType() {
+    public byte getType() {
         return PacketType.PINGRESP;
     }
 

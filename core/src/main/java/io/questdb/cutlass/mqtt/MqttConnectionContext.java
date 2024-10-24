@@ -29,9 +29,22 @@ import io.questdb.cutlass.auth.SocketAuthenticator;
 import io.questdb.cutlass.pgwire.BadProtocolException;
 import io.questdb.log.Log;
 import io.questdb.log.LogFactory;
-import io.questdb.network.*;
+import io.questdb.network.HeartBeatException;
+import io.questdb.network.IOContext;
+import io.questdb.network.IODispatcher;
+import io.questdb.network.IOOperation;
+import io.questdb.network.NetworkFacade;
+import io.questdb.network.PeerDisconnectedException;
+import io.questdb.network.PeerIsSlowToReadException;
+import io.questdb.network.PeerIsSlowToWriteException;
+import io.questdb.network.QueryPausedException;
+import io.questdb.network.ServerDisconnectException;
+import io.questdb.network.SuspendEvent;
+import io.questdb.std.IntIntHashMap;
+import io.questdb.std.LongLongHashMap;
 import io.questdb.std.MemoryTag;
 import io.questdb.std.Misc;
+import io.questdb.std.Os;
 import io.questdb.std.Unsafe;
 import org.jetbrains.annotations.NotNull;
 
@@ -44,8 +57,13 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
     private static int sendBufferSize = 4096;
     private final ConnackPacket connackPacket = new ConnackPacket();
     private final ConnectPacket connectPacket = new ConnectPacket();
+    private final IntIntHashMap packetIdentifierLwwIndexMap = new IntIntHashMap();
+    private final LongLongHashMap packetIdentifierTimestampMap = new LongLongHashMap();
     private final PubackPacket pubackPacket = new PubackPacket();
+    private final PubcompPacket pubcompPacket = new PubcompPacket();
     private final PublishPacket publishPacket = new PublishPacket();
+    private final PubrecPacket pubrecPacket = new PubrecPacket();
+    private final PubrelPacket pubrelPacket = new PubrelPacket();
     private final TableFacade tableFacade;
     private SocketAuthenticator authenticator;
     private boolean connected = false;
@@ -142,6 +160,7 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
             // this is address of where header ended in our receive buffer
             // we need to being processing request content starting from this address
             int read = recv();
+            int size;
 
             LOG.debug().$("recv [fd=").$(getFd()).$(", count=").$(read).I$();
             if (read < 0) {
@@ -172,14 +191,65 @@ public class MqttConnectionContext extends IOContext<MqttConnectionContext> {
                     // parse publish
                     int publishPacketLength = publishPacket.parse(recvBuffer);
 
-                    tableFacade.appendRow(publishPacket, connectPacket);
+                    int lwwIndex = tableFacade.appendRow(publishPacket, connectPacket);
 
-                    if (publishPacket.qos == 1) {
-                        pubackPacket.of(publishPacket.packetIdentifier, ReasonCode.REASON_SUCCESS);
-                        int size = pubackPacket.unparse(sendBuffer);
-                        send(size);
+
+                    switch (publishPacket.qos) {
+                        case 1:
+                            pubackPacket.of(publishPacket.packetIdentifier, ReasonCode.REASON_SUCCESS);
+                            size = pubackPacket.unparse(sendBuffer);
+                            send(size);
+                            break;
+                        case 2:
+                            packetIdentifierLwwIndexMap.put(publishPacket.packetIdentifier, lwwIndex);
+                            packetIdentifierTimestampMap.put(publishPacket.packetIdentifier, Os.currentTimeMicros());
+
+                            pubrecPacket.of(publishPacket.packetIdentifier, ReasonCode.REASON_SUCCESS);
+                            size = pubrecPacket.unparse(sendBuffer);
+                            send(size);
+                            break;
                     }
+
+
                     break;
+                case PacketType.PUBREL:
+                    int pubrelPacketLength = pubrelPacket.parse(recvBuffer);
+
+                    int lwwLoc = packetIdentifierLwwIndexMap.get(publishPacket.packetIdentifier);
+                    LockedWalWriter lww = tableFacade.getWalWriter(lwwLoc);
+
+
+                    long submitTime = packetIdentifierTimestampMap.get(publishPacket.packetIdentifier);
+
+                    while (!lww.checkForCommit(Os.currentTimeMicros())) {
+                        Thread.sleep(20);
+                    }
+
+                    lww.acquire();
+
+                    long sequencerTxn = lww.getSequencerTxn();
+
+                    if (lww.lastWrite.get() < submitTime) {
+                        lww.commit();
+                    }
+
+                    lww.release();
+
+//
+//                    // todo: review whole pattern
+//                    while (lww.lastWrite.get() < submitTime) {
+//                        Thread.sleep(10);
+//                    }
+
+                    packetIdentifierLwwIndexMap.remove(publishPacket.packetIdentifier);
+                    packetIdentifierTimestampMap.remove(publishPacket.packetIdentifier);
+
+                    pubcompPacket.of(pubrelPacket.packetIdentifier, ReasonCode.REASON_SUCCESS);
+                    size = pubcompPacket.unparse(sendBuffer);
+                    send(size);
+                    break;
+
+                // todo: check that buffer has been flushed. if so, get the sequencerTxn so they know when data will be ready
                 case PacketType.PINGREQ:
                     int length = PingrespPacket.INSTANCE.unparse(sendBuffer);
                     send(length);

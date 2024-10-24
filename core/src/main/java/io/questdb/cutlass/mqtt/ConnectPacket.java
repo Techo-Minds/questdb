@@ -88,7 +88,7 @@ public class ConnectPacket implements ControlPacket {
         correlationData = null;
     }
 
-    public int getType() {
+    public byte getType() {
         return PacketType.CONNECT;
     }
 
