@@ -24,9 +24,24 @@
 
 package io.questdb.griffin.engine.table;
 
-import io.questdb.cairo.*;
-import io.questdb.cairo.map.*;
-import io.questdb.cairo.sql.*;
+import io.questdb.cairo.ArrayColumnTypes;
+import io.questdb.cairo.CairoConfiguration;
+import io.questdb.cairo.ColumnTypes;
+import io.questdb.cairo.ListColumnFilter;
+import io.questdb.cairo.RecordSink;
+import io.questdb.cairo.RecordSinkFactory;
+import io.questdb.cairo.Reopenable;
+import io.questdb.cairo.map.Map;
+import io.questdb.cairo.map.MapFactory;
+import io.questdb.cairo.map.MapKey;
+import io.questdb.cairo.map.MapRecord;
+import io.questdb.cairo.map.MapValue;
+import io.questdb.cairo.sql.ExecutionCircuitBreaker;
+import io.questdb.cairo.sql.Function;
+import io.questdb.cairo.sql.RecordCursor;
+import io.questdb.cairo.sql.SqlExecutionCircuitBreaker;
+import io.questdb.cairo.sql.StatefulAtom;
+import io.questdb.cairo.sql.SymbolTableSource;
 import io.questdb.cairo.vm.api.MemoryCARW;
 import io.questdb.griffin.PlanSink;
 import io.questdb.griffin.Plannable;
@@ -34,9 +49,19 @@ import io.questdb.griffin.SqlException;
 import io.questdb.griffin.SqlExecutionContext;
 import io.questdb.griffin.engine.PerWorkerLocks;
 import io.questdb.griffin.engine.functions.GroupByFunction;
-import io.questdb.griffin.engine.groupby.*;
+import io.questdb.griffin.engine.groupby.GroupByAllocator;
+import io.questdb.griffin.engine.groupby.GroupByAllocatorFactory;
+import io.questdb.griffin.engine.groupby.GroupByFunctionsUpdater;
+import io.questdb.griffin.engine.groupby.GroupByFunctionsUpdaterFactory;
+import io.questdb.griffin.engine.groupby.GroupByUtils;
 import io.questdb.jit.CompiledFilter;
-import io.questdb.std.*;
+import io.questdb.std.BytecodeAssembler;
+import io.questdb.std.LongList;
+import io.questdb.std.Misc;
+import io.questdb.std.Numbers;
+import io.questdb.std.ObjList;
+import io.questdb.std.QuietCloseable;
+import io.questdb.std.Transient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -59,6 +84,8 @@ public class AsyncGroupByAtom implements StatefulAtom, Closeable, Reopenable, Pl
     private final GroupByAllocator ownerAllocator;
     private final Function ownerFilter;
     private final MapFragment ownerFragment;
+    // Note: all function updaters should be used through a getFunctionUpdater() call
+    // to properly initialize group by functions' allocator.
     private final GroupByFunctionsUpdater ownerFunctionUpdater;
     private final ObjList<GroupByFunction> ownerGroupByFunctions;
     private final ObjList<Function> ownerKeyFunctions;
@@ -114,11 +141,12 @@ public class AsyncGroupByAtom implements StatefulAtom, Closeable, Reopenable, Pl
             this.ownerGroupByFunctions = ownerGroupByFunctions;
             this.perWorkerGroupByFunctions = perWorkerGroupByFunctions;
 
-            ownerFunctionUpdater = GroupByFunctionsUpdaterFactory.getInstance(asm, ownerGroupByFunctions);
+            final Class<GroupByFunctionsUpdater> updaterClass = GroupByFunctionsUpdaterFactory.getInstanceClass(asm, ownerGroupByFunctions.size());
+            ownerFunctionUpdater = GroupByFunctionsUpdaterFactory.getInstance(updaterClass, ownerGroupByFunctions);
             if (perWorkerGroupByFunctions != null) {
                 perWorkerFunctionUpdaters = new ObjList<>(slotCount);
                 for (int i = 0; i < slotCount; i++) {
-                    perWorkerFunctionUpdaters.extendAndSet(i, GroupByFunctionsUpdaterFactory.getInstance(asm, perWorkerGroupByFunctions.getQuick(i)));
+                    perWorkerFunctionUpdaters.extendAndSet(i, GroupByFunctionsUpdaterFactory.getInstance(updaterClass, perWorkerGroupByFunctions.getQuick(i)));
                 }
             } else {
                 perWorkerFunctionUpdaters = null;
@@ -142,12 +170,12 @@ public class AsyncGroupByAtom implements StatefulAtom, Closeable, Reopenable, Pl
             destShards = new ObjList<>(shardCount);
             destShards.setPos(shardCount);
 
-            ownerMapSink = RecordSinkFactory.getInstance(asm, columnTypes, listColumnFilter, ownerKeyFunctions, null);
+            final Class<RecordSink> sinkClass = RecordSinkFactory.getInstanceClass(asm, columnTypes, listColumnFilter, ownerKeyFunctions, null);
+            ownerMapSink = RecordSinkFactory.getInstance(sinkClass, ownerKeyFunctions);
             if (perWorkerKeyFunctions != null) {
                 perWorkerMapSinks = new ObjList<>(slotCount);
                 for (int i = 0; i < slotCount; i++) {
-                    RecordSink sink = RecordSinkFactory.getInstance(asm, columnTypes, listColumnFilter, perWorkerKeyFunctions.getQuick(i), null);
-                    perWorkerMapSinks.extendAndSet(i, sink);
+                    perWorkerMapSinks.extendAndSet(i, RecordSinkFactory.getInstance(sinkClass, perWorkerKeyFunctions.getQuick(i)));
                 }
             } else {
                 perWorkerMapSinks = null;
@@ -362,6 +390,9 @@ public class AsyncGroupByAtom implements StatefulAtom, Closeable, Reopenable, Pl
         lastSharded = false;
         final Map destMap = ownerFragment.reopenMap();
         final int perWorkerMapCount = perWorkerFragments.size();
+        // Make sure to set the allocator for the owner's group by functions.
+        // This is done by the getFunctionUpdater() method.
+        final GroupByFunctionsUpdater functionUpdater = getFunctionUpdater(-1);
 
         // Calculate medians before the merge.
         final MapStats stats = lastOwnerStats;
@@ -390,7 +421,7 @@ public class AsyncGroupByAtom implements StatefulAtom, Closeable, Reopenable, Pl
         // Now do the actual merge.
         for (int i = 0; i < perWorkerMapCount; i++) {
             final Map srcMap = perWorkerFragments.getQuick(i).getMap();
-            destMap.merge(srcMap, ownerFunctionUpdater);
+            destMap.merge(srcMap, functionUpdater);
             srcMap.close();
         }
 

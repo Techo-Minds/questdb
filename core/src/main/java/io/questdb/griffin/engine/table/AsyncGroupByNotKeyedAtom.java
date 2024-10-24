@@ -36,7 +36,12 @@ import io.questdb.griffin.SqlException;
 import io.questdb.griffin.SqlExecutionContext;
 import io.questdb.griffin.engine.PerWorkerLocks;
 import io.questdb.griffin.engine.functions.GroupByFunction;
-import io.questdb.griffin.engine.groupby.*;
+import io.questdb.griffin.engine.groupby.GroupByAllocator;
+import io.questdb.griffin.engine.groupby.GroupByAllocatorFactory;
+import io.questdb.griffin.engine.groupby.GroupByFunctionsUpdater;
+import io.questdb.griffin.engine.groupby.GroupByFunctionsUpdaterFactory;
+import io.questdb.griffin.engine.groupby.GroupByUtils;
+import io.questdb.griffin.engine.groupby.SimpleMapValue;
 import io.questdb.jit.CompiledFilter;
 import io.questdb.std.BytecodeAssembler;
 import io.questdb.std.Misc;
@@ -55,6 +60,8 @@ public class AsyncGroupByNotKeyedAtom implements StatefulAtom, Closeable, Planna
     private final CompiledFilter compiledFilter;
     private final GroupByAllocator ownerAllocator;
     private final Function ownerFilter;
+    // Note: all function updaters should be used through a getFunctionUpdater() call
+    // to properly initialize group by functions' allocator.
     private final GroupByFunctionsUpdater ownerFunctionUpdater;
     private final ObjList<GroupByFunction> ownerGroupByFunctions;
     private final SimpleMapValue ownerMapValue;
@@ -91,11 +98,12 @@ public class AsyncGroupByNotKeyedAtom implements StatefulAtom, Closeable, Planna
             this.ownerGroupByFunctions = ownerGroupByFunctions;
             this.perWorkerGroupByFunctions = perWorkerGroupByFunctions;
 
-            ownerFunctionUpdater = GroupByFunctionsUpdaterFactory.getInstance(asm, ownerGroupByFunctions);
+            final Class<GroupByFunctionsUpdater> updaterClass = GroupByFunctionsUpdaterFactory.getInstanceClass(asm, ownerGroupByFunctions.size());
+            ownerFunctionUpdater = GroupByFunctionsUpdaterFactory.getInstance(updaterClass, ownerGroupByFunctions);
             if (perWorkerGroupByFunctions != null) {
                 perWorkerFunctionUpdaters = new ObjList<>(slotCount);
                 for (int i = 0; i < slotCount; i++) {
-                    perWorkerFunctionUpdaters.extendAndSet(i, GroupByFunctionsUpdaterFactory.getInstance(asm, perWorkerGroupByFunctions.getQuick(i)));
+                    perWorkerFunctionUpdaters.extendAndSet(i, GroupByFunctionsUpdaterFactory.getInstance(updaterClass, perWorkerGroupByFunctions.getQuick(i)));
                 }
             } else {
                 perWorkerFunctionUpdaters = null;
@@ -123,11 +131,14 @@ public class AsyncGroupByNotKeyedAtom implements StatefulAtom, Closeable, Planna
 
     @Override
     public void clear() {
-        ownerFunctionUpdater.updateEmpty(ownerMapValue);
+        // Make sure to set the allocator for the owner's group by functions.
+        // This is done by the getFunctionUpdater() method.
+        final GroupByFunctionsUpdater functionUpdater = getFunctionUpdater(-1);
+        functionUpdater.updateEmpty(ownerMapValue);
         ownerMapValue.setNew(true);
         for (int i = 0, n = perWorkerMapValues.size(); i < n; i++) {
             SimpleMapValue value = perWorkerMapValues.getQuick(i);
-            ownerFunctionUpdater.updateEmpty(value);
+            functionUpdater.updateEmpty(value);
             value.setNew(true);
         }
         if (perWorkerGroupByFunctions != null) {

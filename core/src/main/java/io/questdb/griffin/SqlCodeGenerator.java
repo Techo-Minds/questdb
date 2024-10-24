@@ -1784,12 +1784,21 @@ public class SqlCodeGenerator implements Mutable, Closeable {
 
             int timestampIndex = groupByFactory.getMetadata().getColumnIndexQuiet(alias);
 
+            int samplingIntervalEnd = TimestampSamplerFactory.findIntervalEndIndex(fillStride.token, fillStride.position);
+            long samplingInterval = TimestampSamplerFactory.parseInterval(fillStride.token, samplingIntervalEnd, fillStride.position);
+            assert samplingInterval > 0;
+            assert samplingIntervalEnd < fillStride.token.length();
+            char samplingIntervalUnit = fillStride.token.charAt(samplingIntervalEnd);
+            TimestampSampler timestampSampler = TimestampSamplerFactory.getInstance(samplingInterval, samplingIntervalUnit, fillStride.position);
+
             return new FillRangeRecordCursorFactory(
                     groupByFactory.getMetadata(),
                     groupByFactory,
                     fillFromFunc,
                     fillToFunc,
-                    fillStride.token,
+                    samplingInterval,
+                    samplingIntervalUnit,
+                    timestampSampler,
                     fillValues,
                     timestampIndex
             );
@@ -4140,6 +4149,7 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                         metadata,
                         executionContext
                 );
+
                 int targetColumnType = -1;
                 if (model.isUpdate()) {
                     // Check the type of the column to be updated
@@ -4158,6 +4168,10 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                 }
 
                 int columnType = function.getType();
+                if (columnType == ColumnType.CURSOR) {
+                    throw SqlException.$(node.position, "cursor function cannot be used as a column [column=").put(column.getAlias()).put(']');
+                }
+
                 if (targetColumnType != -1 && targetColumnType != columnType) {
                     // This is an update and the target column does not match with column the update is trying to perform
                     if (ColumnType.isBuiltInWideningCast(function.getType(), targetColumnType)) {

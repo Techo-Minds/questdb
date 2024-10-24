@@ -22,30 +22,25 @@
  *
  ******************************************************************************/
 
-package io.questdb.griffin.engine.functions.groupby;
+package io.questdb.cairo;
 
-import io.questdb.cairo.sql.Function;
-import io.questdb.cairo.sql.Record;
+
+import io.questdb.std.CharSequenceObjHashMap;
+import io.questdb.std.QuietCloseable;
+import io.questdb.std.str.Sinkable;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public class VarPopGroupByFunction extends AbstractStdDevGroupByFunction {
+public interface MetadataCacheReader extends QuietCloseable, Sinkable {
+    @Nullable
+    CairoTable getTable(@NotNull TableToken tableToken);
 
-    public VarPopGroupByFunction(@NotNull Function arg) {
-        super(arg);
-    }
+    int getTableCount();
 
-    @Override
-    public double getDouble(Record rec) {
-        long count = rec.getLong(valueIndex + 2);
-        if (count > 0) {
-            double sum = rec.getDouble(valueIndex + 1);
-            return sum / count;
-        }
-        return Double.NaN;
-    }
+    long getVersion();
 
-    @Override
-    public String getName() {
-        return "var_pop";
-    }
+    boolean isVisibleTable(@NotNull CharSequence tableName);
+
+    long snapshot(CharSequenceObjHashMap<CairoTable> localCache, long priorVersion);
 }
+

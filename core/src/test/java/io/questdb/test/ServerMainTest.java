@@ -245,8 +245,8 @@ public class ServerMainTest extends AbstractBootstrapTest {
                                     "cairo.sql.copy.max.index.chunk.size\tQDB_CAIRO_SQL_COPY_MAX_INDEX_CHUNK_SIZE\t104857600\tdefault\tfalse\tfalse\n" +
                                     "cairo.sql.copy.model.pool.capacity\tQDB_CAIRO_SQL_COPY_MODEL_POOL_CAPACITY\t32\tdefault\tfalse\tfalse\n" +
                                     "cairo.sql.copy.queue.capacity\tQDB_CAIRO_SQL_COPY_QUEUE_CAPACITY\t32\tdefault\tfalse\tfalse\n" +
-                                    "cairo.sql.count.distinct.capacity\tQDB_CAIRO_SQL_COUNT_DISTINCT_CAPACITY\t4\tdefault\tfalse\tfalse\n" +
-                                    "cairo.sql.count.distinct.load.factor\tQDB_CAIRO_SQL_COUNT_DISTINCT_LOAD_FACTOR\t0.8\tdefault\tfalse\tfalse\n" +
+                                    "cairo.sql.count.distinct.capacity\tQDB_CAIRO_SQL_COUNT_DISTINCT_CAPACITY\t3\tdefault\tfalse\tfalse\n" +
+                                    "cairo.sql.count.distinct.load.factor\tQDB_CAIRO_SQL_COUNT_DISTINCT_LOAD_FACTOR\t0.75\tdefault\tfalse\tfalse\n" +
                                     "cairo.sql.create.table.model.pool.capacity\tQDB_CAIRO_SQL_CREATE_TABLE_MODEL_POOL_CAPACITY\t16\tdefault\tfalse\tfalse\n" +
                                     "cairo.sql.create.table.model.batch.size\tQDB_CAIRO_SQL_CREATE_TABLE_MODEL_BATCH_SIZE\t1000000\tdefault\tfalse\tfalse\n" +
                                     "cairo.sql.distinct.timestamp.key.capacity\tQDB_CAIRO_SQL_DISTINCT_TIMESTAMP_KEY_CAPACITY\t512\tdefault\tfalse\tfalse\n" +
@@ -580,7 +580,17 @@ public class ServerMainTest extends AbstractBootstrapTest {
                                     "cairo.partition.encoder.parquet.row.group.size\tQDB_CAIRO_PARTITION_ENCODER_PARQUET_ROW_GROUP_SIZE\t0\tdefault\tfalse\tfalse\n" +
                                     "cairo.partition.encoder.parquet.data.page.size\tQDB_CAIRO_PARTITION_ENCODER_PARQUET_DATA_PAGE_SIZE\t0\tdefault\tfalse\tfalse\n" +
                                     "cairo.partition.encoder.parquet.compression.codec\tQDB_CAIRO_PARTITION_ENCODER_PARQUET_COMPRESSION_CODEC\t0\tdefault\tfalse\tfalse\n" +
-                                    "cairo.partition.encoder.parquet.compression.level\tQDB_CAIRO_PARTITION_ENCODER_PARQUET_COMPRESSION_LEVEL\t0\tdefault\tfalse\tfalse\n"
+                                    "cairo.partition.encoder.parquet.compression.level\tQDB_CAIRO_PARTITION_ENCODER_PARQUET_COMPRESSION_LEVEL\t0\tdefault\tfalse\tfalse\n" +
+                                    "http.min.receive.buffer.size\tQDB_HTTP_MIN_RECEIVE_BUFFER_SIZE\t1024\tdefault\tfalse\tfalse\n" +
+                                    "http.min.request.header.buffer.size\tQDB_HTTP_MIN_REQUEST_HEADER_BUFFER_SIZE\t4096\tdefault\tfalse\tfalse\n" +
+                                    "http.min.allow.deflate.before.send\tQDB_HTTP_MIN_ALLOW_DEFLATE_BEFORE_SEND\tfalse\tdefault\tfalse\tfalse\n" +
+                                    "http.min.multipart.header.buffer.size\tQDB_HTTP_MIN_MULTIPART_HEADER_BUFFER_SIZE\t512\tdefault\tfalse\tfalse\n" +
+                                    "http.min.send.buffer.size\tQDB_HTTP_MIN_SEND_BUFFER_SIZE\t4096\tdefault\tfalse\tfalse\n" +
+                                    "http.min.server.keep.alive\tQDB_HTTP_MIN_SERVER_KEEP_ALIVE\ttrue\tdefault\tfalse\tfalse\n" +
+                                    "http.min.connection.string.pool.capacity\tQDB_HTTP_MIN_CONNECTION_STRING_POOL_CAPACITY\t2\tdefault\tfalse\tfalse\n" +
+                                    "http.min.connection.pool.initial.capacity\tQDB_HTTP_MIN_CONNECTION_POOL_INITIAL_CAPACITY\t2\tdefault\tfalse\tfalse\n" +
+                                    "http.min.multipart.idle.spin.count\tQDB_HTTP_MIN_MULTIPART_IDLE_SPIN_COUNT\t0\tdefault\tfalse\tfalse\n" +
+                                    "cairo.o3.partition.overwrite.control.enabled\tQDB_CAIRO_O3_PARTITION_OVERWRITE_CONTROL_ENABLED\tfalse\tdefault\tfalse\tfalse\n"
                             )
                                     .split("\n");
 

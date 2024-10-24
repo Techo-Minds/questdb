@@ -376,5 +376,4 @@ public class DynamicPropServerConfiguration implements DynamicServerConfiguratio
 
         delegate.set(newConfig);
     }
-
 }
