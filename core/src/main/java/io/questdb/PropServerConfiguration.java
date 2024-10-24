@@ -273,8 +273,6 @@ public class PropServerConfiguration implements ServerConfiguration {
     private final MicrosecondClock microsecondClock;
     private final int mkdirMode;
     private final MqttServerConfiguration mqttServerConfiguration = new PropMqttServerConfiguration();
-    private final int multipartHeaderBufferSize;
-    private final long multipartIdleSpinCount;
     private final int o3CallbackQueueCapacity;
     private final int o3ColumnMemorySize;
     private final int o3CopyQueueCapacity;
