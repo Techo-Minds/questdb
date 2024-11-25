@@ -3817,6 +3817,15 @@ public class SqlOptimiserTest extends AbstractSqlParserTest {
     }
 
     @Test
+    public void testSampleByRewriteDoesNotErrorWhenNoTimestampIsLocated() throws Exception {
+        assertMemoryLeak(() -> {
+            execute(tradesDdl);
+            assertException("SELECT timestamp FROM long_sequence(1)\n" +
+                    "SAMPLE BY 1d FROM now() to dateadd('day', -300, now())", 7, "Invalid column: timestamp");
+        });
+    }
+
+    @Test
     public void testSelectMultipleColumnsIncludingLastFunctionOnDesignatedTimestampColumn() throws Exception {
         assertMemoryLeak(() -> {
             execute("create table y ( x int, ts timestamp) timestamp(ts);");

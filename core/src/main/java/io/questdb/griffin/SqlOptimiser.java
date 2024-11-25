@@ -5052,7 +5052,10 @@ public class SqlOptimiser implements Mutable {
                 }
             }
 
-            assert timestamp != null;
+            // drop out if needed
+            if (timestamp == null) {
+                return;
+            }
 
             if (Chars.indexOf(timestamp.token, '.') < 0) {
                 // prefix the timestamp column name
