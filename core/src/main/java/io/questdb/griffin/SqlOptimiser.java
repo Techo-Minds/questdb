@@ -152,7 +152,7 @@ public class SqlOptimiser implements Mutable {
     private final IntList tempCrossIndexes = new IntList();
     private final IntList tempCrosses = new IntList();
     private final IntList tempList = new IntList();
-    private final ObjList<QueryColumn> tempColumns = new ObjList<QueryColumn>();
+    private final ObjList<QueryColumn> tempColumns = new ObjList<>();
     private final CharSequenceHashSet existsDependedTokens = new CharSequenceHashSet();
     private final CharSequenceHashSet missingDependedTokens = new CharSequenceHashSet();
     private final LowerCaseCharSequenceObjHashMap<QueryColumn> tmpCursorAliases = new LowerCaseCharSequenceObjHashMap<>();
@@ -1052,7 +1052,7 @@ public class SqlOptimiser implements Mutable {
     }
 
     /**
-     * Checks whether the given advice is for one table only i.e consistent table prefix.
+     * Checks whether the given advice is for one table only i.e. consistent table prefix.
      *
      * @param orderByAdvice the given advice
      * @return whether prefix is consistent or not
