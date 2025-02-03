@@ -35,13 +35,13 @@ public class SimdJsonResult implements QuietCloseable {
     private long impl;
 
     public SimdJsonResult() {
-        this.impl = Unsafe.calloc(JSON_RESULT_STRUCT_SIZE, MemoryTag.NATIVE_DEFAULT);
+        this.impl = Unsafe.calloc(JSON_RESULT_STRUCT_SIZE, MemoryTag.NATIVE_DBG17);
     }
 
     @Override
     public void close() {
         if (impl != 0) {
-            Unsafe.free(impl, JSON_RESULT_STRUCT_SIZE, MemoryTag.NATIVE_DEFAULT);
+            Unsafe.free(impl, JSON_RESULT_STRUCT_SIZE, MemoryTag.NATIVE_DBG17);
         }
         impl = 0;
     }

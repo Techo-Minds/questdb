@@ -79,7 +79,7 @@ public class PageFrameMemoryPool implements QuietCloseable, Mutable {
             frameMemory = new PageFrameMemoryImpl();
             toParquetColumnIndexes = new IntList(16);
             fromParquetColumnIndexes = new IntList(16);
-            parquetColumns = new DirectIntList(32, MemoryTag.NATIVE_DEFAULT);
+            parquetColumns = new DirectIntList(32, MemoryTag.NATIVE_DBG06);
             parquetDecoder = new PartitionDecoder();
         } catch (Throwable th) {
             close();

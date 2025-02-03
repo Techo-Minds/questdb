@@ -49,8 +49,8 @@ class LongTopKRecordCursor implements RecordCursor {
         this.columnIndex = columnIndex;
         isOpen = true;
         heap = ascending
-                ? new DirectLongLongMinHeap(lo, MemoryTag.NATIVE_DEFAULT)
-                : new DirectLongLongMaxHeap(lo, MemoryTag.NATIVE_DEFAULT);
+                ? new DirectLongLongMinHeap(lo, MemoryTag.NATIVE_DBG12)
+                : new DirectLongLongMaxHeap(lo, MemoryTag.NATIVE_DBG12);
         rowIdCursor = heap.getCursor();
     }
 

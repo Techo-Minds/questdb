@@ -52,7 +52,7 @@ public class LongChain implements Closeable, Mutable, Reopenable {
 
     public LongChain(long valuePageSize, int valueMaxPages) {
         heapSize = initialHeapSize = valuePageSize;
-        heapStart = heapPos = Unsafe.malloc(heapSize, MemoryTag.NATIVE_DEFAULT);
+        heapStart = heapPos = Unsafe.malloc(heapSize, MemoryTag.NATIVE_DBG10);
         heapLimit = heapStart + heapSize;
         maxHeapSize = Math.min(valuePageSize * valueMaxPages, MAX_HEAP_SIZE_LIMIT);
     }
@@ -65,7 +65,7 @@ public class LongChain implements Closeable, Mutable, Reopenable {
     @Override
     public void close() {
         if (heapStart != 0) {
-            heapStart = Unsafe.free(heapStart, heapSize, MemoryTag.NATIVE_DEFAULT);
+            heapStart = Unsafe.free(heapStart, heapSize, MemoryTag.NATIVE_DBG10);
             heapLimit = heapPos = 0;
             heapSize = 0;
         }
@@ -91,7 +91,7 @@ public class LongChain implements Closeable, Mutable, Reopenable {
     public void reopen() {
         if (heapStart == 0) {
             heapSize = initialHeapSize;
-            heapStart = heapPos = Unsafe.malloc(heapSize, MemoryTag.NATIVE_DEFAULT);
+            heapStart = heapPos = Unsafe.malloc(heapSize, MemoryTag.NATIVE_DBG10);
             heapLimit = heapStart + heapSize;
         }
     }
@@ -110,7 +110,7 @@ public class LongChain implements Closeable, Mutable, Reopenable {
             if (newHeapSize > maxHeapSize) {
                 throw LimitOverflowException.instance().put("limit of ").put(maxHeapSize).put(" memory exceeded in LongChain");
             }
-            long newHeapPos = Unsafe.realloc(heapStart, heapSize, newHeapSize, MemoryTag.NATIVE_DEFAULT);
+            long newHeapPos = Unsafe.realloc(heapStart, heapSize, newHeapSize, MemoryTag.NATIVE_DBG10);
 
             heapSize = newHeapSize;
             long delta = newHeapPos - heapStart;

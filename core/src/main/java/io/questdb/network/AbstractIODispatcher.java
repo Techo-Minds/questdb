@@ -111,7 +111,7 @@ public abstract class AbstractIODispatcher<C extends IOContext<C>> extends Synch
         this.nf = configuration.getNetworkFacade();
 
         this.testConnectionBufSize = configuration.getTestConnectionBufferSize();
-        this.testConnectionBuf = Unsafe.malloc(testConnectionBufSize, MemoryTag.NATIVE_DEFAULT);
+        this.testConnectionBuf = Unsafe.malloc(testConnectionBufSize, MemoryTag.NATIVE_DBG14);
 
         this.interestQueue = new RingQueue<>(IOEvent::new, configuration.getInterestQueueCapacity());
         this.interestPubSeq = new MPSequence(interestQueue.getCycle());
@@ -163,7 +163,7 @@ public abstract class AbstractIODispatcher<C extends IOContext<C>> extends Synch
             serverFd = -1;
         }
 
-        testConnectionBuf = Unsafe.free(testConnectionBuf, testConnectionBufSize, MemoryTag.NATIVE_DEFAULT);
+        testConnectionBuf = Unsafe.free(testConnectionBuf, testConnectionBufSize, MemoryTag.NATIVE_DBG14);
     }
 
     @Override

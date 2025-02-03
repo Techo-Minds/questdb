@@ -60,12 +60,12 @@ public class EllipticCurveAuthenticator implements SocketAuthenticator {
 
     public EllipticCurveAuthenticator(ChallengeResponseMatcher challengeResponseMatcher) {
         this.challengeResponseMatcher = challengeResponseMatcher;
-        this.challengePtr = Unsafe.malloc(AuthUtils.CHALLENGE_LEN, MemoryTag.NATIVE_DEFAULT);
+        this.challengePtr = Unsafe.malloc(AuthUtils.CHALLENGE_LEN, MemoryTag.NATIVE_DBG08);
     }
 
     @Override
     public void close() {
-        challengePtr = Unsafe.free(challengePtr, AuthUtils.CHALLENGE_LEN, MemoryTag.NATIVE_DEFAULT);
+        challengePtr = Unsafe.free(challengePtr, AuthUtils.CHALLENGE_LEN, MemoryTag.NATIVE_DBG08);
     }
 
     @Override

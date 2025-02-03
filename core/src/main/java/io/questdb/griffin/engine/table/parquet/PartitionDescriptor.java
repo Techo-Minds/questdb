@@ -47,7 +47,7 @@ public class PartitionDescriptor implements QuietCloseable, Mutable {
     public static final int SYMBOL_OFFSET_ADDR_OFFSET = 7;
     public static final int SYMBOL_OFFSET_SIZE_OFFSET = 8;
     // A single DirectLongList to store all the column-related data
-    protected DirectLongList columnData = new DirectLongList(64, MemoryTag.NATIVE_DEFAULT);
+    protected DirectLongList columnData = new DirectLongList(64, MemoryTag.NATIVE_DBG13);
     // A single DirectUtf8Sink to store all the column names
     protected DirectUtf8Sink columnNames = new DirectUtf8Sink(32);
     protected long partitionRowCount;

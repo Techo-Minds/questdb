@@ -41,7 +41,7 @@ public class ParquetTimestampFinder implements TimestampFinder, Mutable, QuietCl
     private final PartitionDecoder partitionDecoder; // the decoder is managed externally
     private final RowGroupBuffers rowGroupBuffers = new RowGroupBuffers(MemoryTag.NATIVE_PARQUET_PARTITION_DECODER);
     private final RowGroupStatBuffers statBuffers = new RowGroupStatBuffers(MemoryTag.NATIVE_PARQUET_PARTITION_DECODER);
-    private final DirectIntList timestampIdAndType = new DirectIntList(2, MemoryTag.NATIVE_DEFAULT);
+    private final DirectIntList timestampIdAndType = new DirectIntList(2, MemoryTag.NATIVE_DBG02);
     private int partitionIndex = -1;
     private TableToken tableToken;
 

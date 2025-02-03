@@ -36,14 +36,14 @@ public final class StdoutSink implements Utf8Sink, Closeable {
 
     public static final StdoutSink INSTANCE = new StdoutSink();
     private final int bufferCapacity = 1024;
-    private final long buffer = Unsafe.malloc(bufferCapacity, MemoryTag.NATIVE_DEFAULT);
+    private final long buffer = Unsafe.malloc(bufferCapacity, MemoryTag.NATIVE_DBG18);
     private final long limit = buffer + bufferCapacity;
     private long ptr = buffer;
     private final long stdout = Files.getStdOutFdInternal();
 
     @Override
     public void close() {
-        Unsafe.free(buffer, bufferCapacity, MemoryTag.NATIVE_DEFAULT);
+        Unsafe.free(buffer, bufferCapacity, MemoryTag.NATIVE_DBG18);
     }
 
     public void flush() {

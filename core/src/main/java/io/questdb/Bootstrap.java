@@ -472,11 +472,11 @@ public class Bootstrap {
         long fd = ff.openRW(path.$(), cairoConfiguration.getWriterFileOpenOpts());
         try {
             if (fd > -1) {
-                long mem = Unsafe.malloc(Long.BYTES, MemoryTag.NATIVE_DEFAULT);
+                long mem = Unsafe.malloc(Long.BYTES, MemoryTag.NATIVE_DBG01);
                 try {
                     TableUtils.writeLongOrFail(ff, fd, 0, 123456789L, mem, path);
                 } finally {
-                    Unsafe.free(mem, Long.BYTES, MemoryTag.NATIVE_DEFAULT);
+                    Unsafe.free(mem, Long.BYTES, MemoryTag.NATIVE_DBG01);
                 }
             }
         } finally {

@@ -150,7 +150,7 @@ public class TableNameRegistryStore extends GrowOnlyTableNameRegistryStore {
     private boolean checkWalTableInPendingDropState(TableToken tableToken, FilesFacade ff, Path path, int plimit) {
         if (longBuffer == 0) {
             // lazy init
-            longBuffer = Unsafe.malloc(Long.BYTES, MemoryTag.NATIVE_DEFAULT);
+            longBuffer = Unsafe.malloc(Long.BYTES, MemoryTag.NATIVE_DBG03);
         }
 
         path.trimTo(plimit).concat(tableToken.getDirName()).concat(SEQ_DIR).concat(META_FILE_NAME);
@@ -384,7 +384,7 @@ public class TableNameRegistryStore extends GrowOnlyTableNameRegistryStore {
         } finally {
             ff.findClose(findPtr);
             if (longBuffer != 0) {
-                longBuffer = Unsafe.free(longBuffer, Long.BYTES, MemoryTag.NATIVE_DEFAULT);
+                longBuffer = Unsafe.free(longBuffer, Long.BYTES, MemoryTag.NATIVE_DBG04);
             }
         }
     }

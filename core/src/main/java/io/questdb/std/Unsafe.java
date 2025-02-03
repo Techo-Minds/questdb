@@ -33,7 +33,7 @@ import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.concurrent.atomic.LongAdder;
+import java.util.concurrent.atomic.AtomicLong;import java.util.concurrent.atomic.LongAdder;
 
 import static io.questdb.std.MemoryTag.NATIVE_DEFAULT;
 
@@ -50,6 +50,9 @@ public final class Unsafe {
     //#endif
     public static final long LONG_OFFSET;
     public static final long LONG_SCALE;
+    //#endif
+    public static final AtomicLong ticks = new AtomicLong(0);
+    public static final LongObjHashMap<AllocTracking> allocs = new LongObjHashMap<>();
     private static final LongAdder[] COUNTERS = new LongAdder[MemoryTag.SIZE];
     private static final long FREE_COUNT_ADDR;
     private static final long MALLOC_COUNT_ADDR;
@@ -66,7 +69,6 @@ public final class Unsafe {
     private static final AnonymousClassDefiner anonymousClassDefiner;
     //#if jdk.version!=8
     private static final Method implAddExports;
-    //#endif
 
     private Unsafe() {
     }
@@ -164,6 +166,9 @@ public final class Unsafe {
             Unsafe.getUnsafe().freeMemory(ptr);
             incrFreeCount();
             recordMemAlloc(-size, memoryTag);
+            if (extraTrace(memoryTag)) {
+                trackFree(ptr, size);
+            }
         }
         return 0;
     }
@@ -259,6 +264,9 @@ public final class Unsafe {
             long ptr = Unsafe.getUnsafe().allocateMemory(size);
             recordMemAlloc(size, memoryTag);
             incrMallocCount();
+            if (extraTrace(memoryTag)) {
+                trackMalloc(ptr, size, memoryTag);
+            }
             return ptr;
         } catch (OutOfMemoryError oom) {
             CairoException e = CairoException.nonCritical().setOutOfMemory(true)
@@ -281,6 +289,9 @@ public final class Unsafe {
             long ptr = Unsafe.getUnsafe().reallocateMemory(address, newSize);
             recordMemAlloc(-oldSize + newSize, memoryTag);
             incrReallocCount();
+            if (extraTrace(memoryTag)) {
+                trackRealloc(address, ptr, newSize, memoryTag);
+            }
             return ptr;
         } catch (OutOfMemoryError oom) {
             CairoException e = CairoException.nonCritical().setOutOfMemory(true)
@@ -404,8 +415,58 @@ public final class Unsafe {
         return 31 - Integer.numberOfLeadingZeros(value);
     }
 
+    private static void trackFree(long ptr, long size) {
+        synchronized (allocs) {
+            if (allocs.remove(ptr) == -1) {
+                throw new IllegalStateException("unable to track free " + ptr);
+            }
+        }
+    }
+
+    private static void trackMalloc(long ptr, long size, int memoryTag) {
+        final var tracking = new AllocTracking(size, Thread.currentThread().getStackTrace(), memoryTag);
+        synchronized (allocs) {
+            allocs.put(ptr, tracking);
+        }
+    }
+
+    private static void trackRealloc(long oldPtr, long newPtr, long newSize, int memoryTag) {
+        if (oldPtr == 0) {
+            trackMalloc(newPtr, newSize, memoryTag);
+            return;
+        }
+
+        synchronized (allocs) {
+            final var tracking = allocs.get(oldPtr);
+            if (tracking == null) {
+                throw new IllegalStateException("unable to track realloc " + oldPtr);
+            }
+            allocs.remove(oldPtr);
+            tracking.size = newSize;
+            allocs.put(newPtr, tracking);
+        }
+    }
+
+    private static boolean extraTrace(int memoryTag) {
+        return (memoryTag >= MemoryTag.NATIVE_DBG01) && (memoryTag <= MemoryTag.NATIVE_DBG30);
+    }
+
     interface AnonymousClassDefiner {
         Class<?> define(Class<?> hostClass, byte[] data);
+    }
+
+    public static class AllocTracking {
+        public final StackTraceElement[] bt;
+        public final int memoryTag;
+        public long size;
+        public final long tick;
+
+        public AllocTracking(long size, StackTraceElement[] bt, int memoryTag) {
+            this.size = size;
+            this.bt = bt;
+            this.memoryTag = memoryTag;
+            this.tick = ticks.get();
+        }
     }
 
     /**

@@ -1461,7 +1461,7 @@ public class TableWriter implements TableWriterAPI, MetadataService, Closeable {
 
         // packed as [auxFd, dataFd, dataVecBytesWritten]
         // dataVecBytesWritten is used to adjust offsets in the auxiliary vector
-        final DirectLongList columnFdAndDataSize = new DirectLongList(3L * columnCount, MemoryTag.NATIVE_DEFAULT);
+        final DirectLongList columnFdAndDataSize = new DirectLongList(3L * columnCount, MemoryTag.NATIVE_DBG06);
 
         // path is now pointing to the parquet file
         // other is pointing to the new partition folder

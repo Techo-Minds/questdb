@@ -74,6 +74,7 @@ import io.questdb.std.FilesFacade;
 import io.questdb.std.IntList;
 import io.questdb.std.Long256;
 import io.questdb.std.LongList;
+import io.questdb.std.LongObjHashMap;
 import io.questdb.std.MemoryTag;
 import io.questdb.std.Misc;
 import io.questdb.std.Numbers;
@@ -1966,6 +1967,7 @@ public final class TestUtils {
         private final long[] memoryUsageByTag = new long[MemoryTag.SIZE];
         private final int sockAddrCount;
         private boolean skipChecksOnClose;
+        private final LongObjHashMap<Unsafe.AllocTracking> allocSnapshot = new LongObjHashMap<>();
 
         public LeakCheck() {
             Path.clearThreadLocals();
@@ -1986,6 +1988,28 @@ public final class TestUtils {
             Assert.assertTrue("Initial allocated sockaddr count should be >= 0", sockAddrCount >= 0);
         }
 
+        private void dumpTrackedAllocations() {
+            synchronized (Unsafe.allocs) {
+                Unsafe.allocs.forEach((ptr, tracking) -> {
+                    final Unsafe.AllocTracking snapshotTracking = allocSnapshot.get(ptr);
+                    if ((snapshotTracking != null) && (tracking.size == snapshotTracking.size)) {
+                        return;
+                    }
+
+                    System.err.println("Unexpected allocation:");
+                    System.err.println("    * ptr: " + ptr);
+                    System.err.println("    * size: " + tracking.size);
+                    System.err.println("    * tag: " + MemoryTag.nameOf(tracking.memoryTag));
+                    System.err.println("    * tick: " + tracking.tick);
+                    System.err.println("    * bt: ");
+                    for (var frame : tracking.bt) {
+                        System.err.println("          " + frame);
+                    }
+                    System.err.println("\n");
+                });
+            }
+        }
+
         @Override
         public void close() {
             if (skipChecksOnClose) {
@@ -2003,6 +2027,8 @@ public final class TestUtils {
             long memNativeSqlCompilerDiff = 0;
             Assert.assertTrue(memAfter > -1);
             if (mem != memAfter) {
+                dumpTrackedAllocations();
+
                 for (int i = MemoryTag.MMAP_DEFAULT; i < MemoryTag.SIZE; i++) {
                     long actualMemByTag = Unsafe.getMemUsedByTag(i);
                     if (memoryUsageByTag[i] != actualMemByTag) {

@@ -1366,7 +1366,7 @@ public final class TableUtils {
             try {
                 length = ff.length(fd);
                 if (length > 0) {
-                    bytes = Unsafe.malloc(length, MemoryTag.NATIVE_DEFAULT);
+                    bytes = Unsafe.malloc(length, MemoryTag.NATIVE_DBG05);
                     if (ff.read(fd, bytes, length, 0) == length) {
                         return Utf8s.stringFromUtf8Bytes(bytes, bytes + length);
                     }
@@ -1374,7 +1374,7 @@ public final class TableUtils {
                 }
             } finally {
                 if (bytes != 0) {
-                    Unsafe.free(bytes, length, MemoryTag.NATIVE_DEFAULT);
+                    Unsafe.free(bytes, length, MemoryTag.NATIVE_DBG05);
                 }
                 ff.close(fd);
             }

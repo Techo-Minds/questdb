@@ -87,8 +87,8 @@ public abstract class HttpClient implements QuietCloseable {
         this.maxBufferSize = configuration.getMaximumRequestBufferSize();
         this.responseParserBufSize = configuration.getResponseBufferSize();
         this.fixBrokenConnection = configuration.fixBrokenConnection();
-        this.bufLo = Unsafe.malloc(bufferSize, MemoryTag.NATIVE_DEFAULT);
-        this.responseParserBufLo = Unsafe.malloc(responseParserBufSize, MemoryTag.NATIVE_DEFAULT);
+        this.bufLo = Unsafe.malloc(bufferSize, MemoryTag.NATIVE_DBG07);
+        this.responseParserBufLo = Unsafe.malloc(responseParserBufSize, MemoryTag.NATIVE_DBG07);
         this.responseHeaders = new ResponseHeaders(responseParserBufLo, responseParserBufSize, defaultTimeout, 4096, csPool);
     }
 
@@ -96,10 +96,10 @@ public abstract class HttpClient implements QuietCloseable {
     public void close() {
         disconnect();
         if (bufLo != 0) {
-            Unsafe.free(bufLo, bufferSize, MemoryTag.NATIVE_DEFAULT);
+            Unsafe.free(bufLo, bufferSize, MemoryTag.NATIVE_DBG07);
             bufLo = 0;
             assert responseParserBufLo != 0;
-            Unsafe.free(responseParserBufLo, responseParserBufSize, MemoryTag.NATIVE_DEFAULT);
+            Unsafe.free(responseParserBufLo, responseParserBufSize, MemoryTag.NATIVE_DBG07);
             responseParserBufLo = 0;
         }
         responseHeaders.free();
@@ -158,7 +158,7 @@ public abstract class HttpClient implements QuietCloseable {
             throw new HttpClientException("maximum buffer size exceeded [maxBufferSize=").put(maxBufferSize).put(", requiredSize=").put(requiredSize).put(']');
         }
         long newBufferSize = Math.min(Numbers.ceilPow2((int) requiredSize), maxBufferSize);
-        long newBufLo = Unsafe.realloc(bufLo, bufferSize, newBufferSize, MemoryTag.NATIVE_DEFAULT);
+        long newBufLo = Unsafe.realloc(bufLo, bufferSize, newBufferSize, MemoryTag.NATIVE_DBG07);
 
         long offset = newBufLo - bufLo;
 

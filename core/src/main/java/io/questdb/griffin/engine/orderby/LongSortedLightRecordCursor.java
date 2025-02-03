@@ -55,8 +55,8 @@ class LongSortedLightRecordCursor implements DelegatingRecordCursor {
             this.columnType = columnType;
             isOpen = true;
             radixSortThreshold = configuration.getSqlOrderByRadixSortThreshold();
-            valueRowIdMem = new DirectLongList(configuration.getSqlSortLightValuePageSize() / 16, MemoryTag.NATIVE_DEFAULT);
-            valueRowIdMemCpy = new DirectLongList(configuration.getSqlSortLightValuePageSize() / 16, MemoryTag.NATIVE_DEFAULT);
+            valueRowIdMem = new DirectLongList(configuration.getSqlSortLightValuePageSize() / 16, MemoryTag.NATIVE_DBG11);
+            valueRowIdMemCpy = new DirectLongList(configuration.getSqlSortLightValuePageSize() / 16, MemoryTag.NATIVE_DBG11);
             rowIdCursor = ascOrder ? new FwdCursor() : new BwdCursor();
         } catch (Throwable th) {
             close();
