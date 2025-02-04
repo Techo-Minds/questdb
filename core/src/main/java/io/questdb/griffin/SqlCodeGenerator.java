@@ -286,6 +286,7 @@ import io.questdb.std.ObjList;
 import io.questdb.std.ObjObjHashMap;
 import io.questdb.std.ObjectPool;
 import io.questdb.std.Transient;
+import io.questdb.std.Unsafe;
 import io.questdb.std.str.StringSink;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -5178,6 +5179,11 @@ public class SqlCodeGenerator implements Mutable, Closeable {
             @Transient @Nullable TableReader reader,
             @Transient TableRecordMetadata metadata
     ) throws SqlException {
+        final long tid = Thread.currentThread().getId();
+        final long ticks = Unsafe.ticks.get();
+        final boolean logDetail = ticks == 21000;
+
+        if (logDetail) LOG.info().$("generateTableQuery0 :: (A) tid: ").$(tid).$();
         // create metadata based on top-down columns that are required
 
         final ObjList<QueryColumn> topDownColumns = model.getTopDownColumns();
@@ -5192,13 +5198,16 @@ public class SqlCodeGenerator implements Mutable, Closeable {
 
         // Latest by on a table requires the provided timestamp column to be the designated timestamp.
         if (latestBy.size() > 0 && readerTimestampIndex != metadata.getTimestampIndex()) {
+            if (logDetail) LOG.info().$("generateTableQuery0 :: (B) tid: ").$(tid).$();
             throw SqlException.$(model.getTimestamp().position, "latest by over a table requires designated TIMESTAMP");
         }
 
         boolean requiresTimestamp = joinsRequiringTimestamp[model.getJoinType()];
         final GenericRecordMetadata myMeta = new GenericRecordMetadata();
         try {
+            if (logDetail) LOG.info().$("generateTableQuery0 :: (C) tid: ").$(tid).$();
             if (requiresTimestamp) {
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (D) tid: ").$(tid).$();
                 executionContext.pushTimestampRequiredFlag(true);
             }
 
@@ -5206,7 +5215,9 @@ public class SqlCodeGenerator implements Mutable, Closeable {
             // some "sample by" queries don't select any cols but needs timestamp col selected
             // for example "select count() from x sample by 1h" implicitly needs timestamp column selected
             if (topDownColumnCount > 0 || contextTimestampRequired || model.isUpdate()) {
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (E) tid: ").$(tid).$();
                 for (int i = 0; i < topDownColumnCount; i++) {
+                    if (logDetail) LOG.info().$("generateTableQuery0 :: (F) tid: ").$(tid).$();
                     int columnIndex = metadata.getColumnIndexQuiet(topDownColumns.getQuick(i).getName());
                     int type = metadata.getColumnType(columnIndex);
                     int typeSize = ColumnType.sizeOf(type);
@@ -5230,12 +5241,16 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                     ));
 
                     if (columnIndex == readerTimestampIndex) {
+                        if (logDetail) LOG.info().$("generateTableQuery0 :: (G) tid: ").$(tid).$();
                         myMeta.setTimestampIndex(myMeta.getColumnCount() - 1);
                     }
                 }
 
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (H) tid: ").$(tid).$();
+
                 // select timestamp when it is required but not already selected
                 if (readerTimestampIndex != -1 && myMeta.getTimestampIndex() == -1 && contextTimestampRequired) {
+                    if (logDetail) LOG.info().$("generateTableQuery0 :: (I) tid: ").$(tid).$();
                     myMeta.add(new TableColumnMetadata(
                             metadata.getColumnName(readerTimestampIndex),
                             metadata.getColumnType(readerTimestampIndex),
@@ -5246,14 +5261,20 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                     columnIndexes.add(readerTimestampIndex);
                     columnSizeShifts.add((Numbers.msb(ColumnType.TIMESTAMP)));
                 }
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (J) tid: ").$(tid).$();
             }
         } finally {
+            if (logDetail) LOG.info().$("generateTableQuery0 :: (J) tid: ").$(tid).$();
             if (requiresTimestamp) {
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (L) tid: ").$(tid).$();
                 executionContext.popTimestampRequiredFlag();
             }
         }
 
+        if (logDetail) LOG.info().$("generateTableQuery0 :: (M) tid: ").$(tid).$();
+
         if (reader == null) {
+            if (logDetail) LOG.info().$("generateTableQuery0 :: (N) tid: ").$(tid).$();
             // This is WAL serialisation compilation. We don't need to read data from table
             // and don't need optimisation for query validation.
             return new AbstractRecordCursorFactory(myMeta) {
@@ -5269,6 +5290,8 @@ public class SqlCodeGenerator implements Mutable, Closeable {
             };
         }
 
+        if (logDetail) LOG.info().$("generateTableQuery0 :: (O) tid: ").$(tid).$();
+
         GenericRecordMetadata dfcFactoryMeta = GenericRecordMetadata.deepCopyOf(metadata);
         final int latestByColumnCount = prepareLatestByColumnIndexes(latestBy, myMeta);
         final TableToken tableToken = metadata.getTableToken();
@@ -5283,17 +5306,25 @@ public class SqlCodeGenerator implements Mutable, Closeable {
         );
 
         if (prefixes.size() > 0) {
+
+            if (logDetail) LOG.info().$("generateTableQuery0 :: (P) tid: ").$(tid).$();
             if (latestByColumnCount < 1) {
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (Q) tid: ").$(tid).$();
                 throw SqlException.$(whereClauseParser.getWithinPosition(), "WITHIN clause requires LATEST BY clause");
             } else {
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (R) tid: ").$(tid).$();
                 for (int i = 0; i < latestByColumnCount; i++) {
+                    if (logDetail) LOG.info().$("generateTableQuery0 :: (S) tid: ").$(tid).$();
                     int idx = listColumnFilterA.getColumnIndexFactored(i);
                     if (!ColumnType.isSymbol(myMeta.getColumnType(idx)) || !myMeta.isColumnIndexed(idx)) {
+                        if (logDetail) LOG.info().$("generateTableQuery0 :: (T) tid: ").$(tid).$();
                         throw SqlException.$(whereClauseParser.getWithinPosition(), "WITHIN clause requires LATEST BY using only indexed symbol columns");
                     }
                 }
             }
         }
+
+        if (logDetail) LOG.info().$("generateTableQuery0 :: (U) tid: ").$(tid).$();
 
         model.setWhereClause(withinExtracted);
 
@@ -5307,14 +5338,21 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                 || isOrderByStartingWithDescDesignatedTimestampAndLimited(model);
 
         if (withinExtracted != null) {
+
+            if (logDetail) LOG.info().$("generateTableQuery0 :: (V) tid: ").$(tid).$();
             CharSequence preferredKeyColumn = null;
             if (latestByColumnCount == 1) {
+
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (W) tid: ").$(tid).$();
                 final int latestByIndex = listColumnFilterA.getColumnIndexFactored(0);
 
                 if (ColumnType.isSymbol(myMeta.getColumnType(latestByIndex))) {
                     preferredKeyColumn = latestBy.getQuick(0).token;
                 }
             }
+
+
+            if (logDetail) LOG.info().$("generateTableQuery0 :: (X) tid: ").$(tid).$();
 
             final IntrinsicModel intrinsicModel = whereClauseParser.extract(
                     model,
@@ -5338,14 +5376,18 @@ public class SqlCodeGenerator implements Mutable, Closeable {
             model.setWhereClause(null);
 
             if (intrinsicModel.intrinsicValue == IntrinsicModel.FALSE) {
+
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (Y) tid: ").$(tid).$();
                 return new EmptyTableRecordCursorFactory(myMeta);
             }
 
             PartitionFrameCursorFactory dfcFactory;
 
             if (latestByColumnCount > 0) {
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (Z) tid: ").$(tid).$();
                 Function filter = compileFilter(intrinsicModel, myMeta, executionContext);
                 if (filter != null && filter.isConstant() && !filter.getBool(null)) {
+                    if (logDetail) LOG.info().$("generateTableQuery0 :: (a) tid: ").$(tid).$();
                     // 'latest by' clause takes over the latest by nodes, so that the later generateLatestBy() is no-op
                     model.getLatestBy().clear();
                     Misc.free(filter);
@@ -5353,12 +5395,15 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                 }
 
                 if (prefixes.size() > 0 && filter != null) {
+                    if (logDetail) LOG.info().$("generateTableQuery0 :: (b) tid: ").$(tid).$();
                     throw SqlException.$(whereClauseParser.getWithinPosition(), "WITHIN clause doesn't work with filters");
                 }
 
                 // a sub-query present in the filter may have used the latest by
                 // column index lists, so we need to regenerate them
                 prepareLatestByColumnIndexes(latestBy, myMeta);
+
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (c) tid: ").$(tid).$();
 
                 return generateLatestByTableQuery(
                         model,
@@ -5375,11 +5420,15 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                 );
             }
 
+            if (logDetail) LOG.info().$("generateTableQuery0 :: (d) tid: ").$(tid).$();
+
             // below code block generates index-based filter
             final boolean intervalHitsOnlyOnePartition;
             if (intrinsicModel.hasIntervalFilters()) {
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (e) tid: ").$(tid).$();
                 RuntimeIntrinsicIntervalModel intervalModel = intrinsicModel.buildIntervalModel();
                 if (shouldGenerateBackwardsScan) {
+                    if (logDetail) LOG.info().$("generateTableQuery0 :: (f) tid: ").$(tid).$();
                     dfcFactory = new IntervalBwdPartitionFrameCursorFactory(
                             tableToken,
                             model.getMetadataVersion(),
@@ -5388,6 +5437,7 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                             dfcFactoryMeta
                     );
                 } else {
+                    if (logDetail) LOG.info().$("generateTableQuery0 :: (g) tid: ").$(tid).$();
                     dfcFactory = new IntervalFwdPartitionFrameCursorFactory(
                             tableToken,
                             model.getMetadataVersion(),
@@ -5396,40 +5446,53 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                             dfcFactoryMeta
                     );
                 }
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (h) tid: ").$(tid).$();
                 intervalHitsOnlyOnePartition = intervalModel.allIntervalsHitOnePartition(reader.getPartitionedBy());
             } else {
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (i) tid: ").$(tid).$();
                 if (shouldGenerateBackwardsScan) {
+                    if (logDetail) LOG.info().$("generateTableQuery0 :: (j) tid: ").$(tid).$();
                     dfcFactory = new FullBwdPartitionFrameCursorFactory(tableToken, model.getMetadataVersion(), dfcFactoryMeta);
                 } else {
+                    if (logDetail) LOG.info().$("generateTableQuery0 :: (k) tid: ").$(tid).$();
                     dfcFactory = new FullFwdPartitionFrameCursorFactory(tableToken, model.getMetadataVersion(), dfcFactoryMeta);
                 }
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (l) tid: ").$(tid).$();
                 intervalHitsOnlyOnePartition = reader.getPartitionedBy() == PartitionBy.NONE;
             }
 
+            if (logDetail) LOG.info().$("generateTableQuery0 :: (m) tid: ").$(tid).$();
             if (intrinsicModel.keyColumn != null) {
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (n) tid: ").$(tid).$();
                 // existence of column would have been already validated
                 final int keyColumnIndex = myMeta.getColumnIndexQuiet(intrinsicModel.keyColumn);
                 final int nKeyValues = intrinsicModel.keyValueFuncs.size();
                 final int nKeyExcludedValues = intrinsicModel.keyExcludedValueFuncs.size();
 
                 if (intrinsicModel.keySubQuery != null) {
+                    if (logDetail) LOG.info().$("generateTableQuery0 :: (o) tid: ").$(tid).$();
                     RecordCursorFactory rcf = null;
                     final Record.CharSequenceFunction func;
                     Function filter;
                     try {
+                        if (logDetail) LOG.info().$("generateTableQuery0 :: (p) tid: ").$(tid).$();
                         rcf = generate(intrinsicModel.keySubQuery, executionContext);
                         func = validateSubQueryColumnAndGetGetter(intrinsicModel, rcf.getMetadata());
                         filter = compileFilter(intrinsicModel, myMeta, executionContext);
                     } catch (Throwable th) {
+                        if (logDetail) LOG.info().$("generateTableQuery0 :: (q) tid: ").$(tid).$();
                         Misc.free(dfcFactory);
                         Misc.free(rcf);
                         throw th;
                     }
+                    if (logDetail) LOG.info().$("generateTableQuery0 :: (r) tid: ").$(tid).$();
 
                     if (filter != null && filter.isConstant() && !filter.getBool(null)) {
+                        if (logDetail) LOG.info().$("generateTableQuery0 :: (s) tid: ").$(tid).$();
                         Misc.free(dfcFactory);
                         return new EmptyTableRecordCursorFactory(myMeta);
                     }
+                    if (logDetail) LOG.info().$("generateTableQuery0 :: (t) tid: ").$(tid).$();
                     return new FilterOnSubQueryRecordCursorFactory(
                             configuration,
                             myMeta,
@@ -5442,62 +5505,83 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                             columnSizeShifts
                     );
                 }
+
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (u) tid: ").$(tid).$();
                 assert nKeyValues > 0 || nKeyExcludedValues > 0;
 
                 boolean orderByKeyColumn = false;
                 int indexDirection = BitmapIndexReader.DIR_FORWARD;
                 if (intervalHitsOnlyOnePartition) {
+                    if (logDetail) LOG.info().$("generateTableQuery0 :: (v) tid: ").$(tid).$();
                     final ObjList<ExpressionNode> orderByAdvice = model.getOrderByAdvice();
                     final int orderByAdviceSize = orderByAdvice.size();
                     if (orderByAdviceSize > 0 && orderByAdviceSize < 3) {
+                        if (logDetail) LOG.info().$("generateTableQuery0 :: (w) tid: ").$(tid).$();
                         guardAgainstDotsInOrderByAdvice(model);
                         // todo: when order by coincides with keyColumn and there is index we can incorporate
                         //    ordering in the code that returns rows from index rather than having an
                         //    "overhead" order by implementation, which would be trying to oder already ordered symbols
                         if (Chars.equals(orderByAdvice.getQuick(0).token, intrinsicModel.keyColumn)) {
+                            if (logDetail) LOG.info().$("generateTableQuery0 :: (x) tid: ").$(tid).$();
                             myMeta.setTimestampIndex(-1);
                             if (orderByAdviceSize == 1) {
+                                if (logDetail) LOG.info().$("generateTableQuery0 :: (y) tid: ").$(tid).$();
                                 orderByKeyColumn = true;
                             } else if (Chars.equals(orderByAdvice.getQuick(1).token, model.getTimestamp().token)) {
+                                if (logDetail) LOG.info().$("generateTableQuery0 :: (z) tid: ").$(tid).$();
                                 orderByKeyColumn = true;
                                 if (getOrderByDirectionOrDefault(model, 1) == ORDER_DIRECTION_DESCENDING) {
+                                    if (logDetail) LOG.info().$("generateTableQuery0 :: (0) tid: ").$(tid).$();
                                     indexDirection = BitmapIndexReader.DIR_BACKWARD;
                                 }
                             }
                         }
                     }
                 }
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (1) tid: ").$(tid).$();
                 boolean orderByTimestamp = false;
                 // we can use skip sorting by timestamp if we:
                 // - query index with a single value or
                 // - query index with multiple values but use table order with forward scan (heap row cursor factory doesn't support backward scan)
                 // it doesn't matter if we hit one or more partitions
                 if (!orderByKeyColumn && isOrderByDesignatedTimestampOnly(model)) {
+                    if (logDetail) LOG.info().$("generateTableQuery0 :: (2) tid: ").$(tid).$();
                     int orderByDirection = getOrderByDirectionOrDefault(model, 0);
                     if (nKeyValues == 1 || (nKeyValues > 1 && orderByDirection == ORDER_DIRECTION_ASCENDING)) {
+                        if (logDetail) LOG.info().$("generateTableQuery0 :: (3) tid: ").$(tid).$();
                         orderByTimestamp = true;
 
                         if (orderByDirection == ORDER_DIRECTION_DESCENDING) {
+                            if (logDetail) LOG.info().$("generateTableQuery0 :: (4) tid: ").$(tid).$();
                             indexDirection = BitmapIndexReader.DIR_BACKWARD;
                         }
                     } else if (nKeyExcludedValues > 0 && orderByDirection == ORDER_DIRECTION_ASCENDING) {
+                        if (logDetail) LOG.info().$("generateTableQuery0 :: (5) tid: ").$(tid).$();
                         orderByTimestamp = true;
                     }
                 }
 
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (6) tid: ").$(tid).$();
                 if (nKeyExcludedValues == 0) {
+                    if (logDetail) LOG.info().$("generateTableQuery0 :: (7) tid: ").$(tid).$();
                     Function filter = compileFilter(intrinsicModel, myMeta, executionContext);
                     if (filter != null && filter.isConstant()) {
+                        if (logDetail) LOG.info().$("generateTableQuery0 :: (8) tid: ").$(tid).$();
                         try {
+                            if (logDetail) LOG.info().$("generateTableQuery0 :: (9) tid: ").$(tid).$();
                             if (!filter.getBool(null)) {
+                                if (logDetail) LOG.info().$("generateTableQuery0 :: (10) tid: ").$(tid).$();
                                 Misc.free(dfcFactory);
                                 return new EmptyTableRecordCursorFactory(myMeta);
                             }
                         } finally {
+                            if (logDetail) LOG.info().$("generateTableQuery0 :: (11) tid: ").$(tid).$();
                             filter = Misc.free(filter);
                         }
                     }
+                    if (logDetail) LOG.info().$("generateTableQuery0 :: (12) tid: ").$(tid).$();
                     if (nKeyValues == 1) {
+                        if (logDetail) LOG.info().$("generateTableQuery0 :: (13) tid: ").$(tid).$();
                         final RowCursorFactory rcf;
                         final Function symbolFunc = intrinsicModel.keyValueFuncs.get(0);
                         final SymbolMapReader symbolMapReader = reader.getSymbolMapReader(columnIndexes.getQuick(keyColumnIndex));
@@ -5506,7 +5590,9 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                                 : symbolMapReader.keyOf(symbolFunc.getStrA(null));
 
                         if (symbolKey == SymbolTable.VALUE_NOT_FOUND) {
+                            if (logDetail) LOG.info().$("generateTableQuery0 :: (14) tid: ").$(tid).$();
                             if (filter == null) {
+                                if (logDetail) LOG.info().$("generateTableQuery0 :: (15) tid: ").$(tid).$();
                                 rcf = new DeferredSymbolIndexRowCursorFactory(
                                         keyColumnIndex,
                                         symbolFunc,
@@ -5514,6 +5600,7 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                                         indexDirection
                                 );
                             } else {
+                                if (logDetail) LOG.info().$("generateTableQuery0 :: (16) tid: ").$(tid).$();
                                 rcf = new DeferredSymbolIndexFilteredRowCursorFactory(
                                         keyColumnIndex,
                                         symbolFunc,
@@ -5523,7 +5610,9 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                                 );
                             }
                         } else {
+                            if (logDetail) LOG.info().$("generateTableQuery0 :: (17) tid: ").$(tid).$();
                             if (filter == null) {
+                                if (logDetail) LOG.info().$("generateTableQuery0 :: (18) tid: ").$(tid).$();
                                 rcf = new SymbolIndexRowCursorFactory(
                                         keyColumnIndex,
                                         symbolKey,
@@ -5532,6 +5621,7 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                                         null
                                 );
                             } else {
+                                if (logDetail) LOG.info().$("generateTableQuery0 :: (19) tid: ").$(tid).$();
                                 rcf = new SymbolIndexFilteredRowCursorFactory(
                                         keyColumnIndex,
                                         symbolKey,
@@ -5543,7 +5633,10 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                             }
                         }
 
+                        if (logDetail) LOG.info().$("generateTableQuery0 :: (20) tid: ").$(tid).$();
+
                         if (filter == null) {
+                            if (logDetail) LOG.info().$("generateTableQuery0 :: (21) tid: ").$(tid).$();
                             // This special case factory can later be disassembled to framing and index
                             // cursors in SAMPLE BY processing
                             return new DeferredSingleSymbolFilterPageFrameRecordCursorFactory(
@@ -5559,6 +5652,8 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                                     supportsRandomAccess
                             );
                         }
+
+                        if (logDetail) LOG.info().$("generateTableQuery0 :: (22) tid: ").$(tid).$();
                         return new PageFrameRecordCursorFactory(
                                 configuration,
                                 myMeta,
@@ -5573,10 +5668,14 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                         );
                     }
 
+                    if (logDetail) LOG.info().$("generateTableQuery0 :: (23) tid: ").$(tid).$();
+
                     if (orderByKeyColumn) {
+                        if (logDetail) LOG.info().$("generateTableQuery0 :: (25) tid: ").$(tid).$();
                         myMeta.setTimestampIndex(-1);
                     }
 
+                    if (logDetail) LOG.info().$("generateTableQuery0 :: (26) tid: ").$(tid).$();
                     return new FilterOnValuesRecordCursorFactory(
                             configuration,
                             myMeta,
@@ -5594,18 +5693,26 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                             columnSizeShifts
                     );
                 } else if (nKeyExcludedValues > 0) {
+                    if (logDetail) LOG.info().$("generateTableQuery0 :: (27) tid: ").$(tid).$();
                     if (reader.getSymbolMapReader(columnIndexes.getQuick(keyColumnIndex)).getSymbolCount() < configuration.getMaxSymbolNotEqualsCount()) {
+                        if (logDetail) LOG.info().$("generateTableQuery0 :: (28) tid: ").$(tid).$();
                         Function filter = compileFilter(intrinsicModel, myMeta, executionContext);
                         if (filter != null && filter.isConstant()) {
+                            if (logDetail) LOG.info().$("generateTableQuery0 :: (29) tid: ").$(tid).$();
                             try {
+                                if (logDetail) LOG.info().$("generateTableQuery0 :: (30) tid: ").$(tid).$();
                                 if (!filter.getBool(null)) {
+                                    if (logDetail) LOG.info().$("generateTableQuery0 :: (31) tid: ").$(tid).$();
                                     Misc.free(dfcFactory);
                                     return new EmptyTableRecordCursorFactory(myMeta);
                                 }
                             } finally {
+                                if (logDetail) LOG.info().$("generateTableQuery0 :: (32) tid: ").$(tid).$();
                                 filter = Misc.free(filter);
                             }
                         }
+
+                        if (logDetail) LOG.info().$("generateTableQuery0 :: (33) tid: ").$(tid).$();
 
                         return new FilterOnExcludedValuesRecordCursorFactory(
                                 configuration,
@@ -5624,10 +5731,13 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                                 configuration.getMaxSymbolNotEqualsCount()
                         );
                     } else if (intrinsicModel.keyExcludedNodes.size() > 0) {
+                        if (logDetail) LOG.info().$("generateTableQuery0 :: (34) tid: ").$(tid).$();
+
                         // restore filter
                         ExpressionNode root = intrinsicModel.keyExcludedNodes.getQuick(0);
 
                         for (int i = 1, n = intrinsicModel.keyExcludedNodes.size(); i < n; i++) {
+                            if (logDetail) LOG.info().$("generateTableQuery0 :: (35) tid: ").$(tid).$();
                             ExpressionNode expression = intrinsicModel.keyExcludedNodes.getQuick(i);
 
                             OperatorExpression andOp = OperatorExpression.chooseRegistry(configuration.getCairoSqlLegacyOperatorPrecedence()).getOperatorDefinition("and");
@@ -5639,9 +5749,12 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                             root = newRoot;
                         }
 
+                        if (logDetail) LOG.info().$("generateTableQuery0 :: (36) tid: ").$(tid).$();
                         if (intrinsicModel.filter == null) {
+                            if (logDetail) LOG.info().$("generateTableQuery0 :: (37) tid: ").$(tid).$();
                             intrinsicModel.filter = root;
                         } else {
+                            if (logDetail) LOG.info().$("generateTableQuery0 :: (38) tid: ").$(tid).$();
                             OperatorExpression andOp = OperatorExpression.chooseRegistry(configuration.getCairoSqlLegacyOperatorPrecedence()).getOperatorDefinition("and");
                             ExpressionNode filter = expressionNodePool.next().of(OPERATION, andOp.operator.token, andOp.precedence, 0);
                             filter.paramCount = 2;
@@ -5653,10 +5766,14 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                 }
             }
 
+            if (logDetail) LOG.info().$("generateTableQuery0 :: (39) tid: ").$(tid).$();
+
             if (intervalHitsOnlyOnePartition && intrinsicModel.filter == null) {
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (40) tid: ").$(tid).$();
                 final ObjList<ExpressionNode> orderByAdvice = model.getOrderByAdvice();
                 final int orderByAdviceSize = orderByAdvice.size();
                 if (orderByAdviceSize > 0 && orderByAdviceSize < 3 && intrinsicModel.hasIntervalFilters()) {
+                    if (logDetail) LOG.info().$("generateTableQuery0 :: (41) tid: ").$(tid).$();
                     // This function cannot handle dotted aliases
                     guardAgainstDotsInOrderByAdvice(model);
 
@@ -5667,18 +5784,24 @@ public class SqlCodeGenerator implements Mutable, Closeable {
 
                     // this is our kind of column
                     if (myMeta.isColumnIndexed(columnIndex)) {
+                        if (logDetail) LOG.info().$("generateTableQuery0 :: (42) tid: ").$(tid).$();
                         boolean orderByKeyColumn = false;
                         int indexDirection = BitmapIndexReader.DIR_FORWARD;
                         if (orderByAdviceSize == 1) {
+                            if (logDetail) LOG.info().$("generateTableQuery0 :: (43) tid: ").$(tid).$();
                             orderByKeyColumn = true;
                         } else if (Chars.equals(orderByAdvice.getQuick(1).token, model.getTimestamp().token)) {
+                            if (logDetail) LOG.info().$("generateTableQuery0 :: (44) tid: ").$(tid).$();
                             orderByKeyColumn = true;
                             if (getOrderByDirectionOrDefault(model, 1) == ORDER_DIRECTION_DESCENDING) {
                                 indexDirection = BitmapIndexReader.DIR_BACKWARD;
                             }
                         }
 
+                        if (logDetail) LOG.info().$("generateTableQuery0 :: (45) tid: ").$(tid).$();
+
                         if (orderByKeyColumn) {
+                            if (logDetail) LOG.info().$("generateTableQuery0 :: (46) tid: ").$(tid).$();
                             // check that intrinsicModel.intervals hit only one partition
                             myMeta.setTimestampIndex(-1);
                             return new SortedSymbolIndexRecordCursorFactory(
@@ -5696,14 +5819,20 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                 }
             }
 
+            if (logDetail) LOG.info().$("generateTableQuery0 :: (47) tid: ").$(tid).$();
+
             RowCursorFactory rowFactory;
             if (shouldGenerateBackwardsScan) {
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (48) tid: ").$(tid).$();
                 rowFactory = new BwdPageFrameRowCursorFactory();
             } else {
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (49) tid: ").$(tid).$();
                 rowFactory = new FwdPageFrameRowCursorFactory();
             }
 
             model.setWhereClause(intrinsicModel.filter);
+
+            if (logDetail) LOG.info().$("generateTableQuery0 :: (50) tid: ").$(tid).$();
             return new PageFrameRecordCursorFactory(
                     configuration,
                     myMeta,
@@ -5718,8 +5847,11 @@ public class SqlCodeGenerator implements Mutable, Closeable {
             );
         }
 
+        if (logDetail) LOG.info().$("generateTableQuery0 :: (51) tid: ").$(tid).$();
+
         // no where clause
         if (latestByColumnCount == 0) {
+            if (logDetail) LOG.info().$("generateTableQuery0 :: (52) tid: ").$(tid).$();
             // construct new metadata, which is a copy of what we constructed just above, but
             // in the interest of isolating problems we will only affect this factory
 
@@ -5727,12 +5859,16 @@ public class SqlCodeGenerator implements Mutable, Closeable {
             RowCursorFactory rowCursorFactory;
 
             if (shouldGenerateBackwardsScan) {
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (53) tid: ").$(tid).$();
                 cursorFactory = new FullBwdPartitionFrameCursorFactory(tableToken, model.getMetadataVersion(), dfcFactoryMeta);
                 rowCursorFactory = new BwdPageFrameRowCursorFactory();
             } else {
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (54) tid: ").$(tid).$();
                 cursorFactory = new FullFwdPartitionFrameCursorFactory(tableToken, model.getMetadataVersion(), dfcFactoryMeta);
                 rowCursorFactory = new FwdPageFrameRowCursorFactory();
             }
+
+            if (logDetail) LOG.info().$("generateTableQuery0 :: (55) tid: ").$(tid).$();
 
             return new PageFrameRecordCursorFactory(
                     configuration,
@@ -5748,11 +5884,14 @@ public class SqlCodeGenerator implements Mutable, Closeable {
             );
         }
 
+        if (logDetail) LOG.info().$("generateTableQuery0 :: (56) tid: ").$(tid).$();
+
         // 'latest by' clause takes over the latest by nodes, so that the later generateLatestBy() is no-op
         model.getLatestBy().clear();
 
         // listColumnFilterA = latest by column indexes
         if (latestByColumnCount == 1) {
+            if (logDetail) LOG.info().$("generateTableQuery0 :: (57) tid: ").$(tid).$();
             int latestByColumnIndex = listColumnFilterA.getColumnIndexFactored(0);
             if (myMeta.isColumnIndexed(latestByColumnIndex)) {
                 return new LatestByAllIndexedRecordCursorFactory(
@@ -5766,8 +5905,10 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                 );
             }
 
+            if (logDetail) LOG.info().$("generateTableQuery0 :: (58) tid: ").$(tid).$();
             if (ColumnType.isSymbol(myMeta.getColumnType(latestByColumnIndex))
                     && myMeta.isSymbolTableStatic(latestByColumnIndex)) {
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (59) tid: ").$(tid).$();
                 // we have "latest by" symbol column values, but no index
                 return new LatestByDeferredListValuesFilteredRecordCursorFactory(
                         configuration,
@@ -5781,15 +5922,22 @@ public class SqlCodeGenerator implements Mutable, Closeable {
             }
         }
 
+        if (logDetail) LOG.info().$("generateTableQuery0 :: (60) tid: ").$(tid).$();
+
         boolean symbolKeysOnly = true;
         for (int i = 0, n = keyTypes.getColumnCount(); i < n; i++) {
+            if (logDetail) LOG.info().$("generateTableQuery0 :: (61) tid: ").$(tid).$();
             symbolKeysOnly &= ColumnType.isSymbol(keyTypes.getColumnType(i));
         }
+        if (logDetail) LOG.info().$("generateTableQuery0 :: (62) tid: ").$(tid).$();
         if (symbolKeysOnly) {
+            if (logDetail) LOG.info().$("generateTableQuery0 :: (63) tid: ").$(tid).$();
             IntList partitionByColumnIndexes = new IntList(listColumnFilterA.size());
             for (int i = 0, n = listColumnFilterA.size(); i < n; i++) {
+                if (logDetail) LOG.info().$("generateTableQuery0 :: (64) tid: ").$(tid).$();
                 partitionByColumnIndexes.add(listColumnFilterA.getColumnIndexFactored(i));
             }
+            if (logDetail) LOG.info().$("generateTableQuery0 :: (65) tid: ").$(tid).$();
             return new LatestByAllSymbolsFilteredRecordCursorFactory(
                     configuration,
                     myMeta,
@@ -5803,6 +5951,8 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                     columnSizeShifts
             );
         }
+
+        if (logDetail) LOG.info().$("generateTableQuery0 :: (66) tid: ").$(tid).$();
 
         return new LatestByAllFilteredRecordCursorFactory(
                 configuration,
