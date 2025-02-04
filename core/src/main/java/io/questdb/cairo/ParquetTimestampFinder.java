@@ -27,6 +27,7 @@ package io.questdb.cairo;
 import io.questdb.griffin.engine.table.parquet.PartitionDecoder;
 import io.questdb.griffin.engine.table.parquet.RowGroupBuffers;
 import io.questdb.griffin.engine.table.parquet.RowGroupStatBuffers;
+import io.questdb.std.Closeables;
 import io.questdb.std.DirectIntList;
 import io.questdb.std.MemoryTag;
 import io.questdb.std.Misc;
@@ -38,6 +39,7 @@ import io.questdb.std.Vect;
 import static io.questdb.std.Vect.BIN_SEARCH_SCAN_DOWN;
 
 public class ParquetTimestampFinder implements TimestampFinder, Mutable, QuietCloseable {
+    private final long open_id;
     private final PartitionDecoder partitionDecoder; // the decoder is managed externally
     private final RowGroupBuffers rowGroupBuffers = new RowGroupBuffers(MemoryTag.NATIVE_PARQUET_PARTITION_DECODER);
     private final RowGroupStatBuffers statBuffers = new RowGroupStatBuffers(MemoryTag.NATIVE_PARQUET_PARTITION_DECODER);
@@ -47,6 +49,8 @@ public class ParquetTimestampFinder implements TimestampFinder, Mutable, QuietCl
 
     public ParquetTimestampFinder(PartitionDecoder partitionDecoder) {
         this.partitionDecoder = partitionDecoder;
+        this.open_id = Closeables.nextObjId();
+        Closeables.trackOpened(open_id, this);
     }
 
     @Override
@@ -61,6 +65,7 @@ public class ParquetTimestampFinder implements TimestampFinder, Mutable, QuietCl
         Misc.free(statBuffers);
         Misc.free(timestampIdAndType);
         clear();
+        Closeables.trackClosed(this.open_id);
     }
 
     @Override

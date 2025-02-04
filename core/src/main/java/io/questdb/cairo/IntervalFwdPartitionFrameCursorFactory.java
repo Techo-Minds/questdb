@@ -30,11 +30,13 @@ import io.questdb.griffin.PlanSink;
 import io.questdb.griffin.SqlException;
 import io.questdb.griffin.SqlExecutionContext;
 import io.questdb.griffin.model.RuntimeIntrinsicIntervalModel;
+import io.questdb.std.Closeables;
 import io.questdb.std.Misc;
 
 public class IntervalFwdPartitionFrameCursorFactory extends AbstractPartitionFrameCursorFactory {
     private final IntervalFwdPartitionFrameCursor cursor;
     private final RuntimeIntrinsicIntervalModel intervalModel;
+    private final long open_id;
     private IntervalBwdPartitionFrameCursor bwdCursor;
 
     public IntervalFwdPartitionFrameCursorFactory(
@@ -47,6 +49,8 @@ public class IntervalFwdPartitionFrameCursorFactory extends AbstractPartitionFra
         super(tableToken, metadataVersion, metadata);
         this.cursor = new IntervalFwdPartitionFrameCursor(intervalModel, timestampIndex);
         this.intervalModel = intervalModel;
+        this.open_id = Closeables.nextObjId();
+        Closeables.trackOpened(open_id, this);
     }
 
     @Override
@@ -54,6 +58,7 @@ public class IntervalFwdPartitionFrameCursorFactory extends AbstractPartitionFra
         super.close();
         Misc.free(cursor);
         Misc.free(intervalModel);
+        Closeables.trackClosed(this.open_id);
     }
 
     @Override

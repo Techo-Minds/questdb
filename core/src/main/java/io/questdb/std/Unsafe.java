@@ -447,6 +447,14 @@ public final class Unsafe {
         }
     }
 
+    public static LongObjHashMap<AllocTracking> snapshotAllocs() {
+        final LongObjHashMap<AllocTracking> snapshot = new LongObjHashMap<>();
+        synchronized (allocs) {
+            allocs.forEach(snapshot::put);
+        }
+        return snapshot;
+    }
+
     private static boolean extraTrace(int memoryTag) {
         return (memoryTag >= MemoryTag.NATIVE_DBG01) && (memoryTag <= MemoryTag.NATIVE_DBG30);
     }

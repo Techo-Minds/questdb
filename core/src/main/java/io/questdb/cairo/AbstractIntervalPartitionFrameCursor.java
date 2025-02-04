@@ -32,6 +32,7 @@ import io.questdb.griffin.SqlException;
 import io.questdb.griffin.SqlExecutionContext;
 import io.questdb.griffin.engine.table.parquet.PartitionDecoder;
 import io.questdb.griffin.model.RuntimeIntrinsicIntervalModel;
+import io.questdb.std.Closeables;
 import io.questdb.std.LongList;
 import io.questdb.std.Misc;
 import org.jetbrains.annotations.TestOnly;
@@ -44,6 +45,7 @@ public abstract class AbstractIntervalPartitionFrameCursor implements PartitionF
     protected final PartitionDecoder parquetDecoder = new PartitionDecoder();
     protected final int timestampIndex;
     private final NativeTimestampFinder nativeTimestampFinder = new NativeTimestampFinder();
+    private final long open_id;
     private final ParquetTimestampFinder parquetTimestampFinder;
     protected LongList intervals;
     protected int intervalsHi;
@@ -67,6 +69,8 @@ public abstract class AbstractIntervalPartitionFrameCursor implements PartitionF
         this.intervalModel = intervalModel;
         this.timestampIndex = timestampIndex;
         this.parquetTimestampFinder = new ParquetTimestampFinder(parquetDecoder);
+        this.open_id = Closeables.nextObjId();
+        Closeables.trackOpened(open_id, this);
     }
 
     @Override
@@ -75,6 +79,7 @@ public abstract class AbstractIntervalPartitionFrameCursor implements PartitionF
         Misc.free(parquetTimestampFinder);
         Misc.free(parquetDecoder);
         nativeTimestampFinder.clear();
+        Closeables.trackClosed(this.open_id);
     }
 
     @Override

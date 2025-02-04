@@ -69,10 +69,12 @@ import io.questdb.network.NetworkFacade;
 import io.questdb.network.NetworkFacadeImpl;
 import io.questdb.std.BinarySequence;
 import io.questdb.std.Chars;
+import io.questdb.std.Closeables;
 import io.questdb.std.Files;
 import io.questdb.std.FilesFacade;
 import io.questdb.std.IntList;
 import io.questdb.std.Long256;
+import io.questdb.std.LongHashSet;
 import io.questdb.std.LongList;
 import io.questdb.std.LongObjHashMap;
 import io.questdb.std.MemoryTag;
@@ -1967,7 +1969,8 @@ public final class TestUtils {
         private final long[] memoryUsageByTag = new long[MemoryTag.SIZE];
         private final int sockAddrCount;
         private boolean skipChecksOnClose;
-        private final LongObjHashMap<Unsafe.AllocTracking> allocSnapshot = new LongObjHashMap<>();
+        private final LongObjHashMap<Unsafe.AllocTracking> allocSnapshot;
+        private final LongHashSet openCloseablesSnapshot;
 
         public LeakCheck() {
             Path.clearThreadLocals();
@@ -1986,6 +1989,10 @@ public final class TestUtils {
 
             sockAddrCount = Net.getAllocatedSockAddrCount();
             Assert.assertTrue("Initial allocated sockaddr count should be >= 0", sockAddrCount >= 0);
+
+            allocSnapshot = Unsafe.snapshotAllocs();
+
+            openCloseablesSnapshot = Closeables.snapshot();
         }
 
         private void dumpTrackedAllocations() {
@@ -2028,6 +2035,7 @@ public final class TestUtils {
             Assert.assertTrue(memAfter > -1);
             if (mem != memAfter) {
                 dumpTrackedAllocations();
+                dumpCloseables();
 
                 for (int i = MemoryTag.MMAP_DEFAULT; i < MemoryTag.SIZE; i++) {
                     long actualMemByTag = Unsafe.getMemUsedByTag(i);
@@ -2059,6 +2067,28 @@ public final class TestUtils {
             if (sockAddrCount != sockAddrCountAfter) {
                 Assert.fail("SockAddr allocation count before the test: " + sockAddrCount
                         + ", after the test: " + sockAddrCountAfter);
+            }
+        }
+
+        private void dumpCloseables() {
+            System.err.println("Closeables left open:");
+            synchronized (Closeables.opened) {
+                Closeables.opened.forEach((open_id, tracking) -> {
+                    if (openCloseablesSnapshot.contains(open_id)) {
+                        return;
+                    }
+
+
+                    System.err.println("Leaked closeable: " + open_id);
+                    System.err.println("    * class: " + tracking.obj.getClass().getCanonicalName());
+                    System.err.println("    * obj: " + tracking.obj);
+                    System.err.println("    * ticks: " + tracking.ticks);
+                    System.err.println("    * bt:");
+                    for (var frame : tracking.bt) {
+                        System.err.println("          " + frame);
+                    }
+                    System.err.println();
+                });
             }
         }
 

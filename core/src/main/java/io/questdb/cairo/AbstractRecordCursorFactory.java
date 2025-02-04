@@ -26,17 +26,22 @@ package io.questdb.cairo;
 
 import io.questdb.cairo.sql.RecordCursorFactory;
 import io.questdb.cairo.sql.RecordMetadata;
+import io.questdb.std.Closeables;
 
 public abstract class AbstractRecordCursorFactory implements RecordCursorFactory {
     private final RecordMetadata metadata;
+    private final long open_id;
 
     public AbstractRecordCursorFactory(RecordMetadata metadata) {
         this.metadata = metadata;
+        this.open_id = Closeables.nextObjId();
+        Closeables.trackOpened(open_id, this);
     }
 
     @Override
     public final void close() {
         _close();
+        Closeables.trackClosed(open_id);
     }
 
     @Override

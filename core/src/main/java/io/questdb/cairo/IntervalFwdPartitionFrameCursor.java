@@ -29,6 +29,7 @@ import io.questdb.cairo.sql.PartitionFrame;
 import io.questdb.griffin.model.RuntimeIntrinsicIntervalModel;
 import io.questdb.log.Log;
 import io.questdb.log.LogFactory;
+import io.questdb.std.Closeables;
 
 public class IntervalFwdPartitionFrameCursor extends AbstractIntervalPartitionFrameCursor {
     private static final Log LOG = LogFactory.getLog(IntervalFwdPartitionFrameCursor.class);

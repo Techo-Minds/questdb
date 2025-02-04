@@ -29,6 +29,7 @@ import io.questdb.cairo.ColumnType;
 import io.questdb.cairo.Reopenable;
 import io.questdb.griffin.engine.table.parquet.PartitionDecoder;
 import io.questdb.griffin.engine.table.parquet.RowGroupBuffers;
+import io.questdb.std.Closeables;
 import io.questdb.std.DirectIntList;
 import io.questdb.std.IntList;
 import io.questdb.std.LongList;
@@ -60,6 +61,7 @@ public class PageFrameMemoryPool implements QuietCloseable, Mutable {
     private final ObjList<ParquetBuffers> freeParquetBuffers;
     // Contains parquet to query column index mapping.
     private final IntList fromParquetColumnIndexes;
+    private final long open_id;
     private final int parquetCacheSize;
     // Contains [parquet_column_index, column_type] pairs.
     private final DirectIntList parquetColumns;
@@ -81,6 +83,8 @@ public class PageFrameMemoryPool implements QuietCloseable, Mutable {
             fromParquetColumnIndexes = new IntList(16);
             parquetColumns = new DirectIntList(32, MemoryTag.NATIVE_DBG06);
             parquetDecoder = new PartitionDecoder();
+            this.open_id = Closeables.nextObjId();
+            Closeables.trackOpened(open_id, this);
         } catch (Throwable th) {
             close();
             throw th;
@@ -108,6 +112,7 @@ public class PageFrameMemoryPool implements QuietCloseable, Mutable {
         cachedParquetBuffers.clear();
         Misc.freeObjListAndKeepObjects(freeParquetBuffers);
         addressCache = null;
+        Closeables.trackClosed(open_id);
     }
 
     /**

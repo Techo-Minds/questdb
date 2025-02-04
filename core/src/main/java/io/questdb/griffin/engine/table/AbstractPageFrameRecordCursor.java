@@ -27,6 +27,7 @@ package io.questdb.griffin.engine.table;
 import io.questdb.cairo.CairoConfiguration;
 import io.questdb.cairo.sql.Record;
 import io.questdb.cairo.sql.*;
+import io.questdb.std.Closeables;
 import io.questdb.std.Misc;
 import io.questdb.std.Rows;
 import org.jetbrains.annotations.NotNull;
@@ -37,6 +38,7 @@ public abstract class AbstractPageFrameRecordCursor implements PageFrameRecordCu
     protected final PageFrameMemoryRecord recordA;
     protected final PageFrameMemoryRecord recordB;
     private final RecordMetadata metadata;
+    private final long open_id;
     protected int frameCount = 0;
     protected PageFrameCursor frameCursor;
 
@@ -49,12 +51,15 @@ public abstract class AbstractPageFrameRecordCursor implements PageFrameRecordCu
         recordB = new PageFrameMemoryRecord(PageFrameMemoryRecord.RECORD_B_LETTER);
         frameAddressCache = new PageFrameAddressCache(configuration);
         frameMemoryPool = new PageFrameMemoryPool(configuration.getSqlParquetFrameCacheCapacity());
+        this.open_id = Closeables.nextObjId();
+        Closeables.trackOpened(open_id,this);
     }
 
     @Override
     public void close() {
         Misc.free(frameMemoryPool);
         frameCursor = Misc.free(frameCursor);
+        Closeables.trackClosed(open_id);
     }
 
     @Override
