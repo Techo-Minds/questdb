@@ -5181,7 +5181,7 @@ public class SqlCodeGenerator implements Mutable, Closeable {
     ) throws SqlException {
         final long tid = Thread.currentThread().getId();
         final long ticks = Unsafe.ticks.get();
-        final boolean logDetail = ticks == 21000;
+        final boolean logDetail = false; // ticks == 21000;
 
         if (logDetail) LOG.info().$("generateTableQuery0 :: (A) tid: ").$(tid).$();
         // create metadata based on top-down columns that are required

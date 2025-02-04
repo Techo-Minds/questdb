@@ -554,6 +554,7 @@ public class JsonQueryProcessor implements HttpRequestProcessor, Closeable {
                     if (retries == maxSqlRecompileAttempts) {
                         throw SqlException.$(0, e.getFlyweightMessage());
                     }
+                    LOG.info().$("baobas are cool").$();
                     LOG.info().$(e.getFlyweightMessage()).$();
                     // will recompile
                 }
