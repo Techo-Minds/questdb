@@ -5563,8 +5563,13 @@ public class SqlCodeGenerator implements Mutable, Closeable {
 
                 if (logDetail) LOG.info().$("generateTableQuery0 :: (6) tid: ").$(tid).$();
                 if (nKeyExcludedValues == 0) {
-                    if (logDetail) LOG.info().$("generateTableQuery0 :: (7) tid: ").$(tid).$();
-                    Function filter = compileFilter(intrinsicModel, myMeta, executionContext);
+                    Function filter;
+                    try {
+                        filter = compileFilter(intrinsicModel, myMeta, executionContext);
+                    } catch (Throwable th) {
+                        Misc.free(dfcFactory);
+                        throw th;
+                    }
                     if (filter != null && filter.isConstant()) {
                         if (logDetail) LOG.info().$("generateTableQuery0 :: (8) tid: ").$(tid).$();
                         try {
@@ -5579,7 +5584,7 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                             filter = Misc.free(filter);
                         }
                     }
-                    if (logDetail) LOG.info().$("generateTableQuery0 :: (12) tid: ").$(tid).$();
+
                     if (nKeyValues == 1) {
                         if (logDetail) LOG.info().$("generateTableQuery0 :: (13) tid: ").$(tid).$();
                         final RowCursorFactory rcf;
@@ -5695,8 +5700,13 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                 } else if (nKeyExcludedValues > 0) {
                     if (logDetail) LOG.info().$("generateTableQuery0 :: (27) tid: ").$(tid).$();
                     if (reader.getSymbolMapReader(columnIndexes.getQuick(keyColumnIndex)).getSymbolCount() < configuration.getMaxSymbolNotEqualsCount()) {
-                        if (logDetail) LOG.info().$("generateTableQuery0 :: (28) tid: ").$(tid).$();
-                        Function filter = compileFilter(intrinsicModel, myMeta, executionContext);
+                        Function filter;
+                        try {
+                            filter = compileFilter(intrinsicModel, myMeta, executionContext);
+                        } catch (Throwable th) {
+                            Misc.free(dfcFactory);
+                            throw th;
+                        }
                         if (filter != null && filter.isConstant()) {
                             if (logDetail) LOG.info().$("generateTableQuery0 :: (29) tid: ").$(tid).$();
                             try {
