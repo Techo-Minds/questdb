@@ -67,13 +67,14 @@ import org.jetbrains.annotations.TestOnly;
 
 import static io.questdb.cairo.SqlWalMode.*;
 import static io.questdb.griffin.SqlKeywords.*;
+import static io.questdb.griffin.model.ExpressionNode.*;
 import static io.questdb.std.GenericLexer.assertNoDotsAndSlashes;
 import static io.questdb.std.GenericLexer.unquote;
 
 public class SqlParser {
     public static final int MAX_ORDER_BY_COLUMNS = 1560;
-    public static final ExpressionNode ZERO_OFFSET = ExpressionNode.FACTORY.newInstance().of(ExpressionNode.CONSTANT, "'00:00'", 0, 0);
-    private static final ExpressionNode ONE = ExpressionNode.FACTORY.newInstance().of(ExpressionNode.CONSTANT, "1", 0, 0);
+    public static final ExpressionNode ZERO_OFFSET = ExpressionNode.FACTORY.newInstance().of(CONSTANT, "'00:00'", 0, 0);
+    private static final ExpressionNode ONE = ExpressionNode.FACTORY.newInstance().of(CONSTANT, "1", 0, 0);
     private static final LowerCaseAsciiCharSequenceHashSet columnAliasStop = new LowerCaseAsciiCharSequenceHashSet();
     private static final LowerCaseAsciiCharSequenceHashSet groupByStopSet = new LowerCaseAsciiCharSequenceHashSet();
     private static final LowerCaseAsciiCharSequenceIntHashMap joinStartSet = new LowerCaseAsciiCharSequenceIntHashMap();
@@ -161,7 +162,7 @@ public class SqlParser {
     }
 
     public static boolean isFullSampleByPeriod(ExpressionNode n) {
-        return n != null && (n.type == ExpressionNode.CONSTANT || (n.type == ExpressionNode.LITERAL && isValidSampleByPeriodLetter(n.token)));
+        return n != null && (n.type == CONSTANT || (n.type == LITERAL && isValidSampleByPeriodLetter(n.token)));
     }
 
     /**
@@ -300,7 +301,7 @@ public class SqlParser {
             CharSequenceHashSet target
     ) throws SqlException {
         if (node != null && model != null) {
-            if (node.type == ExpressionNode.LITERAL) {
+            if (node.type == LITERAL) {
                 if (model.getTableName() != null) {
                     // We've found a lowest-level model. Let's check if the column belongs to it.
                     final int dotIndex = Chars.indexOf(node.token, '.');
@@ -452,7 +453,7 @@ public class SqlParser {
                 unquote(token),
                 Chars.indexOfUnquoted(token, '.'),
                 aliasToColumnMap,
-                type != ExpressionNode.LITERAL
+                type != LITERAL
         );
     }
 
@@ -664,7 +665,7 @@ public class SqlParser {
     private ExpressionNode literal(CharSequence name, int position) {
         // this can never be null in its current contexts
         // every time this function is called is after lexer.unparse(), which ensures non-null token.
-        return expressionNodePool.next().of(ExpressionNode.LITERAL, unquote(name), 0, position);
+        return expressionNodePool.next().of(LITERAL, unquote(name), 0, position);
     }
 
     private @NotNull CreateTableColumnModel newCreateTableColumnModel(
@@ -1010,7 +1011,7 @@ public class SqlParser {
         // find sampling interval
         CharSequence intervalExpr = null;
         final ExpressionNode sampleBy = queryModel.getSampleBy();
-        if (sampleBy != null && sampleBy.type == ExpressionNode.CONSTANT) {
+        if (sampleBy != null && sampleBy.type == CONSTANT) {
             intervalExpr = sampleBy.token;
         }
 
@@ -2214,7 +2215,7 @@ public class SqlParser {
                 tokIncludingLocalBrace(lexer, "literal");
                 lexer.unparseLast();
                 ExpressionNode n = expr(lexer, model, sqlParserCallback, model.getDecls());
-                if (n == null || (n.type != ExpressionNode.LITERAL && n.type != ExpressionNode.CONSTANT && n.type != ExpressionNode.FUNCTION && n.type != ExpressionNode.OPERATION)) {
+                if (n == null || (n.type != LITERAL && n.type != CONSTANT && n.type != ExpressionNode.FUNCTION && n.type != ExpressionNode.OPERATION)) {
                     throw SqlException.$(n == null ? lexer.lastTokenPosition() : n.position, "literal expected");
                 }
 
@@ -2238,8 +2239,8 @@ public class SqlParser {
                     throw SqlException.$(lexer.lastTokenPosition(), "literal or expression expected");
                 }
 
-                if ((n.type == ExpressionNode.CONSTANT && Chars.equals("''", n.token))
-                        || (n.type == ExpressionNode.LITERAL && n.token.length() == 0)) {
+                if ((n.type == CONSTANT && Chars.equals("''", n.token))
+                        || (n.type == LITERAL && n.token.length() == 0)) {
                     throw SqlException.$(lexer.lastTokenPosition(), "non-empty literal or expression expected");
                 }
 
@@ -2274,7 +2275,57 @@ public class SqlParser {
             } else {
                 lexer.unparseLast();
             }
+
+            // offset
             model.setLimit(lo, hi);
+        }
+
+        // expect [offset]
+        if (tok != null && isOffsetKeyword(tok)) {
+            ExpressionNode offset = expr(lexer, model, sqlParserCallback, model.getDecls());
+
+            if ((offset.type == OPERATION && offset.token.charAt(0) == '-' && offset.paramCount == 2 && isOffsetKeyword(offset.lhs.token))) {
+                offset.lhs = null;
+                offset.paramCount = 1;
+            }
+
+            if (offset.type == LITERAL && isOffsetKeyword(offset.token)) {
+                // we probably had a LIMIT and ran `unparseLast()`, so duplicate tok.
+                offset = expr(lexer, model, sqlParserCallback, model.getDecls());
+            }
+
+            if (offset.type == OPERATION && offset.paramCount == 1 && offset.token.charAt(0) == '-') {
+                throw SqlException.$(lexer.lastTokenPosition(), "OFFSET cannot be negative");
+            }
+
+            // Disallow LIMIT a, b OFFSET c
+            if (model.getLimitHi() != null) {
+                throw SqlException.$(lexer.lastTokenPosition(), "LIMIT upper bound already set");
+            }
+
+
+            if (model.getLimitLo() == null) {
+                // OFFSET b = LIMIT b, MAX
+                model.setLimit(offset, expressionNodePool.next().of(CONSTANT, String.valueOf(Long.MAX_VALUE), 0, offset.position));
+            } else {
+                // LIMIT a OFFSET b = LIMIT b, a + b
+
+                // see if we can assert that 'a' is positive early on
+                // if not, any weirdly defined limits must be resolved later
+
+                if (model.getLimitLo().type == OPERATION && model.getLimitLo().paramCount == 1 && model.getLimitLo().token.charAt(0) == '-') {
+                    throw SqlException.$(lexer.lastTokenPosition(), "LIMIT must be positive when used with OFFSET");
+                }
+
+                // a + b
+                ExpressionNode addExpr = expressionNodePool.next().of(OPERATION, "+", 5, 0);
+                addExpr.paramCount = 2;
+                addExpr.lhs = model.getLimitLo();
+                addExpr.rhs = offset;
+
+                // LIMIT b, a + b
+                model.setLimit(offset, addExpr);
+            }
         } else {
             lexer.unparseLast();
         }
@@ -2463,7 +2514,7 @@ public class SqlParser {
                         case 1:
                             expr = expressionTreeBuilder.poll();
 
-                            if (expr.type == ExpressionNode.LITERAL) {
+                            if (expr.type == LITERAL) {
                                 do {
                                     joinModel.addJoinColumn(expr);
                                 } while ((expr = expressionTreeBuilder.poll()) != null);
@@ -2474,7 +2525,7 @@ public class SqlParser {
                         default:
                             // this code handles "join on (a,b,c)", e.g. list of columns
                             while ((expr = expressionTreeBuilder.poll()) != null) {
-                                if (expr.type != ExpressionNode.LITERAL) {
+                                if (expr.type != LITERAL) {
                                     throw SqlException.$(lexer.lastTokenPosition(), "Column name expected");
                                 }
                                 joinModel.addJoinColumn(expr);
@@ -2637,7 +2688,7 @@ public class SqlParser {
                         throw SqlException.$(lexer.lastTokenPosition(), "missing expression");
                     }
 
-                    if (Chars.endsWith(expr.token, '.') && expr.type == ExpressionNode.LITERAL) {
+                    if (Chars.endsWith(expr.token, '.') && expr.type == LITERAL) {
                         throw SqlException.$(expr.position + expr.token.length(), "'*' or column name expected");
                     }
                 }
@@ -3014,7 +3065,7 @@ public class SqlParser {
                     }
                     CharSequence alias;
 
-                    if (qc.getAst().type == ExpressionNode.CONSTANT && Chars.indexOfUnquoted(token, '.') != -1) {
+                    if (qc.getAst().type == CONSTANT && Chars.indexOfUnquoted(token, '.') != -1) {
                         alias = createConstColumnAlias(aliasMap);
                     } else {
                         CharSequence tokenAlias = qc.getAst().token;
@@ -3048,7 +3099,7 @@ public class SqlParser {
 
         // check if it's a decl
         if (model.getDecls().contains(expr.token)) {
-            if (expr.type == ExpressionNode.LITERAL) {
+            if (expr.type == LITERAL) {
                 // replace it if so
                 expr = model.getDecls().get(expr.token).rhs;
             } else {
@@ -3058,8 +3109,8 @@ public class SqlParser {
 
         CharSequence tableName = expr.token;
         switch (expr.type) {
-            case ExpressionNode.LITERAL:
-            case ExpressionNode.CONSTANT:
+            case LITERAL:
+            case CONSTANT:
                 final WithClauseModel withClause = masterModel.get(tableName);
                 if (withClause != null) {
                     model.setNestedModel(parseWith(lexer, withClause, sqlParserCallback, model.getDecls()));
@@ -3109,7 +3160,7 @@ public class SqlParser {
             throw SqlException.position(lexer.getPosition()).put("expected a table name");
         }
         final CharSequence tableName = assertNoDotsAndSlashes(unquote(tok), lexer.lastTokenPosition());
-        ExpressionNode tableNameExpr = expressionNodePool.next().of(ExpressionNode.LITERAL, tableName, 0, lexer.lastTokenPosition());
+        ExpressionNode tableNameExpr = expressionNodePool.next().of(LITERAL, tableName, 0, lexer.lastTokenPosition());
         tableNameExpr = rewriteDeclaredVariables(tableNameExpr, model.getDecls(), null);
         model.setTableNameExpr(tableNameExpr);
     }
@@ -3169,7 +3220,7 @@ public class SqlParser {
         CharSequence tok = tok(lexer, "table name or alias");
         assertTableNameIsQuotedOrNotAKeyword(tok, lexer.lastTokenPosition());
         CharSequence tableName = GenericLexer.immutableOf(unquote(tok));
-        ExpressionNode tableNameExpr = ExpressionNode.FACTORY.newInstance().of(ExpressionNode.LITERAL, tableName, 0, 0);
+        ExpressionNode tableNameExpr = ExpressionNode.FACTORY.newInstance().of(LITERAL, tableName, 0, 0);
         updateQueryModel.setTableNameExpr(tableNameExpr);
         fromModel.setTableNameExpr(tableNameExpr);
 
@@ -3185,7 +3236,7 @@ public class SqlParser {
             // This is table alias
             CharSequence tableAlias = GenericLexer.immutableOf(tok);
             assertTableNameIsQuotedOrNotAKeyword(tok, lexer.lastTokenPosition());
-            ExpressionNode tableAliasExpr = ExpressionNode.FACTORY.newInstance().of(ExpressionNode.LITERAL, tableAlias, 0, 0);
+            ExpressionNode tableAliasExpr = ExpressionNode.FACTORY.newInstance().of(LITERAL, tableAlias, 0, 0);
             updateQueryModel.setAlias(tableAliasExpr);
             tok = tok(lexer, "SET expected");
         }
@@ -3204,7 +3255,7 @@ public class SqlParser {
 
             // Value expression
             ExpressionNode expr = expr(lexer, (QueryModel) null, sqlParserCallback);
-            ExpressionNode setColumnExpression = expressionNodePool.next().of(ExpressionNode.LITERAL, col, 0, colPosition);
+            ExpressionNode setColumnExpression = expressionNodePool.next().of(LITERAL, col, 0, colPosition);
             updateQueryModel.getUpdateExpressions().add(setColumnExpression);
 
             QueryColumn valueColumn = queryColumnPool.next().of(col, expr);
@@ -3344,10 +3395,10 @@ public class SqlParser {
                 if (where.type == ExpressionNode.OPERATION && where.token.charAt(0) == '=') {
                     ExpressionNode thisConstant;
                     ExpressionNode thisLiteral;
-                    if (where.lhs.type == ExpressionNode.CONSTANT && where.rhs.type == ExpressionNode.LITERAL) {
+                    if (where.lhs.type == CONSTANT && where.rhs.type == LITERAL) {
                         thisConstant = where.lhs;
                         thisLiteral = where.rhs;
-                    } else if (where.lhs.type == ExpressionNode.LITERAL && where.rhs.type == ExpressionNode.CONSTANT) {
+                    } else if (where.lhs.type == LITERAL && where.rhs.type == CONSTANT) {
                         thisConstant = where.rhs;
                         thisLiteral = where.lhs;
                     } else {
@@ -3508,7 +3559,7 @@ public class SqlParser {
                         characterStoreEntry.put(type);
                         node.args.add(
                                 expressionNodePool.next().of(
-                                        ExpressionNode.CONSTANT,
+                                        CONSTANT,
                                         characterStoreEntry.toImmutable(),
                                         typeNode.precedence,
                                         typeNode.position
@@ -3539,7 +3590,7 @@ public class SqlParser {
         if (node.type == ExpressionNode.OPERATION && isColonColon(node.token)) {
             node.token = "cast";
             node.type = ExpressionNode.FUNCTION;
-            node.rhs.type = ExpressionNode.CONSTANT;
+            node.rhs.type = CONSTANT;
             // In PG x::float casts x to "double precision" type
             if (isFloatKeyword(node.rhs.token) || isFloat8Keyword(node.rhs.token)) {
                 node.rhs.token = "double";
@@ -3780,7 +3831,7 @@ public class SqlParser {
                 return node;
             }
 
-            if (node.token != null && node.type == ExpressionNode.LITERAL && decls.contains(node.token)) {
+            if (node.token != null && node.type == LITERAL && decls.contains(node.token)) {
                 return decls.get(node.token).rhs;
             } else if (hasAtChar) {
                 throw SqlException.$(node.position, "tried to use undeclared variable `" + node.token + '`');
@@ -3822,6 +3873,7 @@ public class SqlParser {
         tableAliasStop.add("except");
         tableAliasStop.add("intersect");
         tableAliasStop.add("from");
+        tableAliasStop.add("offset");
         //
         columnAliasStop.add("from");
         columnAliasStop.add(",");
