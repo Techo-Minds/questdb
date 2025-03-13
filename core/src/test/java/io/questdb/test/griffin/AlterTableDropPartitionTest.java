@@ -153,6 +153,29 @@ public class AlterTableDropPartitionTest extends AbstractCairoTest {
     }
 
     @Test
+    public void testDropPartitionFarIntoTheFuture() throws Exception {
+        assertMemoryLeak(() -> {
+            execute("create table foo (timestamp timestamp) timestamp(timestamp) partition by hour wal;");
+            execute("insert into foo (timestamp) values ('2025-03-13T15:39:40.576342Z'::timestamp), ('2025-03-13T15:39:40.576342Z'::timestamp*1000);");
+
+            drainWalQueue();
+
+            assertSql("index\tpartitionBy\tname\tminTimestamp\tmaxTimestamp\tnumRows\tdiskSize\tdiskSizeHuman\treadOnly\tactive\tattached\tdetached\tattachable\tisParquet\tparquetFileSize\n" +
+                            "0\tHOUR\t2025-03-13T15\t2025-03-13T15:39:40.576342Z\t2025-03-13T15:39:40.576342Z\t1\t8\t8.0 B\tfalse\tfalse\ttrue\tfalse\tfalse\tfalse\t-1\n" +
+                            "1\tHOUR\t57167-12-29T13\t57167-12-29T13:16:16.342000Z\t57167-12-29T13:16:16.342000Z\t1\t2097152\t2.0 MiB\tfalse\ttrue\ttrue\tfalse\tfalse\tfalse\t-1\n",
+                    "table_partitions('foo');");
+
+
+            execute("alter table foo force drop partition list '57167-12-29T13';");
+            drainWalQueue();
+
+            assertSql("index\tpartitionBy\tname\tminTimestamp\tmaxTimestamp\tnumRows\tdiskSize\tdiskSizeHuman\treadOnly\tactive\tattached\tdetached\tattachable\tisParquet\tparquetFileSize\n" +
+                            "0\tHOUR\t2025-03-13T15\t2025-03-13T15:39:40.576342Z\t2025-03-13T15:39:40.576342Z\t1\t8\t8.0 B\tfalse\tfalse\ttrue\tfalse\tfalse\tfalse\t-1\n",
+                    "table_partitions('foo');");
+        });
+    }
+
+    @Test
     public void testDropPartitionInvalidTimestampColumn() throws Exception {
         createXAndAssertException("alter table x drop partition where a > 1", 35, "Invalid column: a");
     }

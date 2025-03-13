@@ -27,11 +27,13 @@ package io.questdb.cairo;
 import io.questdb.cairo.ptt.IsoDatePartitionFormat;
 import io.questdb.cairo.ptt.IsoWeekPartitionFormat;
 import io.questdb.griffin.SqlException;
+import io.questdb.std.Chars;
 import io.questdb.std.LowerCaseCharSequenceIntHashMap;
 import io.questdb.std.LowerCaseUtf8SequenceIntHashMap;
 import io.questdb.std.NumericException;
 import io.questdb.std.datetime.DateFormat;
 import io.questdb.std.datetime.DateLocale;
+import io.questdb.std.datetime.microtime.TimestampFormatUtils;
 import io.questdb.std.datetime.microtime.Timestamps;
 import io.questdb.std.datetime.millitime.DateFormatUtils;
 import io.questdb.std.str.CharSink;
@@ -220,6 +222,7 @@ public final class PartitionBy {
                 default:
                     throw new UnsupportedOperationException("partition by " + partitionBy + " does not have date format");
             }
+
             int limit = fmtStr.length();
             if (hi < 0) {
                 // Automatic partition name trimming.
@@ -228,6 +231,21 @@ public final class PartitionBy {
             if (hi - lo < limit) {
                 throw expectedPartitionDirNameFormatCairoException(partitionName, lo, hi, partitionBy);
             }
+
+            // There is an edge case where dates can have more than `yyyy` year characters.
+            // This can happen when users convert timestamp units and accidentally multiply things.
+            // For example, now() * 1000 gives `57167`. now() * 5000 gives `277960`.
+            // Let's check for this.
+            int yearFormatExtent = Chars.indexOf(partitionName, lo, hi, '-');
+            if (yearFormatExtent != 4) {
+                // This is the edge case.
+                // We will just tack on an extra 'y' or two.
+                // subtract 4 because we expected `yyyy` already.
+                fmtStr = "y".repeat(yearFormatExtent - 4) + fmtStr;
+                hi += yearFormatExtent - 4;
+                fmtMethod = TimestampFormatUtils.compiler.compile(fmtStr);
+            }
+
             return fmtMethod.parse(partitionName, lo, hi, DateFormatUtils.EN_LOCALE);
         } catch (NumericException e) {
             if (partitionBy == PartitionBy.WEEK) {

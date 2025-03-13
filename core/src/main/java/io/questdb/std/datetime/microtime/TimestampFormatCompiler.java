@@ -25,8 +25,14 @@
 package io.questdb.std.datetime.microtime;
 
 
+import io.questdb.std.BytecodeAssembler;
+import io.questdb.std.CharSequenceIntHashMap;
+import io.questdb.std.GenericLexer;
+import io.questdb.std.IntList;
+import io.questdb.std.LongList;
+import io.questdb.std.Numbers;
+import io.questdb.std.ObjList;
 import io.questdb.std.ThreadLocal;
-import io.questdb.std.*;
 import io.questdb.std.datetime.AbstractDateFormat;
 import io.questdb.std.datetime.DateFormat;
 import io.questdb.std.datetime.DateLocale;
@@ -34,6 +40,8 @@ import io.questdb.std.str.CharSink;
 import io.questdb.std.str.StringSink;
 
 public class TimestampFormatCompiler {
+    static final int OP_5_DIGIT_YEAR = 200;
+    static final int OP_6_DIGIT_YEAR = 201;
     static final int OP_AM_PM = 14;
     static final int OP_DAY_GREEDY = 139;
     static final int OP_DAY_NAME_LONG = 12;

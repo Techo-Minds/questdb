@@ -70,6 +70,7 @@ public class TimestampFormatUtils {
     private static final String PG_TIMESTAMP_MILLI_TIME_Z_PATTERN = "y-MM-dd HH:mm:ss.SSSz";
     private static final String SEC_UTC_PATTERN = "yyyy-MM-ddTHH:mm:ssz";
     private static final String USEC_UTC_PATTERN = "yyyy-MM-ddTHH:mm:ss.SSSUUUz";
+    public static TimestampFormatCompiler compiler;
     static int prevCenturyLow;
     static long referenceYear;
     static int thisCenturyLimit;
@@ -411,7 +412,7 @@ public class TimestampFormatUtils {
 
     static {
         updateReferenceYear(Os.currentTimeMicros());
-        TimestampFormatCompiler compiler = new TimestampFormatCompiler();
+        compiler = new TimestampFormatCompiler();
         HTTP_FORMAT = compiler.compile("E, d MMM yyyy HH:mm:ss Z");
         PG_TIMESTAMP_FORMAT = compiler.compile("y-MM-dd HH:mm:ss.SSSUUU");
         PG_TIMESTAMP_TIME_Z_FORMAT = compiler.compile("y-MM-dd HH:mm:ssz");
