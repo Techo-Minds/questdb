@@ -166,7 +166,7 @@ public class AlterTableDropPartitionTest extends AbstractCairoTest {
                     "table_partitions('foo');");
 
 
-            execute("alter table foo force drop partition list '57167-12-29T13';");
+            execute("alter table foo drop partition list '57167-12-29T13';");
             drainWalQueue();
 
             assertSql("index\tpartitionBy\tname\tminTimestamp\tmaxTimestamp\tnumRows\tdiskSize\tdiskSizeHuman\treadOnly\tactive\tattached\tdetached\tattachable\tisParquet\tparquetFileSize\n" +
