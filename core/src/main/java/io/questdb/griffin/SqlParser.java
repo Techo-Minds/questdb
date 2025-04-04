@@ -2316,6 +2316,7 @@ public class SqlParser {
                 }
                 // intentional fall through
             case QueryModel.JOIN_INNER:
+            case QueryModel.JOIN_SEMI_LEFT:
             case QueryModel.JOIN_OUTER:
                 expectTok(lexer, tok, "on");
                 try {
@@ -3693,6 +3694,7 @@ public class SqlParser {
         tableAliasStop.add("left");
         tableAliasStop.add("outer");
         tableAliasStop.add("asof");
+        tableAliasStop.add("semi");
         tableAliasStop.add("splice");
         tableAliasStop.add("lt");
         tableAliasStop.add("cross");
@@ -3730,6 +3732,7 @@ public class SqlParser {
         joinStartSet.put("asof", QueryModel.JOIN_ASOF);
         joinStartSet.put("splice", QueryModel.JOIN_SPLICE);
         joinStartSet.put("lt", QueryModel.JOIN_LT);
+        joinStartSet.put("semi", QueryModel.JOIN_SEMI_LEFT); // only left semi join is supported currently
         joinStartSet.put(",", QueryModel.JOIN_CROSS);
         //
         setOperations.add("union");

@@ -4104,6 +4104,245 @@ public class JoinTest extends AbstractCairoTest {
     }
 
     @Test
+    public void testSemiJoinBasic() throws Exception {
+        assertMemoryLeak(() -> {
+            execute("create table customers as (" +
+                    "select" +
+                    " cast(x as int) id," +
+                    " rnd_str('John', 'Jane', 'Bob', 'Alice', 'Charlie') name," +
+                    " rnd_str('New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix') city" +
+                    " from long_sequence(5)" +
+                    ")");
+            execute("create table orders as (" +
+                    "select" +
+                    " cast(x as int) order_id," +
+                    " cast((x % 3) + 1 as int) customer_id," +
+                    " rnd_double(0) * 500 amount," +
+                    " to_timestamp('2023-01', 'yyyy-MM') + x * 120000000 order_date" +
+                    " from long_sequence(10)" +
+                    ") timestamp(order_date)");
+
+            // should return only customers 1, 2, 3 (who have orders)
+            assertQueryNoLeakCheck(
+                    "id\tname\tcity\n" +
+                            "1\tJohn\tHouston\n" +
+                            "2\tAlice\tLos Angeles\n" +
+                            "3\tJane\tPhoenix\n",
+                    "select c.id, c.name, c.city " +
+                            "from customers c " +
+                            "semi join orders o on c.id = o.customer_id " +
+                            "order by c.id",
+                    null,
+                    true,
+                    true
+            );
+
+            // the same query, but with wildcard select - should not project any column from orders
+            assertQueryNoLeakCheck(
+                    "id\tname\tcity\n" +
+                            "1\tJohn\tHouston\n" +
+                            "2\tAlice\tLos Angeles\n" +
+                            "3\tJane\tPhoenix\n",
+                    "select * " +
+                            "from customers c " +
+                            "semi join orders o on c.id = o.customer_id " +
+                            "order by c.id",
+                    null,
+                    true,
+                    true
+            );
+        });
+    }
+
+    @Test
+    public void testSemiJoinEliminatesDuplicates() throws Exception {
+        assertMemoryLeak(() -> {
+            execute("create table customers as (" +
+                    "select" +
+                    " cast(x as int) id," +
+                    " rnd_str('John', 'Jane', 'Bob', 'Alice', 'Charlie') name," +
+                    " rnd_str('New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix') city" +
+                    " from long_sequence(5)" +
+                    ")");
+            execute("create table orders as (" +
+                    "select" +
+                    " cast(x as int) order_id," +
+                    " 1 customer_id," + // All orders are for customer 1
+                    " rnd_double(0) * 500 amount," +
+                    " to_timestamp('2023-01', 'yyyy-MM') + x * 120000000 order_date" +
+                    " from long_sequence(10)" +
+                    ") timestamp(order_date)");
+
+            // SEMI JOIN should return customer 1 exactly once despite having multiple orders
+            assertQueryNoLeakCheck(
+                    "id\tname\tcity\n" +
+                            "1\tJohn\tHouston\n",
+                    "select c.id, c.name, c.city " +
+                            "from customers c " +
+                            "semi join orders o on c.id = o.customer_id " +
+                            "order by c.id",
+                    null,
+                    true,
+                    true
+            );
+
+            // Inner join for comparison - should return customer 1 multiple times
+            assertQueryNoLeakCheck(
+                    "id\tname\tcity\torder_id\tcustomer_id\tamount\torder_date\n" +
+                            "1\tJohn\tHouston\t1\t1\t65.61680020646065\t2023-01-01T00:02:00.000000Z\n" +
+                            "1\tJohn\tHouston\t2\t1\t492.81454229371315\t2023-01-01T00:04:00.000000Z\n" +
+                            "1\tJohn\tHouston\t3\t1\t444.9643456144832\t2023-01-01T00:06:00.000000Z\n" +
+                            "1\tJohn\tHouston\t4\t1\t312.7010771206009\t2023-01-01T00:08:00.000000Z\n" +
+                            "1\tJohn\tHouston\t5\t1\t231.0917714563927\t2023-01-01T00:10:00.000000Z\n" +
+                            "1\tJohn\tHouston\t6\t1\t279.95809024004063\t2023-01-01T00:12:00.000000Z\n" +
+                            "1\tJohn\tHouston\t7\t1\t363.0568104911811\t2023-01-01T00:14:00.000000Z\n" +
+                            "1\tJohn\tHouston\t8\t1\t211.21783308225656\t2023-01-01T00:16:00.000000Z\n" +
+                            "1\tJohn\tHouston\t9\t1\t354.7180243585601\t2023-01-01T00:18:00.000000Z\n" +
+                            "1\tJohn\tHouston\t10\t1\t192.69973932622497\t2023-01-01T00:20:00.000000Z\n",
+                    "select c.id, c.name, c.city, o.order_id, o.customer_id, o.amount, o.order_date " +
+                            "from customers c " +
+                            "inner join orders o on c.id = o.customer_id " +
+                            "order by o.order_id",
+                    null,
+                    true,
+                    true
+            );
+        });
+    }
+
+    @Test
+    public void testSemiJoinWithCondition() throws Exception {
+        assertMemoryLeak(() -> {
+            execute("create table customers as (" +
+                    "select" +
+                    " cast(x as int) id," +
+                    " rnd_str('John', 'Jane', 'Bob', 'Alice', 'Charlie') name," +
+                    " rnd_str('New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix') city" +
+                    " from long_sequence(5)" +
+                    ")");
+            execute("create table orders as (" +
+                    "select" +
+                    " cast(x as int) order_id," +
+                    " cast(x as int) customer_id," +
+                    " x * 100.0 amount," +
+                    " to_timestamp('2023-01', 'yyyy-MM') + x * 120000000 order_date" +
+                    " from long_sequence(10)" +
+                    ") timestamp(order_date)");
+
+            // sanity check: state of the customers table
+            assertQueryNoLeakCheck(
+                    "id\tname\tcity\n" +
+                            "1\tJohn\tHouston\n" +
+                            "2\tAlice\tLos Angeles\n" +
+                            "3\tJane\tPhoenix\n" +
+                            "4\tBob\tLos Angeles\n" +
+                            "5\tJane\tHouston\n",
+                    "select * from customers;",
+                    null,
+                    true,
+                    true
+            );
+
+            // sanity check: state of the orders table
+            // note: there are orders for non-existing customers, that's a bit strange, but not relevant
+            // for SEMI JOIN testing
+            assertQueryNoLeakCheck(
+                    "order_id\tcustomer_id\tamount\torder_date\n" +
+                            "1\t1\t100.0\t2023-01-01T00:02:00.000000Z\n" +
+                            "2\t2\t200.0\t2023-01-01T00:04:00.000000Z\n" +
+                            "3\t3\t300.0\t2023-01-01T00:06:00.000000Z\n" +
+                            "4\t4\t400.0\t2023-01-01T00:08:00.000000Z\n" +
+                            "5\t5\t500.0\t2023-01-01T00:10:00.000000Z\n" +
+                            "6\t6\t600.0\t2023-01-01T00:12:00.000000Z\n" +
+                            "7\t7\t700.0\t2023-01-01T00:14:00.000000Z\n" +
+                            "8\t8\t800.0\t2023-01-01T00:16:00.000000Z\n" +
+                            "9\t9\t900.0\t2023-01-01T00:18:00.000000Z\n" +
+                            "10\t10\t1000.0\t2023-01-01T00:20:00.000000Z\n",
+                    "select * from orders;",
+                    "order_date",
+                    true,
+                    true
+            );
+
+            // SEMI JOIN with condition - should return only customers with orders > 500
+            assertQueryNoLeakCheck(
+                    "id\tname\tcity\n" +
+                            "3\tJane\tPhoenix\n" +
+                            "4\tBob\tLos Angeles\n" +
+                            "5\tJane\tHouston\n",
+                    "select * " +
+                            "from customers c " +
+                            "semi join orders o on c.id = o.customer_id and o.amount > 200 " +
+                            "order by c.id",
+                    null,
+                    true,
+                    true
+            );
+        });
+    }
+
+    @Test
+    public void testSemiJoinWithMultipleTables() throws Exception {
+        assertMemoryLeak(() -> {
+            execute("create table customers as (" +
+                    "select" +
+                    " cast(x as int) id," +
+                    " rnd_str('John', 'Jane', 'Bob', 'Alice', 'Charlie') name," +
+                    " rnd_str('New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix') city" +
+                    " from long_sequence(5)" +
+                    ")");
+
+            execute("create table orders as (" +
+                    "select" +
+                    " cast(x as int) order_id," +
+                    " cast((x % 3) + 1 as int) customer_id," +
+                    " cast((x % 3) + 1 as int) category_id," +
+                    " rnd_double(0) * 500 amount," +
+                    " to_timestamp('2023-01', 'yyyy-MM') + x * 120000000 order_date" +
+                    " from long_sequence(10)" +
+                    ") timestamp(order_date)");
+
+            execute("create table categories as (" +
+                    "select" +
+                    " cast(x as int) id," +
+                    " rnd_str('Electronics', 'Clothing', 'Food') name" +
+                    " from long_sequence(3)" +
+                    ")");
+
+            // SEMI JOIN with multiple tables - should return customers who have orders in the 'Electronics' category
+            assertQueryNoLeakCheck(
+                    "id\tname\tcity\n" +
+                            "1\tJohn\tNew York\n",
+                    "select c.id, c.name, c.city " +
+                            "from customers c " +
+                            "semi join orders o on c.id = o.customer_id " +
+                            "semi join categories cat on o.category_id = cat.id and cat.name = 'Electronics' " +
+                            "order by c.id",
+                    null,
+                    true,
+                    true
+            );
+
+            // Compare with equivalent nested EXISTS query
+            assertQueryNoLeakCheck(
+                    "id\tname\tcity\n" +
+                            "1\tJohn\tNew York\n",
+                    "select c.id, c.name, c.city " +
+                            "from customers c " +
+                            "where exists (select 1 from orders o " +
+                            "              where o.customer_id = c.id " +
+                            "              and exists (select 1 from categories cat " +
+                            "                         where cat.id = o.category_id " +
+                            "                         and cat.name = 'Electronics')) " +
+                            "order by c.id",
+                    null,
+                    false,
+                    true
+            );
+        });
+    }
+
+    @Test
     public void testSpliceCorrectness() throws Exception {
         assertMemoryLeak(() -> {
             execute("create table orders (sym SYMBOL, amount DOUBLE, side BYTE, timestamp TIMESTAMP) timestamp(timestamp)");

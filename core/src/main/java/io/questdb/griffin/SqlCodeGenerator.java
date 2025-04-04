@@ -197,6 +197,7 @@ import io.questdb.griffin.engine.join.HashOuterJoinFilteredLightRecordCursorFact
 import io.questdb.griffin.engine.join.HashOuterJoinFilteredRecordCursorFactory;
 import io.questdb.griffin.engine.join.HashOuterJoinLightRecordCursorFactory;
 import io.questdb.griffin.engine.join.HashOuterJoinRecordCursorFactory;
+import io.questdb.griffin.engine.join.HashSemiJoinRecordCursorFactory;
 import io.questdb.griffin.engine.join.JoinRecordMetadata;
 import io.questdb.griffin.engine.join.LtJoinLightRecordCursorFactory;
 import io.questdb.griffin.engine.join.LtJoinNoKeyFastRecordCursorFactory;
@@ -2592,6 +2593,33 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                                         throw SqlException.position(slaveModel.getJoinKeywordPosition()).put("splice join doesn't support full fat mode");
                                     }
                                 }
+                                break;
+                            case JOIN_SEMI_LEFT:
+                                processJoinContext(index == 1, isSameTable(master, slave), slaveModel.getContext(), masterMetadata, slaveMetadata);
+                                final RecordSink masterKeySink = RecordSinkFactory.getInstance(
+                                        asm,
+                                        masterMetadata,
+                                        listColumnFilterB,
+                                        writeSymbolAsString,
+                                        writeStringAsVarcharB
+                                );
+
+                                final RecordSink slaveKeySink = RecordSinkFactory.getInstance(
+                                        asm,
+                                        slaveMetadata,
+                                        listColumnFilterA,
+                                        writeSymbolAsString,
+                                        writeStringAsVarcharA
+                                );
+                                joinMetadata = new JoinRecordMetadata(configuration, masterMetadata.getColumnCount());
+                                joinMetadata.copyColumnMetadataFrom(masterAlias, masterMetadata);
+                                int timestampIndex = masterMetadata.getTimestampIndex();
+                                if (timestampIndex != -1) {
+                                    joinMetadata.setTimestampIndex(timestampIndex);
+                                }
+                                master = new HashSemiJoinRecordCursorFactory(configuration, joinMetadata, master, slave, keyTypes, masterKeySink, slaveKeySink, slaveModel.getContext());
+                                masterAlias = null;
+                                releaseSlave = false;
                                 break;
                             default:
                                 processJoinContext(index == 1, isSameTable(master, slave), slaveModel.getContext(), masterMetadata, slaveMetadata);
@@ -6420,6 +6448,7 @@ public class SqlCodeGenerator implements Mutable, Closeable {
         joinsRequiringTimestamp[JOIN_SPLICE] = true;
         joinsRequiringTimestamp[JOIN_LT] = true;
         joinsRequiringTimestamp[JOIN_ONE] = false;
+        joinsRequiringTimestamp[JOIN_SEMI_LEFT] = false;
     }
 
     static {

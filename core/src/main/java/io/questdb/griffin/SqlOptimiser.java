@@ -107,7 +107,18 @@ public class SqlOptimiser implements Mutable {
     // list of join types that don't support all optimisations (e.g. pushing table-specific predicates to both left and right table)
     private static final IntHashSet joinBarriers;
     private static final CharSequenceIntHashMap joinOps = new CharSequenceIntHashMap();
-    private static final boolean[] joinsRequiringTimestamp = {false, false, false, false, true, true, true};
+    private static final boolean[] joinsRequiringTimestamp = {
+            false, // 0 -
+            false, // 1 - JOIN_INNER
+            false, // 2 - JOIN_OUTER
+            false, // 3 - JOIN_CROSS
+            true,  // 4 - JOIN_ASOF
+            true,  // 5 - JOIN_SPLICE
+            true,  // 6 - JOIN_LT
+            false, // 7 - JOIN_ONE
+            false, // 8 - JOIN_CROSS_LEFT
+            false  // 9 - JOIN_SEMI_LEFT
+    };
     private static final IntHashSet limitTypes = new IntHashSet();
     private static final CharSequenceIntHashMap notOps = new CharSequenceIntHashMap();
     private static final CharSequenceHashSet nullConstants = new CharSequenceHashSet();
@@ -377,7 +388,7 @@ public class SqlOptimiser implements Mutable {
         if (validatingModel != null) {
             CharSequence refColumn = column.getAst().token;
             final int dot = Chars.indexOfUnquoted(refColumn, '.');
-            validateColumnAndGetModelIndex(validatingModel, refColumn, dot, column.getAst().position);
+            validateColumnAndGetModelIndex(validatingModel, refColumn, true, dot, column.getAst().position);
             // when we have only one model, e.g. this is not a join
             // and there is table alias to lookup column
             // we will remove this alias as unneeded
@@ -1585,8 +1596,13 @@ public class SqlOptimiser implements Mutable {
             }
 
             // we are targeting single table
+            QueryModel model = baseModel.getJoinModels().getQuick(index);
+            if (model.getJoinType() == JOIN_SEMI_LEFT) {
+                throw SqlException.$(qc.getAst().position, "columns from SEMI JOIN cannot be selected");
+            }
+
             createSelectColumnsForWildcard0(
-                    baseModel.getJoinModels().getQuick(index),
+                    model,
                     hasJoins,
                     qc.getAst().position,
                     translatingModel,
@@ -1599,6 +1615,12 @@ public class SqlOptimiser implements Mutable {
         } else {
             ObjList<QueryModel> models = baseModel.getJoinModels();
             for (int j = 0, z = models.size(); j < z; j++) {
+                QueryModel model = models.getQuick(j);
+                if (model.getJoinType() == JOIN_SEMI_LEFT) {
+                    // semi joins do not contribute to wildcard
+                    continue;
+                }
+
                 createSelectColumnsForWildcard0(
                         models.getQuick(j),
                         hasJoins,
@@ -3885,7 +3907,7 @@ public class SqlOptimiser implements Mutable {
         if (node != null && node.type == LITERAL) {
             CharSequence col = node.token;
             final int dot = Chars.indexOfUnquoted(col, '.');
-            int modelIndex = validateColumnAndGetModelIndex(baseModel, col, dot, node.position);
+            int modelIndex = validateColumnAndGetModelIndex(baseModel, col, true, dot, node.position);
 
             boolean addAlias = dot == -1 && baseModel.getJoinModels().size() > 1;
             boolean removeAlias = dot > -1 && baseModel.getJoinModels().size() == 1;
@@ -4480,7 +4502,7 @@ public class SqlOptimiser implements Mutable {
                 // is this a table reference?
                 if (dot > -1 || model.getAliasToColumnMap().excludes(column)) {
                     // validate column
-                    validateColumnAndGetModelIndex(base, column, dot, orderBy.position);
+                    validateColumnAndGetModelIndex(base, column, true, dot, orderBy.position);
                     // good news, our column matched base model
                     // this condition is to ignore order by columns that are not in select and behind group by
                     if (base != model) {
@@ -6192,12 +6214,17 @@ public class SqlOptimiser implements Mutable {
         traversalAlgo.traverse(node.rhs, literalCollector.rhs());
     }
 
-    private int validateColumnAndGetModelIndex(QueryModel model, CharSequence columnName, int dot, int position) throws SqlException {
+    private int validateColumnAndGetModelIndex(QueryModel model, CharSequence columnName, boolean forTranslatingModel, int dot, int position) throws SqlException {
         ObjList<QueryModel> joinModels = model.getJoinModels();
         int index = -1;
         if (dot == -1) {
             for (int i = 0, n = joinModels.size(); i < n; i++) {
-                if (joinModels.getQuick(i).getAliasToColumnMap().excludes(columnName)) {
+                QueryModel joinQueryModel = joinModels.getQuick(i);
+                if (joinQueryModel.getJoinType() == JOIN_SEMI_LEFT) {
+                    // SEMI join models do not contribute to the column list
+                    continue;
+                }
+                if (joinQueryModel.getAliasToColumnMap().excludes(columnName)) {
                     continue;
                 }
 
@@ -6213,12 +6240,15 @@ public class SqlOptimiser implements Mutable {
             }
         } else {
             index = model.getModelAliasIndex(columnName, 0, dot);
-
             if (index == -1) {
                 throw SqlException.$(position, "Invalid table name or alias");
             }
+            QueryModel joinQueryModel = joinModels.getQuick(index);
+            if (forTranslatingModel && joinQueryModel.getJoinType() == JOIN_SEMI_LEFT) {
+                throw SqlException.$(position, "columns from SEMI JOIN cannot be selected");
+            }
 
-            if (joinModels.getQuick(index).getAliasToColumnMap().excludes(columnName, dot + 1, columnName.length())) {
+            if (forTranslatingModel && joinQueryModel.getAliasToColumnMap().excludes(columnName, dot + 1, columnName.length())) {
                 throw SqlException.invalidColumn(position, columnName);
             }
         }
@@ -6617,7 +6647,7 @@ public class SqlOptimiser implements Mutable {
                 case LITERAL:
                     int dot = Chars.indexOfUnquoted(node.token, '.');
                     CharSequence name = dot == -1 ? node.token : node.token.subSequence(dot + 1, node.token.length());
-                    indexes.add(validateColumnAndGetModelIndex(model, node.token, dot, node.position));
+                    indexes.add(validateColumnAndGetModelIndex(model, node.token, false, dot, node.position));
                     if (names != null) {
                         names.add(name);
                     }
