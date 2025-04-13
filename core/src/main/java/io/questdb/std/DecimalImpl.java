@@ -26,7 +26,9 @@ package io.questdb.std;
 
 import com.epam.deltix.dfp.Decimal;
 import com.epam.deltix.dfp.Decimal64Utils;
+import io.questdb.std.str.CharSink;
 import io.questdb.std.str.Utf8Sequence;
+import org.jetbrains.annotations.NotNull;
 
 public class DecimalImpl {
 
@@ -113,7 +115,13 @@ public class DecimalImpl {
         }
     }
 
+    public static void toSink(@Decimal long decimal, @NotNull CharSink<?> sink) {
+        sink.put(Decimal64Utils.toString(decimal));
+    }
+
     public static String toString(@Decimal long decimal) {
         return Decimal64Utils.toString(decimal);
     }
+    
 }
+

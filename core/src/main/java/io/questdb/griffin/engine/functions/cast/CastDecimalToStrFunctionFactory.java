@@ -30,35 +30,59 @@ import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
 import io.questdb.griffin.FunctionFactory;
 import io.questdb.griffin.SqlExecutionContext;
-import io.questdb.griffin.SqlUtil;
+import io.questdb.griffin.engine.functions.constants.StrConstant;
+import io.questdb.std.DecimalImpl;
 import io.questdb.std.IntList;
 import io.questdb.std.ObjList;
+import io.questdb.std.str.StringSink;
 
-public class CastDoubleToDecimalFunctionFactory implements FunctionFactory {
+public class CastDecimalToStrFunctionFactory implements FunctionFactory {
     @Override
     public String getSignature() {
-        return "cast(Dæ)";
+        return "cast(Æs)";
     }
 
     @Override
-    public Function newInstance(
-            int position,
-            ObjList<Function> args,
-            IntList argPositions,
-            CairoConfiguration configuration,
-            SqlExecutionContext sqlExecutionContext
-    ) {
+    public Function newInstance(int position, ObjList<Function> args, IntList argPositions, CairoConfiguration configuration, SqlExecutionContext sqlExecutionContext) {
+        Function func = args.getQuick(0);
+        if (func.isConstant()) {
+            @Decimal long decimal = func.getDecimal(null);
+            if (DecimalImpl.isNull(decimal)) {
+                return StrConstant.NULL;
+            }
+            return StrConstant.newInstance(DecimalImpl.toString(decimal));
+        }
         return new Func(args.getQuick(0));
     }
 
-    private static class Func extends AbstractCastToDecimalFunction {
+    public static class Func extends AbstractCastToStrFunction {
+        private final StringSink sinkA = new StringSink();
+        private final StringSink sinkB = new StringSink();
+
         public Func(Function arg) {
             super(arg);
         }
 
         @Override
-        public @Decimal long getDecimal(Record rec) {
-            return SqlUtil.implicitCastDoubleAsDecimal(arg.getDouble(rec));
+        public CharSequence getStrA(Record rec) {
+            @Decimal long decimal = arg.getDecimal(rec);
+            if (DecimalImpl.isNull(decimal)) {
+                return null;
+            }
+            sinkA.clear();
+            DecimalImpl.toSink(decimal, sinkA);
+            return sinkA;
+        }
+
+        @Override
+        public CharSequence getStrB(Record rec) {
+            @Decimal long decimal = arg.getDecimal(rec);
+            if (DecimalImpl.isNull(decimal)) {
+                return null;
+            }
+            sinkB.clear();
+            DecimalImpl.toSink(decimal, sinkB);
+            return sinkB;
         }
     }
 }

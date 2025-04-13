@@ -34,10 +34,10 @@ import io.questdb.griffin.SqlUtil;
 import io.questdb.std.IntList;
 import io.questdb.std.ObjList;
 
-public class CastDoubleToDecimalFunctionFactory implements FunctionFactory {
+public class CastStrToDecimalFunctionFactory implements FunctionFactory {
     @Override
     public String getSignature() {
-        return "cast(Dæ)";
+        return "cast(Sæ)";
     }
 
     @Override
@@ -58,7 +58,7 @@ public class CastDoubleToDecimalFunctionFactory implements FunctionFactory {
 
         @Override
         public @Decimal long getDecimal(Record rec) {
-            return SqlUtil.implicitCastDoubleAsDecimal(arg.getDouble(rec));
+            return SqlUtil.implicitCastStrAsDecimal(arg.getStrA(rec));
         }
     }
 }

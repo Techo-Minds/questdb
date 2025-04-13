@@ -26,16 +26,13 @@ package io.questdb.griffin.engine.functions.cast;
 
 import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.CairoConfiguration;
-import io.questdb.cairo.CairoException;
 import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
 import io.questdb.griffin.FunctionFactory;
 import io.questdb.griffin.SqlExecutionContext;
-import io.questdb.std.DecimalImpl;
+import io.questdb.griffin.SqlUtil;
 import io.questdb.std.IntList;
-import io.questdb.std.NumericException;
 import io.questdb.std.ObjList;
-import io.questdb.std.str.Utf8Sequence;
 
 public class CastVarcharToDecimalFunctionFactory implements FunctionFactory {
     @Override
@@ -61,19 +58,7 @@ public class CastVarcharToDecimalFunctionFactory implements FunctionFactory {
 
         @Override
         public @Decimal long getDecimal(Record rec) {
-            final Utf8Sequence value = arg.getVarcharA(rec);
-            if (value == null) {
-                return DecimalImpl.NULL;
-            }
-
-            try {
-                return DecimalImpl.parse(value);
-            } catch (NumericException ex) {
-                throw CairoException.nonCritical()
-                        .put("could not parse VARCHAR as DECIMAL [varchar='")
-                        .put(value)
-                        .put("']");
-            }
+            return SqlUtil.implicitCastVarcharAsDecimal(arg.getVarcharA(rec));
         }
     }
 }

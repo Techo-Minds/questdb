@@ -253,7 +253,7 @@ public class RecordSinkFactory {
         final int fGetBin = asm.poolInterfaceMethod(Function.class, "getBin", "(Lio/questdb/cairo/sql/Record;)Lio/questdb/std/BinarySequence;");
         final int fGetRecord = asm.poolInterfaceMethod(Function.class, "getRecord", "(Lio/questdb/cairo/sql/Record;)Lio/questdb/cairo/sql/Record;");
         final int fGetInterval = asm.poolInterfaceMethod(Function.class, "getInterval", "(Lio/questdb/cairo/sql/Record;)Lio/questdb/std/Interval;");
-        final int fGetDecimal = asm.poolInterfaceMethod(Function.class, "getDecimal", "(I)J;");
+        final int fGetDecimal = asm.poolInterfaceMethod(Function.class, "getDecimal", "(Lio/questdb/cairo/sql/Record;)J;");
 
         final int wSkip = asm.poolInterfaceMethod(RecordSinkSPI.class, "skip", "(I)V");
         final int wPutInt = asm.poolInterfaceMethod(RecordSinkSPI.class, "putInt", "(I)V");

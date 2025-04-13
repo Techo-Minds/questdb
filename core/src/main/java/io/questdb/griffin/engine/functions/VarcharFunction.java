@@ -74,7 +74,7 @@ public abstract class VarcharFunction implements ScalarFunction {
 
     @Override
     public @Decimal long getDecimal(Record rec) {
-        throw new UnsupportedOperationException();
+        return SqlUtil.implicitCastVarcharAsDecimal(getVarcharA(rec));
     }
 
     @Override

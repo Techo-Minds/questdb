@@ -37,6 +37,7 @@ import io.questdb.griffin.engine.functions.UndefinedFunction;
 import io.questdb.std.BinarySequence;
 import io.questdb.std.CharSequenceObjHashMap;
 import io.questdb.std.Chars;
+import io.questdb.std.DecimalImpl;
 import io.questdb.std.Long256;
 import io.questdb.std.Long256Impl;
 import io.questdb.std.Misc;
@@ -180,6 +181,8 @@ public class BindVariableServiceImpl implements BindVariableService {
             case ColumnType.VARCHAR:
                 setVarchar(index);
                 return type;
+            case ColumnType.DECIMAL:
+                setDecimal(index);
             default:
                 throw SqlException.$(position, "bind variable cannot be used [contextType=").put(ColumnType.nameOf(type)).put(", index=").put(index).put(']');
         }
@@ -365,6 +368,19 @@ public class BindVariableServiceImpl implements BindVariableService {
     }
 
     @Override
+    public void setDecimal(int index, @Decimal long decimal) throws SqlException {
+        indexedVariables.extendPos(index + 1);
+        // variable exists
+        Function function = indexedVariables.getQuick(index);
+        if (function != null) {
+            setDecimal0(function, decimal, index, null);
+        } else {
+            indexedVariables.setQuick(index, function = decimalVarPool.next());
+            ((DecimalBindVariable) function).decimal = decimal;
+        }
+    }
+
+    @Override
     public void setDecimal(CharSequence name, @Decimal long decimal) throws SqlException {
         int index = namedVariables.keyIndex(name);
         if (index > -1) {
@@ -374,6 +390,11 @@ public class BindVariableServiceImpl implements BindVariableService {
         } else {
             setDecimal0(namedVariables.valueAtQuick(index), decimal, -1, name);
         }
+    }
+
+    @Override
+    public void setDecimal(int index) throws SqlException {
+        setDecimal(index, DecimalImpl.NULL);
     }
 
     @Override
@@ -885,7 +906,20 @@ public class BindVariableServiceImpl implements BindVariableService {
     }
 
     private static void setDecimal0(Function function, @Decimal long decimal, int index, @Nullable CharSequence name) throws SqlException {
-        ((DecimalBindVariable) function).decimal = decimal;
+        final int functionType = ColumnType.tagOf(function.getType());
+        switch (functionType) {
+            case ColumnType.DOUBLE:
+                ((DoubleBindVariable) function).value = DecimalImpl.toDouble(decimal);
+            case ColumnType.STRING:
+                ((StrBindVariable) function).setValue(DecimalImpl.toString(decimal));
+            case ColumnType.VARCHAR:
+                ((VarcharBindVariable) function).setValue(DecimalImpl.toString(decimal));
+            case ColumnType.DECIMAL:
+                ((DecimalBindVariable) function).decimal = decimal;
+            default:
+                reportError(function, ColumnType.DECIMAL, index, name);
+        }
+
     }
 
     private static void setDouble0(Function function, double value, int index, @Nullable CharSequence name) throws SqlException {

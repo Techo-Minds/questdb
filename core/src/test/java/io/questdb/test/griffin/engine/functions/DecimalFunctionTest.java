@@ -34,7 +34,7 @@ public class DecimalFunctionTest {
 
     private static final DecimalFunction function = new DecimalFunction() {
         @Override
-        public long getLong(Record rec) {
+        public long getDecimal(Record rec) {
             return DecimalImpl.fromLong(123);
         }
 

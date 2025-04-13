@@ -75,7 +75,6 @@ public class RecordToRowCopierUtils {
         int rGetLong256 = asm.poolInterfaceMethod(Record.class, "getLong256A", "(I)Lio/questdb/std/Long256;");
         int rGetLong128Lo = asm.poolInterfaceMethod(Record.class, "getLong128Lo", "(I)J");
         int rGetLong128Hi = asm.poolInterfaceMethod(Record.class, "getLong128Hi", "(I)J");
-
         int rGetDate = asm.poolInterfaceMethod(Record.class, "getDate", "(I)J");
         int rGetTimestamp = asm.poolInterfaceMethod(Record.class, "getTimestamp", "(I)J");
         //
@@ -131,6 +130,7 @@ public class RecordToRowCopierUtils {
         int implicitCastStrAsLong256 = asm.poolMethod(SqlUtil.class, "implicitCastStrAsLong256", "(Ljava/lang/CharSequence;)Lio/questdb/griffin/engine/functions/constants/Long256Constant;");
         int implicitCastStrAsDate = asm.poolMethod(SqlUtil.class, "implicitCastStrAsDate", "(Ljava/lang/CharSequence;)J");
         int implicitCastStrAsTimestamp = asm.poolMethod(SqlUtil.class, "implicitCastStrAsTimestamp", "(Ljava/lang/CharSequence;)J");
+
         int implicitCastDateAsTimestamp = asm.poolMethod(SqlUtil.class, "dateToTimestamp", "(J)J");
         int implicitCastShortAsByte = asm.poolMethod(SqlUtil.class, "implicitCastShortAsByte", "(S)B");
         int implicitCastIntAsByte = asm.poolMethod(SqlUtil.class, "implicitCastIntAsByte", "(I)B");
@@ -158,6 +158,7 @@ public class RecordToRowCopierUtils {
         int implicitCastFloatAsLong = asm.poolMethod(SqlUtil.class, "implicitCastFloatAsLong", "(F)J");
         int implicitCastDoubleAsLong = asm.poolMethod(SqlUtil.class, "implicitCastDoubleAsLong", "(D)J");
         int implicitCastDoubleAsFloat = asm.poolMethod(SqlUtil.class, "implicitCastDoubleAsFloat", "(D)F");
+
         int wPutStrChar = asm.poolInterfaceMethod(TableWriter.Row.class, "putStr", "(IC)V");
         int wPutVarcharChar = asm.poolInterfaceMethod(TableWriter.Row.class, "putVarchar", "(IC)V");
         int wPutChar = asm.poolInterfaceMethod(TableWriter.Row.class, "putChar", "(IC)V");
@@ -170,6 +171,13 @@ public class RecordToRowCopierUtils {
         int transferVarcharToTimestampCol = asm.poolMethod(RecordToRowCopierUtils.class, "transferVarcharToTimestampCol", "(Lio/questdb/cairo/TableWriter$Row;ILio/questdb/std/str/Utf8Sequence;)V");
         int transferVarcharToDateCol = asm.poolMethod(RecordToRowCopierUtils.class, "transferVarcharToDateCol", "(Lio/questdb/cairo/TableWriter$Row;ILio/questdb/std/str/Utf8Sequence;)V");
         int transferStrToVarcharCol = asm.poolMethod(RecordToRowCopierUtils.class, "transferStrToVarcharCol", "(Lio/questdb/cairo/TableWriter$Row;ILjava/lang/CharSequence;)V");
+
+        int implicitCastDoubleAsDecimal = asm.poolMethod(SqlUtil.class, "implicitCastDoubleAsDecimal", "(D)J");
+        int implicitCastStrAsDecimal = asm.poolMethod(SqlUtil.class, "implicitCastStrAsDecimal", "(Ljava/lang/CharSequence;)J");
+        int implicitCastVarcharAsDecimal = asm.poolMethod(SqlUtil.class, "implicitCastVarcharAsDecimal", "(Lio/questdb/std/str/Utf8Sequence;)J");
+        int implicitCastLongAsDecimal = asm.poolMethod(SqlUtil.class, "implicitCastLongAsDecimal", "(J)J");
+        int implicitCastIntAsDecimal = asm.poolMethod(SqlUtil.class, "implicitCastIntAsDecimal", "(I)J");
+
 
         // in case of Geo Hashes column type can overflow short and asm.iconst() will not provide
         // the correct value.
@@ -265,6 +273,10 @@ public class RecordToRowCopierUtils {
                             asm.i2d();
                             asm.invokeInterface(wPutDouble, 3);
                             break;
+                        case ColumnType.DECIMAL:
+                            asm.invokeStatic(implicitCastIntAsDecimal);
+                            asm.invokeInterface(wPutDecimal, 3);
+                            break;
                         default:
                             assert false;
                             break;
@@ -306,6 +318,10 @@ public class RecordToRowCopierUtils {
                         case ColumnType.DOUBLE:
                             asm.l2d();
                             asm.invokeInterface(wPutDouble, 3);
+                            break;
+                        case ColumnType.DECIMAL:
+                            asm.invokeStatic(implicitCastLongAsDecimal);
+                            asm.invokeInterface(wPutDecimal, 3);
                             break;
                         default:
                             assert false;
@@ -542,6 +558,10 @@ public class RecordToRowCopierUtils {
                         case ColumnType.DOUBLE:
                             asm.invokeInterface(wPutDouble, 3);
                             break;
+                        case ColumnType.DECIMAL:
+                            asm.invokeStatic(implicitCastDoubleAsDecimal);
+                            asm.invokeInterface(wPutDecimal, 3);
+                            break;
                         default:
                             assert false;
                             break;
@@ -712,6 +732,11 @@ public class RecordToRowCopierUtils {
                             asm.invokeInterface(rGetVarchar);
                             asm.invokeInterface(wPutLong256Utf8, 2);
                             break;
+                        case ColumnType.DECIMAL:
+                            asm.invokeInterface(rGetVarchar);
+                            asm.invokeStatic(implicitCastVarcharAsDecimal);
+                            asm.invokeInterface(wPutDecimal, 3);
+                            break;
                         default:
                             assert false;
                     }
@@ -799,6 +824,11 @@ public class RecordToRowCopierUtils {
                             asm.invokeInterface(rGetStrA);
                             asm.invokeStatic(implicitCastStrAsLong256);
                             asm.invokeInterface(wPutLong256, 2);
+                            break;
+                        case ColumnType.DECIMAL:
+                            asm.invokeInterface(rGetStrA);
+                            asm.invokeStatic(implicitCastStrAsDecimal);
+                            asm.invokeInterface(wPutDecimal, 3);
                             break;
                         default:
                             assert false;

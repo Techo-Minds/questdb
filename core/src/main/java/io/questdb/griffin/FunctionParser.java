@@ -52,6 +52,7 @@ import io.questdb.griffin.engine.functions.columns.BooleanColumn;
 import io.questdb.griffin.engine.functions.columns.ByteColumn;
 import io.questdb.griffin.engine.functions.columns.CharColumn;
 import io.questdb.griffin.engine.functions.columns.DateColumn;
+import io.questdb.griffin.engine.functions.columns.DecimalColumn;
 import io.questdb.griffin.engine.functions.columns.DoubleColumn;
 import io.questdb.griffin.engine.functions.columns.FloatColumn;
 import io.questdb.griffin.engine.functions.columns.GeoByteColumn;
@@ -78,6 +79,7 @@ import io.questdb.griffin.engine.functions.constants.CharTypeConstant;
 import io.questdb.griffin.engine.functions.constants.ConstantFunction;
 import io.questdb.griffin.engine.functions.constants.Constants;
 import io.questdb.griffin.engine.functions.constants.DateConstant;
+import io.questdb.griffin.engine.functions.constants.DecimalConstant;
 import io.questdb.griffin.engine.functions.constants.DoubleConstant;
 import io.questdb.griffin.engine.functions.constants.FloatConstant;
 import io.questdb.griffin.engine.functions.constants.GeoByteConstant;
@@ -212,6 +214,8 @@ public class FunctionParser implements PostOrderTreeTraversalAlgo.Visitor, Mutab
             case ColumnType.INTERVAL:
                 // we cannot use a pooled IntervalColumn instance, because it is not thread-safe
                 return new IntervalColumn(index);
+            case ColumnType.DECIMAL:
+                return DecimalColumn.newInstance(index);
             default:
                 throw SqlException.position(position)
                         .put("unsupported column type ")
@@ -1005,6 +1009,7 @@ public class FunctionParser implements PostOrderTreeTraversalAlgo.Visitor, Mutab
         return checkAndCreateFunction(candidate, args, argPositions, node, configuration);
     }
 
+    // todo: scrap this potentially??
     @Nullable
     private Function createImplicitCastOrNull(int position, Function function, int toType) throws SqlException {
         int fromType = function.getType();
@@ -1212,6 +1217,12 @@ public class FunctionParser implements PostOrderTreeTraversalAlgo.Visitor, Mutab
                     return function;
                 } else {
                     return IPv4Constant.newInstance(function.getIPv4(null));
+                }
+            case ColumnType.DECIMAL:
+                if (function instanceof DecimalConstant) {
+                    return function;
+                } else {
+                    return DecimalConstant.newInstance(function.getDecimal(null));
                 }
             default:
                 return function;

@@ -400,7 +400,7 @@ public class JsonQueryProcessorState implements Mutable, Closeable {
             response.putAscii("null");
             return;
         }
-        response.put(DecimalImpl.toString(decimal));
+        DecimalImpl.toSink(decimal, response);
     }
 
     private static void putGeoHashStringByteValue(HttpChunkedResponse response, Record rec, int col, int bitFlags) {
