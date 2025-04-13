@@ -24,6 +24,7 @@
 
 package io.questdb.cairo.sql;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.griffin.SqlException;
 import io.questdb.std.BinarySequence;
 import io.questdb.std.Long256;
@@ -202,6 +203,16 @@ public interface BindVariableService extends Mutable {
      *                      that is not compatible with Date
      */
     void setDate(int index, long value) throws SqlException;
+
+    /**
+     * Set type of bind variable by name as long and provide a value
+     *
+     * @param name    of the bind variable
+     * @param decimal as long
+     * @throws SqlException is throw when variable has already been defined with type
+     *                      that is not compatible with Long
+     */
+    void setDecimal(CharSequence name, @Decimal long decimal) throws SqlException;
 
     /**
      * Set type of bind variable by name as double and provide a value

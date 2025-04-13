@@ -24,6 +24,7 @@
 
 package io.questdb.cairo.sql;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.std.BinarySequence;
 import io.questdb.std.Interval;
 import io.questdb.std.Long256;
@@ -61,6 +62,11 @@ public class DelegatingRecord implements Record {
     @Override
     public long getDate(int col) {
         return base.getDate(col);
+    }
+
+    @Override
+    public @Decimal long getDecimal(int col) {
+        return base.getDecimal(col);
     }
 
     @Override

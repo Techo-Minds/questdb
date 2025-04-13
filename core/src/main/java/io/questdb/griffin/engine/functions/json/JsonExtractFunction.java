@@ -24,14 +24,22 @@
 
 package io.questdb.griffin.engine.functions.json;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.ColumnType;
 import io.questdb.cairo.TableUtils;
+import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
-import io.questdb.cairo.sql.*;
+import io.questdb.cairo.sql.RecordCursorFactory;
+import io.questdb.cairo.sql.ScalarFunction;
+import io.questdb.cairo.sql.SymbolTableSource;
 import io.questdb.griffin.SqlException;
 import io.questdb.griffin.SqlExecutionContext;
 import io.questdb.griffin.model.IntervalUtils;
-import io.questdb.std.*;
+import io.questdb.std.BinarySequence;
+import io.questdb.std.Long256;
+import io.questdb.std.Misc;
+import io.questdb.std.Numbers;
+import io.questdb.std.NumericException;
 import io.questdb.std.datetime.millitime.DateFormatUtils;
 import io.questdb.std.json.SimdJsonNumberType;
 import io.questdb.std.json.SimdJsonType;
@@ -150,6 +158,11 @@ public class JsonExtractFunction implements ScalarFunction {
             default:
                 return Numbers.LONG_NULL;
         }
+    }
+
+    @Override
+    public @Decimal long getDecimal(Record rec) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

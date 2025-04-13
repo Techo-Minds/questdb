@@ -24,6 +24,7 @@
 
 package io.questdb.cutlass.http.processors;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.CairoException;
 import io.questdb.cairo.ColumnType;
 import io.questdb.cairo.DataUnavailableException;
@@ -51,6 +52,7 @@ import io.questdb.network.NoSpaceLeftInResponseBufferException;
 import io.questdb.network.PeerDisconnectedException;
 import io.questdb.network.PeerIsSlowToReadException;
 import io.questdb.std.Chars;
+import io.questdb.std.DecimalImpl;
 import io.questdb.std.IntList;
 import io.questdb.std.Interval;
 import io.questdb.std.Misc;
@@ -392,6 +394,15 @@ public class JsonQueryProcessorState implements Mutable, Closeable {
         response.putAscii('"').putISODateMillis(d).putAscii('"');
     }
 
+    private static void putDecimalValue(HttpChunkedResponse response, Record rec, int col) {
+        final @Decimal long decimal = rec.getDecimal(col);
+        if (DecimalImpl.isNull(decimal)) {
+            response.putAscii("null");
+            return;
+        }
+        response.put(DecimalImpl.toString(decimal));
+    }
+
     private static void putGeoHashStringByteValue(HttpChunkedResponse response, Record rec, int col, int bitFlags) {
         byte l = rec.getGeoByte(col);
         GeoHashes.append(l, bitFlags, response);
@@ -572,6 +583,7 @@ public class JsonQueryProcessorState implements Mutable, Closeable {
             case ColumnType.UUID:
             case ColumnType.IPv4:
             case ColumnType.INTERVAL:
+            case ColumnType.DECIMAL:
                 break;
             default:
                 throw CairoException.nonCritical().put("column type not supported [column=").put(columnName).put(", type=").put(ColumnType.nameOf(columnType)).put(']');
@@ -723,6 +735,9 @@ public class JsonQueryProcessorState implements Mutable, Closeable {
                     break;
                 case ColumnType.INTERVAL:
                     putIntervalValue(response, record, columnIdx);
+                    break;
+                case ColumnType.DECIMAL:
+                    putDecimalValue(response, record, columnIdx);
                     break;
                 default:
                     // this should never happen since metadata are already validated

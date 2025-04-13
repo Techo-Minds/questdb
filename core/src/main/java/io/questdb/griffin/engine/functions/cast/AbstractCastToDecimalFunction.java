@@ -22,48 +22,27 @@
  *
  ******************************************************************************/
 
-package io.questdb.cairo.file;
+package io.questdb.griffin.engine.functions.cast;
 
-import com.epam.deltix.dfp.Decimal;
-import io.questdb.std.BinarySequence;
-import io.questdb.std.str.Utf8Sequence;
+import io.questdb.cairo.sql.Function;
+import io.questdb.griffin.PlanSink;
+import io.questdb.griffin.engine.functions.DecimalFunction;
+import io.questdb.griffin.engine.functions.UnaryFunction;
 
+public abstract class AbstractCastToDecimalFunction extends DecimalFunction implements UnaryFunction {
+    protected final Function arg;
 
-/**
- * Interface for reading various types of data from a memory block.
- * Provides a random access API where the offset is relative to the block start.
- * The size of the block can be obtained via the {@link #length()} method.
- */
-public interface ReadableBlock {
+    public AbstractCastToDecimalFunction(Function arg) {
+        this.arg = arg;
+    }
 
-    long addressOf(long offset);
+    @Override
+    public Function getArg() {
+        return arg;
+    }
 
-    BinarySequence getBin(long offset);
-
-    boolean getBool(long offset);
-
-    byte getByte(long offset);
-
-    char getChar(long offset);
-
-    @Decimal
-    long getDecimal(long offset);
-
-    double getDouble(long offset);
-
-    float getFloat(long offset);
-
-    int getInt(long offset);
-
-    long getLong(long offset);
-
-    short getShort(long offset);
-
-    CharSequence getStr(long offset);
-
-    Utf8Sequence getVarchar(long offset);
-
-    long length();
-
-    int type();
+    @Override
+    public void toPlan(PlanSink sink) {
+        sink.val(getArg()).val("::decimal");
+    }
 }

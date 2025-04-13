@@ -24,22 +24,17 @@
 
 package io.questdb.griffin.engine.functions;
 
-import com.epam.deltix.dfp.Decimal;
+import io.questdb.cairo.ColumnType;
 import io.questdb.cairo.sql.Record;
 import io.questdb.cairo.sql.RecordCursorFactory;
 import io.questdb.cairo.sql.ScalarFunction;
 import io.questdb.std.BinarySequence;
+import io.questdb.std.DecimalImpl;
 import io.questdb.std.Long256;
 import io.questdb.std.str.CharSink;
 import io.questdb.std.str.Utf8Sequence;
 
-public abstract class AbstractGeoHashFunction implements ScalarFunction {
-
-    protected int type; // +number bits
-
-    protected AbstractGeoHashFunction(int type) {
-        this.type = type;
-    }
+public abstract class DecimalFunction implements ScalarFunction {
 
     @Override
     public final BinarySequence getBin(Record rec) {
@@ -52,12 +47,12 @@ public abstract class AbstractGeoHashFunction implements ScalarFunction {
     }
 
     @Override
-    public boolean getBool(Record rec) {
+    public final boolean getBool(Record rec) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public byte getByte(Record rec) {
+    public final byte getByte(Record rec) {
         throw new UnsupportedOperationException();
     }
 
@@ -72,17 +67,32 @@ public abstract class AbstractGeoHashFunction implements ScalarFunction {
     }
 
     @Override
-    public @Decimal long getDecimal(Record rec) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public double getDouble(Record rec) {
-        throw new UnsupportedOperationException();
+        return DecimalImpl.toDouble(getDecimal(rec));
     }
 
     @Override
     public float getFloat(Record rec) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public byte getGeoByte(Record rec) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int getGeoInt(Record rec) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public long getGeoLong(Record rec) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public short getGeoShort(Record rec) {
         throw new UnsupportedOperationException();
     }
 
@@ -92,13 +102,13 @@ public abstract class AbstractGeoHashFunction implements ScalarFunction {
     }
 
     @Override
-    public int getInt(Record rec) {
-        throw new UnsupportedOperationException();
+    public final int getInt(Record rec) {
+        return DecimalImpl.toInt(getDecimal(rec));
     }
 
     @Override
-    public final long getLong(Record rec) {
-        throw new UnsupportedOperationException();
+    public long getLong(Record rec) {
+        return DecimalImpl.toLong(getDecimal(rec));
     }
 
     @Override
@@ -132,12 +142,12 @@ public abstract class AbstractGeoHashFunction implements ScalarFunction {
     }
 
     @Override
-    public short getShort(Record rec) {
+    public final short getShort(Record rec) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public final String getStrA(Record rec) {
+    public final CharSequence getStrA(Record rec) {
         throw new UnsupportedOperationException();
     }
 
@@ -168,7 +178,7 @@ public abstract class AbstractGeoHashFunction implements ScalarFunction {
 
     @Override
     public final int getType() {
-        return type;
+        return ColumnType.DECIMAL;
     }
 
     @Override

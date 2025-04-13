@@ -24,9 +24,16 @@
 
 package io.questdb.cairo;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.sql.Record;
 import io.questdb.griffin.engine.LimitOverflowException;
-import io.questdb.std.*;
+import io.questdb.std.BinarySequence;
+import io.questdb.std.Interval;
+import io.questdb.std.Long256;
+import io.questdb.std.Mutable;
+import io.questdb.std.Numbers;
+import io.questdb.std.Unsafe;
+import io.questdb.std.Vect;
 import io.questdb.std.str.Utf8Sequence;
 
 public final class SingleRecordSink implements RecordSinkSPI, Mutable, Reopenable {
@@ -108,6 +115,13 @@ public final class SingleRecordSink implements RecordSinkSPI, Mutable, Reopenabl
     public void putDate(long value) {
         checkCapacity(8);
         Unsafe.getUnsafe().putLong(appendAddress, value);
+        appendAddress += 8;
+    }
+
+    @Override
+    public void putDecimal(@Decimal long decimal) {
+        checkCapacity(8);
+        Unsafe.getUnsafe().putLong(appendAddress, decimal);
         appendAddress += 8;
     }
 

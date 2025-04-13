@@ -28,6 +28,8 @@ open module io.questdb {
     requires static java.management;
     requires jdk.management;
     requires java.desktop;
+    requires dfp.math;
+    requires dfp;
 
     uses io.questdb.griffin.FunctionFactory;
     exports io.questdb;

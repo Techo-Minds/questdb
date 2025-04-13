@@ -195,6 +195,15 @@ public class PageFrameMemoryRecord implements Record, StableStringSource, QuietC
     }
 
     @Override
+    public long getDecimal(int columnIndex) {
+        final long address = pageAddresses.getQuick(columnIndex);
+        if (address != 0) {
+            return Unsafe.getUnsafe().getLong(address + (rowIndex << 3));
+        }
+        return NullMemoryCMR.INSTANCE.getDecimal(0);
+    }
+
+    @Override
     public double getDouble(int columnIndex) {
         final long address = pageAddresses.getQuick(columnIndex);
         if (address != 0) {

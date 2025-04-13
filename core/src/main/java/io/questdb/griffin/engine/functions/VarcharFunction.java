@@ -24,6 +24,7 @@
 
 package io.questdb.griffin.engine.functions;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.ColumnType;
 import io.questdb.cairo.TableUtils;
 import io.questdb.cairo.sql.Record;
@@ -69,6 +70,11 @@ public abstract class VarcharFunction implements ScalarFunction {
     @Override
     public long getDate(Record rec) {
         return SqlUtil.implicitCastStrAsDate(getStrA(rec));
+    }
+
+    @Override
+    public @Decimal long getDecimal(Record rec) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

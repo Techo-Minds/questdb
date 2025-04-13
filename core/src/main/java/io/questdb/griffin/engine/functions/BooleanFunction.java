@@ -24,6 +24,7 @@
 
 package io.questdb.griffin.engine.functions;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.ColumnType;
 import io.questdb.cairo.sql.Record;
 import io.questdb.cairo.sql.RecordCursorFactory;
@@ -61,6 +62,11 @@ public abstract class BooleanFunction implements ScalarFunction {
     @Override
     public long getDate(Record rec) {
         return getBool(rec) ? 1 : 0;
+    }
+
+    @Override
+    public @Decimal long getDecimal(Record rec) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

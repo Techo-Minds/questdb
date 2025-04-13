@@ -24,6 +24,7 @@
 
 package io.questdb.cairo.file;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.std.BinarySequence;
 import io.questdb.std.str.Utf8Sequence;
 import org.jetbrains.annotations.Nullable;
@@ -47,6 +48,8 @@ public interface AppendableBlock {
     void putByte(byte value);
 
     void putChar(char value);
+
+    void putDecimal(@Decimal long value);
 
     void putDouble(double value);
 

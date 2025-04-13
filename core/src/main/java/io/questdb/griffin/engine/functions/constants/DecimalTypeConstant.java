@@ -22,48 +22,19 @@
  *
  ******************************************************************************/
 
-package io.questdb.cairo.file;
+package io.questdb.griffin.engine.functions.constants;
 
 import com.epam.deltix.dfp.Decimal;
-import io.questdb.std.BinarySequence;
-import io.questdb.std.str.Utf8Sequence;
+import io.questdb.cairo.sql.Record;
+import io.questdb.griffin.TypeConstant;
+import io.questdb.griffin.engine.functions.DecimalFunction;
+import io.questdb.std.DecimalImpl;
 
+public class DecimalTypeConstant extends DecimalFunction implements TypeConstant {
+    public static final DecimalTypeConstant INSTANCE = new DecimalTypeConstant();
 
-/**
- * Interface for reading various types of data from a memory block.
- * Provides a random access API where the offset is relative to the block start.
- * The size of the block can be obtained via the {@link #length()} method.
- */
-public interface ReadableBlock {
-
-    long addressOf(long offset);
-
-    BinarySequence getBin(long offset);
-
-    boolean getBool(long offset);
-
-    byte getByte(long offset);
-
-    char getChar(long offset);
-
-    @Decimal
-    long getDecimal(long offset);
-
-    double getDouble(long offset);
-
-    float getFloat(long offset);
-
-    int getInt(long offset);
-
-    long getLong(long offset);
-
-    short getShort(long offset);
-
-    CharSequence getStr(long offset);
-
-    Utf8Sequence getVarchar(long offset);
-
-    long length();
-
-    int type();
+    @Override
+    public @Decimal long getDecimal(Record rec) {
+        return DecimalImpl.NULL;
+    }
 }

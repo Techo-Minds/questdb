@@ -24,6 +24,7 @@
 
 package io.questdb.cairo.vm.api;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.std.BinarySequence;
 import io.questdb.std.Long256;
 import io.questdb.std.Long256Acceptor;
@@ -52,6 +53,9 @@ public interface MemoryR extends Closeable {
     byte getByte(long offset);
 
     char getChar(long offset);
+
+    @Decimal
+    long getDecimal(long offset);
 
     default DirectUtf8Sequence getDirectVarchar(long offset, int size, boolean ascii) {
         throw new UnsupportedOperationException();

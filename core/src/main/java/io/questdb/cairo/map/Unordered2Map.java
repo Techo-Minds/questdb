@@ -24,6 +24,7 @@
 
 package io.questdb.cairo.map;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.CairoException;
 import io.questdb.cairo.ColumnType;
 import io.questdb.cairo.ColumnTypes;
@@ -391,6 +392,11 @@ public class Unordered2Map implements Map, Reopenable {
 
         @Override
         public void putDate(long value) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void putDecimal(@Decimal long decimal) {
             throw new UnsupportedOperationException();
         }
 

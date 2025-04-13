@@ -24,6 +24,7 @@
 
 package io.questdb.griffin.engine.functions;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.ColumnType;
 import io.questdb.cairo.sql.Record;
 import io.questdb.cairo.sql.RecordCursorFactory;
@@ -64,6 +65,11 @@ public abstract class LongFunction implements ScalarFunction {
     @Override
     public final long getDate(Record rec) {
         return getLong(rec);
+    }
+
+    @Override
+    public @Decimal long getDecimal(Record rec) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

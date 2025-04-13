@@ -24,6 +24,7 @@
 
 package io.questdb.cairo.sql;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.ColumnTypes;
 import io.questdb.std.BinarySequence;
 import io.questdb.std.Interval;
@@ -84,6 +85,11 @@ public class VirtualRecord implements ColumnTypes, Record {
     @Override
     public long getDate(int col) {
         return getFunction(col).getDate(base);
+    }
+
+    @Override
+    public @Decimal long getDecimal(int col) {
+        return getFunction(col).getDecimal(base);
     }
 
     @Override

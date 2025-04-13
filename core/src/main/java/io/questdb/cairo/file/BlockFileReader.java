@@ -24,6 +24,7 @@
 
 package io.questdb.cairo.file;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.CairoConfiguration;
 import io.questdb.cairo.CairoException;
 import io.questdb.cairo.VarcharTypeDriver;
@@ -229,6 +230,11 @@ public class BlockFileReader implements Closeable {
             @Override
             public char getChar(long offset) {
                 return memory.getChar(payloadOffset + offset);
+            }
+
+            @Override
+            public @Decimal long getDecimal(long offset) {
+                return getLong(offset);
             }
 
             @Override

@@ -24,6 +24,7 @@
 
 package io.questdb.cairo;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.sql.Record;
 import io.questdb.cairo.sql.RecordCursor;
 import io.questdb.cairo.sql.SqlExecutionCircuitBreaker;
@@ -50,18 +51,18 @@ import java.io.Closeable;
 
 public class RecordChain implements Closeable, RecordCursor, RecordSinkSPI, WindowSPI, Reopenable {
     protected final int columnCount;
-    private final long[] columnOffsets;
     protected final long fixOffset;
     protected final MemoryCARW mem;
     protected final RecordChainRecord recordA;
     protected final RecordChainRecord recordB;
     protected final RecordSink recordSink;
     protected final long varOffset;
+    private final long[] columnOffsets;
+    protected long recordOffset;
+    protected long varAppendOffset = 0L;
     private long nextRecordOffset = -1L;
     private RecordChainRecord recordC;
-    protected long recordOffset;
     private SymbolTableSource symbolTableResolver;
-    protected long varAppendOffset = 0L;
 
     public RecordChain(
             @Transient @NotNull ColumnTypes columnTypes,
@@ -224,6 +225,11 @@ public class RecordChain implements Closeable, RecordCursor, RecordSinkSPI, Wind
     }
 
     @Override
+    public void putDecimal(@Decimal long decimal) {
+        mem.putLong(decimal);
+    }
+
+    @Override
     public void putDouble(double value) {
         mem.putDouble(value);
     }
@@ -352,17 +358,17 @@ public class RecordChain implements Closeable, RecordCursor, RecordSinkSPI, Wind
         }
     }
 
-    protected long rowToDataOffset(long row) {
-        return row + 8;
+    private void putNull() {
+        mem.putLong(rowToDataOffset(recordOffset), TableUtils.NULL_LEN);
+        recordOffset += 8;
     }
 
     protected RecordChainRecord newChainRecord() {
         return new RecordChainRecord(columnCount);
     }
 
-    private void putNull() {
-        mem.putLong(rowToDataOffset(recordOffset), TableUtils.NULL_LEN);
-        recordOffset += 8;
+    protected long rowToDataOffset(long row) {
+        return row + 8;
     }
 
     protected class RecordChainRecord implements Record {
@@ -622,11 +628,6 @@ public class RecordChain implements Closeable, RecordCursor, RecordSinkSPI, Wind
             return longs256B.getQuick(columnIndex);
         }
 
-        protected void of(long offset) {
-            this.baseOffset = offset;
-            this.fixedOffset = offset + varOffset;
-        }
-
         private DirectUtf8String utf8ViewA(int columnIndex) {
             if (utf8ViewsA.getQuiet(columnIndex) == null) {
                 utf8ViewsA.extendAndSet(columnIndex, new DirectUtf8String());
@@ -643,6 +644,11 @@ public class RecordChain implements Closeable, RecordCursor, RecordSinkSPI, Wind
 
         private long varWidthColumnOffset(int index) {
             return mem.getLong(baseOffset + columnOffsets[index]);
+        }
+
+        protected void of(long offset) {
+            this.baseOffset = offset;
+            this.fixedOffset = offset + varOffset;
         }
     }
 }

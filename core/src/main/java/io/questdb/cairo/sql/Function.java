@@ -24,6 +24,7 @@
 
 package io.questdb.cairo.sql;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.ColumnType;
 import io.questdb.cairo.TableUtils;
 import io.questdb.griffin.PlanSink;
@@ -117,6 +118,9 @@ public interface Function extends Closeable, StatefulAtom, Plannable {
     char getChar(Record rec);
 
     long getDate(Record rec);
+
+    @Decimal
+    long getDecimal(Record rec);
 
     double getDouble(Record rec);
 

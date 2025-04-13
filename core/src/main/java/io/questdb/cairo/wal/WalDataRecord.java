@@ -24,6 +24,7 @@
 
 package io.questdb.cairo.wal;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.GeoHashes;
 import io.questdb.cairo.VarcharTypeDriver;
 import io.questdb.cairo.sql.Record;
@@ -76,6 +77,13 @@ public class WalDataRecord implements Record, Sinkable {
         final long offset = recordIndex * Character.BYTES;
         final int absoluteColumnIndex = getPrimaryColumnIndex(col);
         return reader.getColumn(absoluteColumnIndex).getChar(offset);
+    }
+
+    @Override
+    public @Decimal long getDecimal(int col) {
+        final long offset = recordIndex * Long.BYTES;
+        final int absoluteColumnIndex = getPrimaryColumnIndex(col);
+        return reader.getColumn(absoluteColumnIndex).getDecimal(offset);
     }
 
     // only for tests

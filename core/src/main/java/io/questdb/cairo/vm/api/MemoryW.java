@@ -24,6 +24,7 @@
 
 package io.questdb.cairo.vm.api;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.std.Long256;
 import io.questdb.std.str.Utf8Sequence;
 import org.jetbrains.annotations.NotNull;
@@ -44,6 +45,8 @@ public interface MemoryW extends Closeable {
     void putByte(long offset, byte value);
 
     void putChar(long offset, char value);
+
+    void putDecimal(long offset, @Decimal long value);
 
     void putDouble(long offset, double value);
 

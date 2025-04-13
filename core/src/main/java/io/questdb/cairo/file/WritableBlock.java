@@ -24,6 +24,7 @@
 
 package io.questdb.cairo.file;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.std.BinarySequence;
 import io.questdb.std.str.Utf8Sequence;
 import org.jetbrains.annotations.Nullable;
@@ -48,6 +49,8 @@ public interface WritableBlock {
     void putByte(long offset, byte value);
 
     void putChar(long offset, char value);
+
+    void putDecimal(long offset, @Decimal long value);
 
     void putDouble(long offset, double value);
 

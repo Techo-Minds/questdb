@@ -24,6 +24,7 @@
 
 package io.questdb.griffin.engine.functions.groupby;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.ArrayColumnTypes;
 import io.questdb.cairo.map.MapValue;
 import io.questdb.cairo.sql.Record;
@@ -106,6 +107,11 @@ public class InterpolationGroupByFunction implements GroupByFunction {
     @Override
     public long getDate(Record rec) {
         return wrappedFunction.getDate(rec);
+    }
+
+    @Override
+    public @Decimal long getDecimal(Record rec) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

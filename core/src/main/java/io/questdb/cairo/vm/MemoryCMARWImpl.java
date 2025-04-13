@@ -24,6 +24,7 @@
 
 package io.questdb.cairo.vm;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.CairoException;
 import io.questdb.cairo.TableUtils;
 import io.questdb.cairo.vm.api.MemoryCARW;
@@ -31,7 +32,12 @@ import io.questdb.cairo.vm.api.MemoryCMARW;
 import io.questdb.cairo.vm.api.MemoryMAR;
 import io.questdb.log.Log;
 import io.questdb.log.LogFactory;
-import io.questdb.std.*;
+import io.questdb.std.Files;
+import io.questdb.std.FilesFacade;
+import io.questdb.std.Long256Acceptor;
+import io.questdb.std.MemoryTag;
+import io.questdb.std.Numbers;
+import io.questdb.std.Vect;
 import io.questdb.std.str.LPSZ;
 import io.questdb.std.str.Utf8Sequence;
 import org.jetbrains.annotations.NotNull;
@@ -233,6 +239,16 @@ public class MemoryCMARWImpl extends AbstractMemoryCR implements MemoryCMARW, Me
         this.closeFdOnClose = !keepFdOpen;
         of(ff, fd, null, size, memoryTag);
         this.extendSegmentMsb = Numbers.msb(extendSegmentSize);
+    }
+
+    @Override
+    public void putDecimal(long offset, @Decimal long value) {
+        putLong(offset, value);
+    }
+
+    @Override
+    public void putDecimal(@Decimal long value) {
+        putLong(value);
     }
 
     @Override

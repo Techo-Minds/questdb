@@ -22,48 +22,47 @@
  *
  ******************************************************************************/
 
-package io.questdb.cairo.file;
+package io.questdb.griffin.engine.functions.bind;
 
 import com.epam.deltix.dfp.Decimal;
-import io.questdb.std.BinarySequence;
-import io.questdb.std.str.Utf8Sequence;
+import io.questdb.cairo.sql.Record;
+import io.questdb.cairo.sql.ScalarFunction;
+import io.questdb.griffin.PlanSink;
+import io.questdb.griffin.engine.functions.DecimalFunction;
+import io.questdb.std.DecimalImpl;
+import io.questdb.std.Mutable;
 
-
-/**
- * Interface for reading various types of data from a memory block.
- * Provides a random access API where the offset is relative to the block start.
- * The size of the block can be obtained via the {@link #length()} method.
- */
-public interface ReadableBlock {
-
-    long addressOf(long offset);
-
-    BinarySequence getBin(long offset);
-
-    boolean getBool(long offset);
-
-    byte getByte(long offset);
-
-    char getChar(long offset);
-
+class DecimalBindVariable extends DecimalFunction implements ScalarFunction, Mutable {
     @Decimal
-    long getDecimal(long offset);
+    long decimal;
 
-    double getDouble(long offset);
+    @Override
+    public void clear() {
+        this.decimal = DecimalImpl.NULL;
+    }
 
-    float getFloat(long offset);
+    @Override
+    public long getDecimal(Record rec) {
+        return decimal;
+    }
 
-    int getInt(long offset);
+    @Override
+    public boolean isNonDeterministic() {
+        return true;
+    }
 
-    long getLong(long offset);
+    @Override
+    public boolean isRuntimeConstant() {
+        return true;
+    }
 
-    short getShort(long offset);
+    @Override
+    public boolean isThreadSafe() {
+        return true;
+    }
 
-    CharSequence getStr(long offset);
-
-    Utf8Sequence getVarchar(long offset);
-
-    long length();
-
-    int type();
+    @Override
+    public void toPlan(PlanSink sink) {
+        sink.val("?::decimal");
+    }
 }

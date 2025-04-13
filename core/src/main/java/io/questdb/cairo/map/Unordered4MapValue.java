@@ -24,7 +24,12 @@
 
 package io.questdb.cairo.map;
 
-import io.questdb.std.*;
+import io.questdb.std.Long256;
+import io.questdb.std.Long256Impl;
+import io.questdb.std.Long256Util;
+import io.questdb.std.Numbers;
+import io.questdb.std.Unsafe;
+import io.questdb.std.Vect;
 
 final class Unordered4MapValue implements MapValue {
     private final Long256Impl long256 = new Long256Impl();
@@ -244,6 +249,11 @@ final class Unordered4MapValue implements MapValue {
 
     @Override
     public void putDate(int index, long value) {
+        putLong(index, value);
+    }
+
+    @Override
+    public void putDecimal(int index, long value) {
         putLong(index, value);
     }
 

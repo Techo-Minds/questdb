@@ -22,81 +22,64 @@
  *
  ******************************************************************************/
 
-package io.questdb.griffin.engine.functions.catalogue;
+package io.questdb.griffin.engine.functions.math;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.CairoConfiguration;
 import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
 import io.questdb.griffin.FunctionFactory;
 import io.questdb.griffin.PlanSink;
 import io.questdb.griffin.SqlExecutionContext;
-import io.questdb.griffin.engine.functions.StrArrayFunction;
+import io.questdb.griffin.engine.functions.BinaryFunction;
+import io.questdb.griffin.engine.functions.DecimalFunction;
+import io.questdb.std.DecimalImpl;
 import io.questdb.std.IntList;
 import io.questdb.std.ObjList;
 
-public class CurrentSchemasFunctionFactory implements FunctionFactory {
-
+public class AddDecimalFunctionFactory implements FunctionFactory {
     @Override
     public String getSignature() {
-        return "current_schemas(T)";
+        return "+(ÆÆ)";
     }
 
     @Override
     public Function newInstance(int position, ObjList<Function> args, IntList argPositions, CairoConfiguration configuration, SqlExecutionContext sqlExecutionContext) {
-        return new CurrentSchemaFunction();
+        return new AddDecimalFunc(args.getQuick(0), args.getQuick(1));
     }
 
-    private static class CurrentSchemaFunction extends StrArrayFunction {
+    private static class AddDecimalFunc extends DecimalFunction implements BinaryFunction {
+        final Function left;
+        final Function right;
 
-        @Override
-        public int getArrayLength() {
-            return 1;
-        }
-
-
-        @Override
-        public CharSequence getStrA(Record rec) {
-            return "{public}";
+        public AddDecimalFunc(Function left, Function right) {
+            this.left = left;
+            this.right = right;
         }
 
         @Override
-        public CharSequence getStrA(Record rec, int arrayIndex) {
-            return Constants.PUBLIC_SCHEMA;
+        public long getDecimal(Record rec) {
+            final @Decimal long l = left.getDecimal(rec);
+            final @Decimal long r = right.getDecimal(rec);
+            if (DecimalImpl.isNull(l) || DecimalImpl.isNull(r)) {
+                return DecimalImpl.NULL;
+            }
+            return DecimalImpl.add(l, r);
         }
 
         @Override
-        public CharSequence getStrB(Record rec) {
-            return getStrA(rec);
+        public Function getLeft() {
+            return left;
         }
 
         @Override
-        public CharSequence getStrB(Record rec, int arrayIndex) {
-            return getStrA(rec, arrayIndex);
-        }
-
-        @Override
-        public int getStrLen(Record rec) {
-            return getStrA(rec).length();
-        }
-
-        @Override
-        public int getStrLen(Record rec, int arrayIndex) {
-            return getStrA(rec, arrayIndex).length();
-        }
-
-        @Override
-        public boolean isConstant() {
-            return true;
-        }
-
-        @Override
-        public boolean isThreadSafe() {
-            return true;
+        public Function getRight() {
+            return right;
         }
 
         @Override
         public void toPlan(PlanSink sink) {
-            sink.val("current_schemas()");
+            sink.val(left).val('+').val(right);
         }
     }
 }

@@ -24,6 +24,7 @@
 
 package io.questdb.cairo.vm.api;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.std.BinarySequence;
 import io.questdb.std.FilesFacade;
 import io.questdb.std.Long256;
@@ -202,6 +203,14 @@ public class NullMemory implements MemoryMAR, MemoryCARW {
 
     @Override
     public void putChar(long offset, char value) {
+    }
+
+    @Override
+    public void putDecimal(long value) {
+    }
+
+    @Override
+    public void putDecimal(long offset, @Decimal long decimal) {
     }
 
     @Override

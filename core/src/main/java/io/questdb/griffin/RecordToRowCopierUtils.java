@@ -91,6 +91,7 @@ public class RecordToRowCopierUtils {
         int rGetStrA = asm.poolInterfaceMethod(Record.class, "getStrA", "(I)Ljava/lang/CharSequence;");
         int rGetBin = asm.poolInterfaceMethod(Record.class, "getBin", "(I)Lio/questdb/std/BinarySequence;");
         int rGetVarchar = asm.poolInterfaceMethod(Record.class, "getVarcharA", "(I)Lio/questdb/std/str/Utf8Sequence;");
+        int rGetDecimal = asm.poolInterfaceMethod(Record.class, "getDecimal", "(I)J");
         //
         int wPutInt = asm.poolInterfaceMethod(TableWriter.Row.class, "putInt", "(II)V");
         int wPutIPv4 = asm.poolInterfaceMethod(TableWriter.Row.class, "putIPv4", "(II)V");
@@ -102,6 +103,7 @@ public class RecordToRowCopierUtils {
         int wPutUuidUtf8 = asm.poolInterfaceMethod(TableWriter.Row.class, "putUuidUtf8", "(ILio/questdb/std/str/Utf8Sequence;)V");
         int wPutDate = asm.poolInterfaceMethod(TableWriter.Row.class, "putDate", "(IJ)V");
         int wPutTimestamp = asm.poolInterfaceMethod(TableWriter.Row.class, "putTimestamp", "(IJ)V");
+        int wPutDecimal = asm.poolInterfaceMethod(TableWriter.Row.class, "putDecimal", "(IJ)V");
         //
         int wPutByte = asm.poolInterfaceMethod(TableWriter.Row.class, "putByte", "(IB)V");
         int wPutShort = asm.poolInterfaceMethod(TableWriter.Row.class, "putShort", "(IS)V");
@@ -221,6 +223,14 @@ public class RecordToRowCopierUtils {
                 fromColumnTypeTag = toColumnTypeTag;
             }
             switch (fromColumnTypeTag) {
+                case ColumnType.DECIMAL:
+                    asm.invokeInterface(rGetDecimal);
+                    switch (toColumnTypeTag) {
+                        case ColumnType.DECIMAL:
+                            asm.invokeInterface(wPutDecimal, 3);
+                            break;
+                    }
+                    break;
                 case ColumnType.INT:
                     asm.invokeInterface(rGetInt);
                     switch (toColumnTypeTag) {

@@ -24,9 +24,11 @@
 
 package io.questdb.cairo.vm;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.TableUtils;
 import io.questdb.cairo.vm.api.MemoryCMR;
 import io.questdb.std.BinarySequence;
+import io.questdb.std.DecimalImpl;
 import io.questdb.std.FilesFacade;
 import io.questdb.std.Long256;
 import io.questdb.std.Long256Acceptor;
@@ -91,6 +93,11 @@ public class NullMemoryCMR implements MemoryCMR {
     @Override
     public char getChar(long offset) {
         return 0;
+    }
+
+    @Override
+    public @Decimal long getDecimal(long offset) {
+        return DecimalImpl.NULL;
     }
 
     @Override

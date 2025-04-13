@@ -24,6 +24,7 @@
 
 package io.questdb.griffin.engine.functions;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.ColumnType;
 import io.questdb.cairo.ImplicitCastException;
 import io.questdb.cairo.TableUtils;
@@ -66,6 +67,11 @@ public abstract class CharFunction implements ScalarFunction {
 
     @Override
     public final long getDate(Record rec) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public @Decimal long getDecimal(Record rec) {
         throw new UnsupportedOperationException();
     }
 

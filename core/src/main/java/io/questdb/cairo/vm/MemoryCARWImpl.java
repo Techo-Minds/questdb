@@ -24,6 +24,7 @@
 
 package io.questdb.cairo.vm;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.CairoException;
 import io.questdb.cairo.vm.api.MemoryCARW;
 import io.questdb.griffin.engine.LimitOverflowException;
@@ -129,6 +130,16 @@ public class MemoryCARWImpl extends AbstractMemoryCR implements MemoryCARW, Muta
     public void jumpTo(long offset) {
         checkAndExtend(pageAddress + offset);
         appendAddress = pageAddress + offset;
+    }
+
+    @Override
+    public void putDecimal(long offset, @Decimal long value) {
+        putLong(offset, value);
+    }
+
+    @Override
+    public void putDecimal(long value) {
+        putLong(value);
     }
 
     public final void putLong256(@NotNull CharSequence hexString, int start, int end) {

@@ -24,6 +24,7 @@
 
 package io.questdb.griffin.engine.functions.bind;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.ColumnType;
 import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
@@ -83,6 +84,11 @@ public class NamedParameterLinkFunction implements ScalarFunction {
     @Override
     public long getDate(Record rec) {
         return getBase().getDate(rec);
+    }
+
+    @Override
+    public @Decimal long getDecimal(Record rec) {
+        return getBase().getDecimal(rec);
     }
 
     @Override

@@ -24,6 +24,7 @@
 
 package io.questdb.cairo.file;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.CairoConfiguration;
 import io.questdb.cairo.CairoException;
 import io.questdb.cairo.CommitMode;
@@ -251,6 +252,16 @@ public class BlockFileWriter implements Closeable {
         public void putChar(char value) {
             assert !isCommitted;
             memory.putChar(value);
+        }
+
+        @Override
+        public void putDecimal(long offset, @Decimal long value) {
+            putLong(offset, value);
+        }
+
+        @Override
+        public void putDecimal(@Decimal long value) {
+            putLong(value);
         }
 
         @Override

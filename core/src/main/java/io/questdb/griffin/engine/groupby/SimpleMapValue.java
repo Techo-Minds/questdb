@@ -24,6 +24,7 @@
 
 package io.questdb.griffin.engine.groupby;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.map.MapValue;
 import io.questdb.std.Long256;
 import io.questdb.std.Long256Impl;
@@ -238,6 +239,11 @@ public class SimpleMapValue implements MapValue {
 
     @Override
     public void putDate(int index, long value) {
+        values[4 * index] = value;
+    }
+
+    @Override
+    public void putDecimal(int index, @Decimal long value) {
         values[4 * index] = value;
     }
 

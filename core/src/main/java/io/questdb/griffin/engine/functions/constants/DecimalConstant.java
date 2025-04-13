@@ -24,43 +24,45 @@
 
 package io.questdb.griffin.engine.functions.constants;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.sql.Record;
 import io.questdb.griffin.PlanSink;
-import io.questdb.griffin.engine.functions.LongFunction;
-import io.questdb.std.Numbers;
+import io.questdb.griffin.engine.functions.DecimalFunction;
+import io.questdb.std.DecimalImpl;
 
-public class LongConstant extends LongFunction implements ConstantFunction {
-    public static final LongConstant NULL = new LongConstant(Numbers.LONG_NULL);
-    public static final LongConstant ZERO = new LongConstant(0);
-    private final long value;
+public class DecimalConstant extends DecimalFunction implements ConstantFunction {
+    public static final DecimalConstant NULL = new DecimalConstant(DecimalImpl.NULL);
+    public static final DecimalConstant ZERO = new DecimalConstant(DecimalImpl.ZERO);
+    private final @Decimal long decimal;
 
-    public LongConstant(long value) {
-        this.value = value;
+    public DecimalConstant(@Decimal long decimal) {
+        this.decimal = decimal;
     }
 
-    public static LongConstant newInstance(long value) {
-        if (value == 0) {
-            return LongConstant.ZERO;
+    public static DecimalConstant newInstance(@Decimal long value) {
+        if (DecimalImpl.isZero(value)) {
+            return ZERO;
         }
 
-        if (value != Numbers.LONG_NULL) {
-            return new LongConstant(value);
+        if (DecimalImpl.isNull(value)) {
+            return NULL;
+
         }
 
-        return LongConstant.NULL;
+        return new DecimalConstant(value);
     }
 
     @Override
-    public long getLong(Record rec) {
-        return value;
+    public long getDecimal(Record rec) {
+        return decimal;
     }
 
     @Override
     public boolean isNullConstant() {
-        return value == Numbers.LONG_NULL;
+        return DecimalImpl.isNull(decimal);
     }
 
     public void toPlan(PlanSink sink) {
-        sink.val(value).val('L');
+        sink.val(DecimalImpl.toString(decimal));
     }
 }

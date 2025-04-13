@@ -100,15 +100,17 @@ public final class ColumnType {
     public static final short LONG128 = GEOHASH + 1;            // = 24  Limited support, few tests only
     public static final short IPv4 = LONG128 + 1;               // = 25
     public static final short VARCHAR = IPv4 + 1;               // = 26
+    public static final short ARRAY = VARCHAR + 1;              // = 27
+    public static final short DECIMAL = ARRAY + 1;              // = 28
     // PG specific types to work with 3rd party software
     // with canned catalogue queries:
     // REGCLASS, REGPROCEDURE, ARRAY_STRING, PARAMETER
-    public static final short REGCLASS = VARCHAR + 1;           // = 27;
-    public static final short REGPROCEDURE = REGCLASS + 1;      // = 28;
-    public static final short ARRAY_STRING = REGPROCEDURE + 1;  // = 29;
-    public static final short PARAMETER = ARRAY_STRING + 1;     // = 30;
-    public static final short INTERVAL = PARAMETER + 1;         // = 31
-    public static final short NULL = INTERVAL + 1;              // = 32; ALWAYS the last
+    public static final short REGCLASS = DECIMAL + 1;           // = 29;
+    public static final short REGPROCEDURE = REGCLASS + 1;      // = 30;
+    public static final short ARRAY_STRING = REGPROCEDURE + 1;  // = 31;
+    public static final short PARAMETER = ARRAY_STRING + 1;     // = 32;
+    public static final short INTERVAL = PARAMETER + 1;         // = 33
+    public static final short NULL = INTERVAL + 1;              // = 34; ALWAYS the last
     private static final short[] TYPE_SIZE = new short[NULL + 1];
     private static final short[] TYPE_SIZE_POW2 = new short[TYPE_SIZE.length];
     // slightly bigger than needed to make it a power of 2
@@ -232,6 +234,7 @@ public final class ColumnType {
             case GEOLONG:
             case UUID:
             case IPv4:
+            case DECIMAL:
                 return true;
             default:
                 return false;
@@ -486,12 +489,15 @@ public final class ColumnType {
                 /* 24 LONG128   */, {LONG128}
                 /* 25 IPv4      */, {IPv4, STRING, VARCHAR}
                 /* 26 VARCHAR   */, {VARCHAR, STRING, CHAR, DOUBLE, LONG, INT, FLOAT, SHORT, BYTE, TIMESTAMP, DATE, SYMBOL, IPv4}
-                /* 27 unused    */, {}
-                /* 28 unused    */, {}
+                /* 27 ARRAY     */, {}
+                /* 28 DECIMAL   */, {DECIMAL, VARCHAR, STRING, DOUBLE, LONG, INT, FLOAT, SHORT, BYTE}
                 /* 29 unused    */, {}
                 /* 30 unused    */, {}
-                /* 31 INTERVAL  */, {INTERVAL, STRING}
-                /* 32 NULL      */, {VARCHAR, STRING, DOUBLE, FLOAT, LONG, INT}
+                /* 31 unused    */, {}
+                /* 32 unused    */, {}
+                /* 33 INTERVAL  */, {INTERVAL, STRING}
+                /* 34 NULL      */, {VARCHAR, STRING, DOUBLE, FLOAT, LONG, INT}
+
         };
         for (short fromTag = UNDEFINED; fromTag < NULL; fromTag++) {
             for (short toTag = BOOLEAN; toTag <= NULL; toTag++) {
@@ -544,6 +550,7 @@ public final class ColumnType {
         typeNameMap.put(IPv4, "IPv4");
         typeNameMap.put(INTERVAL, "INTERVAL");
         typeNameMap.put(NULL, "NULL");
+        typeNameMap.put(DECIMAL, "DECIMAL");
 
         nameTypeMap.put("boolean", BOOLEAN);
         nameTypeMap.put("byte", BYTE);
@@ -576,6 +583,7 @@ public final class ColumnType {
         nameTypeMap.put("text[]", ARRAY_STRING);
         nameTypeMap.put("IPv4", IPv4);
         nameTypeMap.put("interval", INTERVAL);
+        nameTypeMap.put("decimal", DECIMAL);
 
         StringSink sink = new StringSink();
         for (int b = 1; b <= GEOLONG_MAX_BITS; b++) {
@@ -620,6 +628,7 @@ public final class ColumnType {
         TYPE_SIZE_POW2[LONG128] = 4;
         TYPE_SIZE_POW2[UUID] = 4;
         TYPE_SIZE_POW2[INTERVAL] = 4;
+        TYPE_SIZE_POW2[DECIMAL] = 3;
 
         TYPE_SIZE[UNDEFINED] = -1;
         TYPE_SIZE[BOOLEAN] = Byte.BYTES;
@@ -650,6 +659,7 @@ public final class ColumnType {
         TYPE_SIZE[NULL] = 0;
         TYPE_SIZE[LONG128] = 2 * Long.BYTES;
         TYPE_SIZE[INTERVAL] = 2 * Long.BYTES;
+        TYPE_SIZE[DECIMAL] = Long.BYTES;
 
         nonPersistedTypes.add(UNDEFINED);
         nonPersistedTypes.add(INTERVAL);

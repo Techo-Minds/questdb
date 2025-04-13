@@ -102,6 +102,11 @@ public class GeoHashFromCoordinatesFunctionFactory implements FunctionFactory {
         }
 
         @Override
+        public long getDecimal(Record rec) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public byte getGeoByte(Record rec) {
             return (byte) getLongValue(rec);
         }

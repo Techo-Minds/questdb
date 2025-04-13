@@ -24,6 +24,7 @@
 
 package io.questdb.griffin.engine.functions.bind;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.CairoConfiguration;
 import io.questdb.cairo.ColumnType;
 import io.questdb.cairo.GeoHashes;
@@ -49,11 +50,13 @@ import io.questdb.std.str.Utf8s;
 import org.jetbrains.annotations.Nullable;
 
 public class BindVariableServiceImpl implements BindVariableService {
+
     private final ObjectPool<IPv4BindVariable> IPv4VarPool;
     private final ObjectPool<BooleanBindVariable> booleanVarPool;
     private final ObjectPool<ByteBindVariable> byteVarPool;
     private final ObjectPool<CharBindVariable> charVarPool;
     private final ObjectPool<DateBindVariable> dateVarPool;
+    private final ObjectPool<DecimalBindVariable> decimalVarPool;
     private final ObjectPool<DoubleBindVariable> doubleVarPool;
     private final ObjectPool<FloatBindVariable> floatVarPool;
     private final ObjectPool<GeoHashBindVariable> geoHashVarPool;
@@ -86,6 +89,7 @@ public class BindVariableServiceImpl implements BindVariableService {
         this.long256VarPool = new ObjectPool<>(Long256BindVariable::new, 8);
         this.uuidVarPool = new ObjectPool<>(UuidBindVariable::new, 8);
         this.varcharVarPool = new ObjectPool<>(VarcharBindVariable::new, poolSize);
+        this.decimalVarPool = new ObjectPool<>(DecimalBindVariable::new, poolSize);
     }
 
     @Override
@@ -357,6 +361,18 @@ public class BindVariableServiceImpl implements BindVariableService {
         } else {
             indexedVariables.setQuick(index, function = dateVarPool.next());
             ((DateBindVariable) function).value = value;
+        }
+    }
+
+    @Override
+    public void setDecimal(CharSequence name, @Decimal long decimal) throws SqlException {
+        int index = namedVariables.keyIndex(name);
+        if (index > -1) {
+            final DecimalBindVariable function;
+            namedVariables.putAt(index, name, function = decimalVarPool.next());
+            function.decimal = decimal;
+        } else {
+            setDecimal0(namedVariables.valueAtQuick(index), decimal, -1, name);
         }
     }
 
@@ -866,6 +882,10 @@ public class BindVariableServiceImpl implements BindVariableService {
                 reportError(function, ColumnType.CHAR, index, name);
                 break;
         }
+    }
+
+    private static void setDecimal0(Function function, @Decimal long decimal, int index, @Nullable CharSequence name) throws SqlException {
+        ((DecimalBindVariable) function).decimal = decimal;
     }
 
     private static void setDouble0(Function function, double value, int index, @Nullable CharSequence name) throws SqlException {

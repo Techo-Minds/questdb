@@ -181,6 +181,9 @@ public class FunctionFactoryDescriptor {
             case 'δ':
                 sigArgType = ColumnType.INTERVAL;
                 break;
+            case 'æ':
+                sigArgType = ColumnType.DECIMAL;
+                break;
             default:
                 sigArgType = -1;
                 break;
@@ -349,6 +352,7 @@ public class FunctionFactoryDescriptor {
         typeNameMap.put('x', "ipv4");
         typeNameMap.put('ø', "varchar");
         typeNameMap.put('δ', "interval");
+        typeNameMap.put('æ', "decimal");
         typeNameMap.put('[' | 32, "[]");
     }
 }

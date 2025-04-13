@@ -24,6 +24,7 @@
 
 package io.questdb.cairo.vm.api;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.CairoException;
 import io.questdb.cairo.TableUtils;
 import io.questdb.cairo.vm.Vm;
@@ -70,6 +71,10 @@ public interface MemoryCR extends MemoryC, MemoryR {
     default char getChar(long offset) {
         assert addressOf(offset + Character.BYTES) > 0;
         return Unsafe.getUnsafe().getChar(addressOf(offset));
+    }
+
+    default @Decimal long getDecimal(long offset) {
+        return getLong(offset);
     }
 
     default double getDouble(long offset) {

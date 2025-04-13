@@ -116,6 +116,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayDeque;
 
+import static io.questdb.cairo.ColumnType.DECIMAL;
 import static io.questdb.griffin.SqlKeywords.*;
 
 public class FunctionParser implements PostOrderTreeTraversalAlgo.Visitor, Mutable {
@@ -653,6 +654,7 @@ public class FunctionParser implements PostOrderTreeTraversalAlgo.Visitor, Mutab
                         || columnType == ColumnType.IPv4
                         || columnType == ColumnType.VARCHAR
                         || columnType == ColumnType.INTERVAL
+                        || columnType == DECIMAL
         ) {
             return Constants.getTypeConstant(columnType);
         }

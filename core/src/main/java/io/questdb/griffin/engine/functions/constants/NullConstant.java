@@ -24,6 +24,7 @@
 
 package io.questdb.griffin.engine.functions.constants;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.ColumnType;
 import io.questdb.cairo.GeoHashes;
 import io.questdb.cairo.TableUtils;
@@ -82,6 +83,11 @@ public final class NullConstant implements ConstantFunction, ScalarFunction {
     @Override
     public long getDate(Record rec) {
         return DateConstant.NULL.getDate(null);
+    }
+
+    @Override
+    public @Decimal long getDecimal(Record rec) {
+        return DecimalConstant.ZERO.getDecimal(null);
     }
 
     @Override

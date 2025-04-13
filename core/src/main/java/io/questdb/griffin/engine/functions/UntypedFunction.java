@@ -25,6 +25,7 @@
 package io.questdb.griffin.engine.functions;
 
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.sql.Record;
 import io.questdb.cairo.sql.RecordCursorFactory;
 import io.questdb.cairo.sql.ScalarFunction;
@@ -34,6 +35,7 @@ import io.questdb.std.str.CharSink;
 import io.questdb.std.str.Utf8Sequence;
 
 public abstract class UntypedFunction implements ScalarFunction {
+
     @Override
     public final BinarySequence getBin(Record rec) {
         throw new UnsupportedOperationException();
@@ -61,6 +63,11 @@ public abstract class UntypedFunction implements ScalarFunction {
 
     @Override
     public final long getDate(Record rec) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public @Decimal long getDecimal(Record rec) {
         throw new UnsupportedOperationException();
     }
 

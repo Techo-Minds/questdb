@@ -24,6 +24,7 @@
 
 package io.questdb.cairo;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.MessageBus;
 import io.questdb.Metrics;
 import io.questdb.cairo.frm.Frame;
@@ -82,6 +83,7 @@ import io.questdb.mp.SOCountDownLatch;
 import io.questdb.mp.SOUnboundedCountDownLatch;
 import io.questdb.mp.Sequence;
 import io.questdb.std.BinarySequence;
+import io.questdb.std.DecimalImpl;
 import io.questdb.std.DirectIntList;
 import io.questdb.std.DirectLongList;
 import io.questdb.std.Files;
@@ -3277,6 +3279,9 @@ public class TableWriter implements TableWriterAPI, MetadataService, Closeable {
                     break;
                 case ColumnType.GEOLONG:
                     nullers.add(() -> dataMem.putLong(GeoHashes.NULL));
+                    break;
+                case ColumnType.DECIMAL:
+                    nullers.add(() -> dataMem.putDecimal(DecimalImpl.NULL));
                     break;
                 default:
                     nullers.add(NOOP);
@@ -9697,6 +9702,8 @@ public class TableWriter implements TableWriterAPI, MetadataService, Closeable {
 
         void putDate(int columnIndex, long value);
 
+        void putDecimal(int columnIndex, @Decimal long decimal);
+
         void putDouble(int columnIndex, double value);
 
         void putFloat(int columnIndex, float value);
@@ -9807,6 +9814,11 @@ public class TableWriter implements TableWriterAPI, MetadataService, Closeable {
 
         @Override
         public void putDate(int columnIndex, long value) {
+            // no-op
+        }
+
+        @Override
+        public void putDecimal(int columnIndex, @Decimal long decimal) {
             // no-op
         }
 
@@ -10000,6 +10012,12 @@ public class TableWriter implements TableWriterAPI, MetadataService, Closeable {
         @Override
         public void putDate(int columnIndex, long value) {
             putLong(columnIndex, value);
+        }
+
+        @Override
+        public void putDecimal(int columnIndex, @Decimal long decimal) {
+            getPrimaryColumn(columnIndex).putDecimal(decimal);
+            setRowValueNotNull(columnIndex);
         }
 
         @Override

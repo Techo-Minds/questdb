@@ -24,6 +24,7 @@
 
 package io.questdb.cairo.wal;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.Metrics;
 import io.questdb.cairo.AlterTableContextException;
 import io.questdb.cairo.BitmapIndexUtils;
@@ -68,6 +69,7 @@ import io.questdb.std.BinarySequence;
 import io.questdb.std.BoolList;
 import io.questdb.std.CharSequenceIntHashMap;
 import io.questdb.std.Chars;
+import io.questdb.std.DecimalImpl;
 import io.questdb.std.Files;
 import io.questdb.std.FilesFacade;
 import io.questdb.std.IntList;
@@ -709,6 +711,9 @@ public class WalWriter implements TableWriterAPI {
                     // fall through
                 case ColumnType.UUID:
                     nullers.add(() -> dataMem.putLong128(Numbers.LONG_NULL, Numbers.LONG_NULL));
+                    break;
+                case ColumnType.DECIMAL:
+                    nullers.add(() -> dataMem.putDecimal(DecimalImpl.NULL));
                     break;
                 default:
                     throw new UnsupportedOperationException("unsupported column type: " + ColumnType.nameOf(type));
@@ -2253,6 +2258,11 @@ public class WalWriter implements TableWriterAPI {
 
         @Override
         public void putDate(int columnIndex, long value) {
+            putLong(columnIndex, value);
+        }
+
+        @Override
+        public void putDecimal(int columnIndex, @Decimal long value) {
             putLong(columnIndex, value);
         }
 

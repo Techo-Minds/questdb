@@ -24,6 +24,7 @@
 
 package io.questdb.cairo.vm;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.TableUtils;
 import io.questdb.cairo.vm.api.MemoryARW;
 import io.questdb.griffin.engine.LimitOverflowException;
@@ -189,6 +190,11 @@ public class MemoryPARWImpl implements MemoryARW {
             return Unsafe.getUnsafe().getChar(absolutePointer + offset);
         }
         return getChar0(offset);
+    }
+
+    @Override
+    public @Decimal long getDecimal(long offset) {
+        return getLong(offset);
     }
 
     @Override
@@ -525,6 +531,16 @@ public class MemoryPARWImpl implements MemoryARW {
     public void putCharBytes(long offset, char value) {
         putByte(offset, (byte) (value & 0xff));
         putByte(offset + 1, (byte) ((value >> 8) & 0xff));
+    }
+
+    @Override
+    public void putDecimal(long offset, @Decimal long value) {
+        putLong(offset, value);
+    }
+
+    @Override
+    public void putDecimal(@Decimal long value) {
+        putLong(value);
     }
 
     @Override

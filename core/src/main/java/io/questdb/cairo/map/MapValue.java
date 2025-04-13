@@ -24,6 +24,7 @@
 
 package io.questdb.cairo.map;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.sql.Record;
 import io.questdb.std.Long256;
 
@@ -92,6 +93,8 @@ public interface MapValue extends Record {
     void putChar(int index, char value);
 
     void putDate(int index, long value);
+
+    void putDecimal(int index, @Decimal long value);
 
     void putDouble(int index, double value);
 

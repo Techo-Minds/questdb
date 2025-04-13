@@ -25,6 +25,7 @@
 package io.questdb.griffin.engine.functions;
 
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.ColumnType;
 import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
@@ -37,6 +38,7 @@ import io.questdb.std.str.Utf8Sequence;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class StrArrayFunction implements Function {
+    
     @Override
     public final BinarySequence getBin(Record rec) {
         throw new UnsupportedOperationException();
@@ -64,6 +66,11 @@ public abstract class StrArrayFunction implements Function {
 
     @Override
     public final long getDate(Record rec) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public @Decimal long getDecimal(Record rec) {
         throw new UnsupportedOperationException();
     }
 

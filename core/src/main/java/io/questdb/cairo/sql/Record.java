@@ -24,6 +24,7 @@
 
 package io.questdb.cairo.sql;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.TableUtils;
 import io.questdb.std.BinarySequence;
 import io.questdb.std.Interval;
@@ -122,6 +123,9 @@ public interface Record {
         return getLong(col);
     }
 
+    default @Decimal long getDecimal(int col) {
+        return getLong(col);
+    }
 
     /**
      * Gets the value of a double column by index

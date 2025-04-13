@@ -24,6 +24,7 @@
 
 package io.questdb.cairo.vm.api;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.std.BinarySequence;
 import io.questdb.std.Long256;
 import io.questdb.std.str.DirectUtf8Sequence;
@@ -56,6 +57,8 @@ public interface MemoryA extends Closeable {
     void putByte(byte value);
 
     void putChar(char value);
+
+    void putDecimal(@Decimal long value);
 
     void putDouble(double value);
 
