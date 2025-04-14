@@ -233,7 +233,7 @@ public class BlockFileReader implements Closeable {
             }
 
             @Override
-            public @Decimal long getDecimal(long offset) {
+            public @Decimal long getDecimal64(long offset) {
                 return getLong(offset);
             }
 

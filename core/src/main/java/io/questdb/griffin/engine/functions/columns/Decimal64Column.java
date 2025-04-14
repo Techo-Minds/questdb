@@ -22,38 +22,40 @@
  *
  ******************************************************************************/
 
-package io.questdb.griffin.engine.functions.bind;
+package io.questdb.griffin.engine.functions.columns;
 
 import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.sql.Record;
 import io.questdb.cairo.sql.ScalarFunction;
 import io.questdb.griffin.PlanSink;
-import io.questdb.griffin.engine.functions.DecimalFunction;
-import io.questdb.std.DecimalImpl;
-import io.questdb.std.Mutable;
+import io.questdb.griffin.engine.functions.Decimal64Function;
+import io.questdb.std.Decimal64Impl;
+import io.questdb.std.ObjList;
 
-class DecimalBindVariable extends DecimalFunction implements ScalarFunction, Mutable {
-    @Decimal
-    long decimal;
+import static io.questdb.griffin.engine.functions.columns.ColumnUtils.STATIC_COLUMN_COUNT;
 
-    @Override
-    public void clear() {
-        this.decimal = DecimalImpl.NULL;
+public class Decimal64Column extends Decimal64Function implements ScalarFunction {
+
+    private static final ObjList<Decimal64Column> COLUMNS = new ObjList<>(STATIC_COLUMN_COUNT);
+    private final int columnIndex;
+
+    public Decimal64Column(int columnIndex) {
+        this.columnIndex = columnIndex;
+    }
+
+    public static Decimal64Column newInstance(int columnIndex) {
+        if (columnIndex < STATIC_COLUMN_COUNT) {
+            return COLUMNS.getQuick(columnIndex);
+        }
+        return new Decimal64Column(columnIndex);
     }
 
     @Override
-    public long getDecimal(Record rec) {
-        return decimal;
-    }
-
-    @Override
-    public boolean isNonDeterministic() {
-        return true;
-    }
-
-    @Override
-    public boolean isRuntimeConstant() {
-        return true;
+    public @Decimal long getDecimal64(Record rec) {
+        if (Decimal64Impl.isNull(rec.getDecimal64(columnIndex))) {
+            return Decimal64Impl.NULL;
+        }
+        return rec.getDecimal64(columnIndex);
     }
 
     @Override
@@ -63,6 +65,13 @@ class DecimalBindVariable extends DecimalFunction implements ScalarFunction, Mut
 
     @Override
     public void toPlan(PlanSink sink) {
-        sink.val("?::decimal");
+        sink.putColumnName(columnIndex);
+    }
+
+    static {
+        COLUMNS.setPos(STATIC_COLUMN_COUNT);
+        for (int i = 0; i < STATIC_COLUMN_COUNT; i++) {
+            COLUMNS.setQuick(i, new Decimal64Column(i));
+        }
     }
 }

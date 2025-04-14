@@ -83,7 +83,7 @@ import io.questdb.mp.SOCountDownLatch;
 import io.questdb.mp.SOUnboundedCountDownLatch;
 import io.questdb.mp.Sequence;
 import io.questdb.std.BinarySequence;
-import io.questdb.std.DecimalImpl;
+import io.questdb.std.Decimal64Impl;
 import io.questdb.std.DirectIntList;
 import io.questdb.std.DirectLongList;
 import io.questdb.std.Files;
@@ -3280,8 +3280,8 @@ public class TableWriter implements TableWriterAPI, MetadataService, Closeable {
                 case ColumnType.GEOLONG:
                     nullers.add(() -> dataMem.putLong(GeoHashes.NULL));
                     break;
-                case ColumnType.DECIMAL:
-                    nullers.add(() -> dataMem.putDecimal(DecimalImpl.NULL));
+                case ColumnType.DECIMAL64:
+                    nullers.add(() -> dataMem.putDecimal64(Decimal64Impl.NULL));
                     break;
                 default:
                     nullers.add(NOOP);
@@ -9702,7 +9702,7 @@ public class TableWriter implements TableWriterAPI, MetadataService, Closeable {
 
         void putDate(int columnIndex, long value);
 
-        void putDecimal(int columnIndex, @Decimal long decimal);
+        void putDecimal64(int columnIndex, @Decimal long decimal);
 
         void putDouble(int columnIndex, double value);
 
@@ -9818,7 +9818,7 @@ public class TableWriter implements TableWriterAPI, MetadataService, Closeable {
         }
 
         @Override
-        public void putDecimal(int columnIndex, @Decimal long decimal) {
+        public void putDecimal64(int columnIndex, @Decimal long decimal) {
             // no-op
         }
 
@@ -10015,8 +10015,8 @@ public class TableWriter implements TableWriterAPI, MetadataService, Closeable {
         }
 
         @Override
-        public void putDecimal(int columnIndex, @Decimal long decimal) {
-            getPrimaryColumn(columnIndex).putDecimal(decimal);
+        public void putDecimal64(int columnIndex, @Decimal long decimal) {
+            getPrimaryColumn(columnIndex).putDecimal64(decimal);
             setRowValueNotNull(columnIndex);
         }
 

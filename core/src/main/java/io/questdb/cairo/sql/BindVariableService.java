@@ -204,7 +204,7 @@ public interface BindVariableService extends Mutable {
      */
     void setDate(int index, long value) throws SqlException;
 
-    void setDecimal(int index, @Decimal long decimal) throws SqlException;
+    void setDecimal64(int index, @Decimal long decimal) throws SqlException;
 
     /**
      * Set type of bind variable by name as long and provide a value
@@ -214,9 +214,9 @@ public interface BindVariableService extends Mutable {
      * @throws SqlException is throw when variable has already been defined with type
      *                      that is not compatible with Long
      */
-    void setDecimal(CharSequence name, @Decimal long decimal) throws SqlException;
+    void setDecimal64(CharSequence name, @Decimal long decimal) throws SqlException;
 
-    void setDecimal(int index) throws SqlException;
+    void setDecimal64(int index) throws SqlException;
 
     /**
      * Set type of bind variable by name as double and provide a value

@@ -253,7 +253,7 @@ final class Unordered4MapValue implements MapValue {
     }
 
     @Override
-    public void putDecimal(int index, long value) {
+    public void putDecimal64(int index, long value) {
         putLong(index, value);
     }
 

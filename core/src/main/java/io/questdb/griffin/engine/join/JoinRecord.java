@@ -90,11 +90,11 @@ public class JoinRecord implements Record {
     }
 
     @Override
-    public @Decimal long getDecimal(int col) {
+    public @Decimal long getDecimal64(int col) {
         if (col < split) {
-            return master.getDecimal(col);
+            return master.getDecimal64(col);
         }
-        return slave.getDecimal(col - split);
+        return slave.getDecimal64(col - split);
     }
 
     @Override

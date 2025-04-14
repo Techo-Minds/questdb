@@ -680,7 +680,7 @@ public class OrderedMap implements Map, Reopenable {
         }
 
         @Override
-        public void putDecimal(@Decimal long decimal) {
+        public void putDecimal64(@Decimal long decimal) {
             putLong(decimal);
         }
 
@@ -955,7 +955,7 @@ public class OrderedMap implements Map, Reopenable {
         }
 
         @Override
-        public void putDecimal(@Decimal long decimal) {
+        public void putDecimal64(@Decimal long decimal) {
             putLong(decimal);
         }
 

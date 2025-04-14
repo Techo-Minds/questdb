@@ -22,64 +22,50 @@
  *
  ******************************************************************************/
 
-package io.questdb.griffin.engine.functions.math;
+package io.questdb.griffin.engine.functions.cast;
 
 import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.CairoConfiguration;
 import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
 import io.questdb.griffin.FunctionFactory;
-import io.questdb.griffin.PlanSink;
 import io.questdb.griffin.SqlExecutionContext;
-import io.questdb.griffin.engine.functions.BinaryFunction;
-import io.questdb.griffin.engine.functions.DecimalFunction;
-import io.questdb.std.DecimalImpl;
+import io.questdb.std.Decimal64Impl;
 import io.questdb.std.IntList;
+import io.questdb.std.Numbers;
 import io.questdb.std.ObjList;
 
-public class DivDecimalByIntFunctionFactory implements FunctionFactory {
+public class CastIntToDecimal64FunctionFactory implements FunctionFactory {
     @Override
     public String getSignature() {
-        return "/(ÆI)";
+        return "cast(Iæ)";
     }
 
     @Override
-    public Function newInstance(int position, ObjList<Function> args, IntList argPositions, CairoConfiguration configuration, SqlExecutionContext sqlExecutionContext) {
-        return new Func(args.getQuick(0), args.getQuick(1));
+    public Function newInstance(
+            int position,
+            ObjList<Function> args,
+            IntList argPositions,
+            CairoConfiguration configuration,
+            SqlExecutionContext sqlExecutionContext
+    ) {
+        return new Func(args.getQuick(0));
     }
 
-    private static class Func extends DecimalFunction implements BinaryFunction {
-        private final Function left;
-        private final Function right;
-
-        public Func(Function left, Function right) {
-            this.left = left;
-            this.right = right;
+    private static class Func extends AbstractCastToDecimal64Function {
+        public Func(Function arg) {
+            super(arg);
         }
 
         @Override
-        public @Decimal long getDecimal(Record rec) {
-            @Decimal long result = DecimalImpl.divByInt(left.getDecimal(rec), right.getInt(rec));
-            if (DecimalImpl.isNaN(result)) {
-                return DecimalImpl.NULL;
-            } else {
-                return result;
+        public @Decimal long getDecimal64(Record rec) {
+            int value = arg.getInt(rec);
+
+            if (value == Numbers.INT_NULL) {
+                return Decimal64Impl.NULL;
             }
-        }
 
-        @Override
-        public Function getLeft() {
-            return left;
-        }
-
-        @Override
-        public Function getRight() {
-            return right;
-        }
-
-        @Override
-        public void toPlan(PlanSink sink) {
-            sink.val(left).val('/').val(right);
+            return Decimal64Impl.fromLong(value);
         }
     }
 }

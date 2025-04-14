@@ -254,7 +254,7 @@ final class Unordered8MapValue implements MapValue {
     }
 
     @Override
-    public void putDecimal(int index, @Decimal long value) {
+    public void putDecimal64(int index, @Decimal long value) {
         putLong(index, value);
     }
 

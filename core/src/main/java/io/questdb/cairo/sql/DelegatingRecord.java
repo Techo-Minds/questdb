@@ -65,8 +65,8 @@ public class DelegatingRecord implements Record {
     }
 
     @Override
-    public @Decimal long getDecimal(int col) {
-        return base.getDecimal(col);
+    public @Decimal long getDecimal64(int col) {
+        return base.getDecimal64(col);
     }
 
     @Override

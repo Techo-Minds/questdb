@@ -22,40 +22,38 @@
  *
  ******************************************************************************/
 
-package io.questdb.griffin.engine.functions.columns;
+package io.questdb.griffin.engine.functions.bind;
 
 import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.sql.Record;
 import io.questdb.cairo.sql.ScalarFunction;
 import io.questdb.griffin.PlanSink;
-import io.questdb.griffin.engine.functions.DecimalFunction;
-import io.questdb.std.DecimalImpl;
-import io.questdb.std.ObjList;
+import io.questdb.griffin.engine.functions.Decimal64Function;
+import io.questdb.std.Decimal64Impl;
+import io.questdb.std.Mutable;
 
-import static io.questdb.griffin.engine.functions.columns.ColumnUtils.STATIC_COLUMN_COUNT;
+class Decimal64BindVariable extends Decimal64Function implements ScalarFunction, Mutable {
+    @Decimal
+    long decimal;
 
-public class DecimalColumn extends DecimalFunction implements ScalarFunction {
-
-    private static final ObjList<DecimalColumn> COLUMNS = new ObjList<>(STATIC_COLUMN_COUNT);
-    private final int columnIndex;
-
-    public DecimalColumn(int columnIndex) {
-        this.columnIndex = columnIndex;
-    }
-
-    public static DecimalColumn newInstance(int columnIndex) {
-        if (columnIndex < STATIC_COLUMN_COUNT) {
-            return COLUMNS.getQuick(columnIndex);
-        }
-        return new DecimalColumn(columnIndex);
+    @Override
+    public void clear() {
+        this.decimal = Decimal64Impl.NULL;
     }
 
     @Override
-    public @Decimal long getDecimal(Record rec) {
-        if (DecimalImpl.isNull(rec.getDecimal(columnIndex))) {
-            return DecimalImpl.NULL;
-        }
-        return rec.getDecimal(columnIndex);
+    public long getDecimal64(Record rec) {
+        return decimal;
+    }
+
+    @Override
+    public boolean isNonDeterministic() {
+        return true;
+    }
+
+    @Override
+    public boolean isRuntimeConstant() {
+        return true;
     }
 
     @Override
@@ -65,13 +63,6 @@ public class DecimalColumn extends DecimalFunction implements ScalarFunction {
 
     @Override
     public void toPlan(PlanSink sink) {
-        sink.putColumnName(columnIndex);
-    }
-
-    static {
-        COLUMNS.setPos(STATIC_COLUMN_COUNT);
-        for (int i = 0; i < STATIC_COLUMN_COUNT; i++) {
-            COLUMNS.setQuick(i, new DecimalColumn(i));
-        }
+        sink.val("?::decimal64");
     }
 }

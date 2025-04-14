@@ -82,8 +82,8 @@ import io.questdb.griffin.engine.functions.cast.CastByteToVarcharFunctionFactory
 import io.questdb.griffin.engine.functions.cast.CastDateToStrFunctionFactory;
 import io.questdb.griffin.engine.functions.cast.CastDateToTimestampFunctionFactory;
 import io.questdb.griffin.engine.functions.cast.CastDateToVarcharFunctionFactory;
-import io.questdb.griffin.engine.functions.cast.CastDecimalToStrFunctionFactory;
-import io.questdb.griffin.engine.functions.cast.CastDecimalToVarcharFunctionFactory;
+import io.questdb.griffin.engine.functions.cast.CastDecimal64ToStrFunctionFactory;
+import io.questdb.griffin.engine.functions.cast.CastDecimal64ToVarcharFunctionFactory;
 import io.questdb.griffin.engine.functions.cast.CastDoubleToStrFunctionFactory;
 import io.questdb.griffin.engine.functions.cast.CastDoubleToVarcharFunctionFactory;
 import io.questdb.griffin.engine.functions.cast.CastFloatToStrFunctionFactory;
@@ -113,7 +113,7 @@ import io.questdb.griffin.engine.functions.columns.BooleanColumn;
 import io.questdb.griffin.engine.functions.columns.ByteColumn;
 import io.questdb.griffin.engine.functions.columns.CharColumn;
 import io.questdb.griffin.engine.functions.columns.DateColumn;
-import io.questdb.griffin.engine.functions.columns.DecimalColumn;
+import io.questdb.griffin.engine.functions.columns.Decimal64Column;
 import io.questdb.griffin.engine.functions.columns.DoubleColumn;
 import io.questdb.griffin.engine.functions.columns.FloatColumn;
 import io.questdb.griffin.engine.functions.columns.GeoByteColumn;
@@ -1535,9 +1535,9 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                             );
                         }
                         break;
-                    case ColumnType.DECIMAL:
-                        assert fromTag == ColumnType.DECIMAL;
-                        castFunctions.add(new DecimalColumn(i));
+                    case ColumnType.DECIMAL64:
+                        assert fromTag == ColumnType.DECIMAL64;
+                        castFunctions.add(new Decimal64Column(i));
                         break;
                     case ColumnType.UUID:
                         assert fromTag == ColumnType.UUID;
@@ -1723,8 +1723,8 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                             case ColumnType.IPv4:
                                 castFunctions.add(new CastIPv4ToStrFunctionFactory.Func(new IPv4Column(i)));
                                 break;
-                            case ColumnType.DECIMAL:
-                                castFunctions.add(new CastDecimalToStrFunctionFactory.Func(new DecimalColumn(i)));
+                            case ColumnType.DECIMAL64:
+                                castFunctions.add(new CastDecimal64ToStrFunctionFactory.Func(new Decimal64Column(i)));
                                 break;
                         }
                         break;
@@ -2035,8 +2035,8 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                                         fromType,
                                         toType
                                 );
-                            case ColumnType.DECIMAL:
-                                castFunctions.add(new CastDecimalToVarcharFunctionFactory.Func(new DecimalColumn(i)));
+                            case ColumnType.DECIMAL64:
+                                castFunctions.add(new CastDecimal64ToVarcharFunctionFactory.Func(new Decimal64Column(i)));
                                 break;
                             default:
                                 assert false;

@@ -32,15 +32,15 @@ import io.questdb.griffin.FunctionFactory;
 import io.questdb.griffin.PlanSink;
 import io.questdb.griffin.SqlExecutionContext;
 import io.questdb.griffin.engine.functions.BinaryFunction;
-import io.questdb.griffin.engine.functions.DecimalFunction;
-import io.questdb.std.DecimalImpl;
+import io.questdb.griffin.engine.functions.Decimal64Function;
+import io.questdb.std.Decimal64Impl;
 import io.questdb.std.IntList;
 import io.questdb.std.ObjList;
 
-public class DivDecimalByLongFunctionFactory implements FunctionFactory {
+public class MulDecimal64FunctionFactory implements FunctionFactory {
     @Override
     public String getSignature() {
-        return "/(ÆL)";
+        return "*(ÆÆ)";
     }
 
     @Override
@@ -48,7 +48,7 @@ public class DivDecimalByLongFunctionFactory implements FunctionFactory {
         return new Func(args.getQuick(0), args.getQuick(1));
     }
 
-    private static class Func extends DecimalFunction implements BinaryFunction {
+    private static final class Func extends Decimal64Function implements BinaryFunction {
         private final Function left;
         private final Function right;
 
@@ -58,10 +58,10 @@ public class DivDecimalByLongFunctionFactory implements FunctionFactory {
         }
 
         @Override
-        public @Decimal long getDecimal(Record rec) {
-            @Decimal long result = DecimalImpl.divByInt(left.getDecimal(rec), right.getLong(rec));
-            if (DecimalImpl.isNaN(result)) {
-                return DecimalImpl.NULL;
+        public @Decimal long getDecimal64(Record rec) {
+            @Decimal long result = Decimal64Impl.mul(left.getDecimal64(rec), right.getDecimal64(rec));
+            if (Decimal64Impl.isNaN(result)) {
+                return Decimal64Impl.NULL;
             } else {
                 return result;
             }
@@ -79,7 +79,7 @@ public class DivDecimalByLongFunctionFactory implements FunctionFactory {
 
         @Override
         public void toPlan(PlanSink sink) {
-            sink.val(left).val('/').val(right);
+            sink.val(left).val('*').val(right);
         }
     }
 }

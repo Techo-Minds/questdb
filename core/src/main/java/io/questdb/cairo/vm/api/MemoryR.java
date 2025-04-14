@@ -55,7 +55,7 @@ public interface MemoryR extends Closeable {
     char getChar(long offset);
 
     @Decimal
-    long getDecimal(long offset);
+    long getDecimal64(long offset);
 
     default DirectUtf8Sequence getDirectVarchar(long offset, int size, boolean ascii) {
         throw new UnsupportedOperationException();

@@ -803,7 +803,7 @@ public final class Numbers {
         return value & (-1L >>> 32);
     }
 
-    public static boolean isDecimal(CharSequence value, int start) {
+    public static boolean isDecimal64(CharSequence value, int start) {
         int len = value.length();
         for (int i = start; i < len; i++) {
             char c = value.charAt(i);

@@ -30,7 +30,7 @@ import io.questdb.std.str.CharSink;
 import io.questdb.std.str.Utf8Sequence;
 import org.jetbrains.annotations.NotNull;
 
-public class DecimalImpl {
+public class Decimal64Impl {
 
     public static @Decimal long NULL = Decimal64Utils.NULL;
     public static @Decimal long ONE = Decimal64Utils.ONE;
@@ -129,7 +129,7 @@ public class DecimalImpl {
     }
 
     public static double toDouble(@Decimal long decimal) {
-        if (!DecimalImpl.isNull(decimal)) {
+        if (!Decimal64Impl.isNull(decimal)) {
             return Decimal64Utils.toDouble(decimal);
         } else {
             return Double.NaN;
@@ -137,7 +137,7 @@ public class DecimalImpl {
     }
 
     public static int toInt(@Decimal long decimal) {
-        if (!DecimalImpl.isNull(decimal)) {
+        if (!Decimal64Impl.isNull(decimal)) {
             return Decimal64Utils.toInt(decimal);
         } else {
             return Numbers.INT_NULL;
@@ -145,7 +145,7 @@ public class DecimalImpl {
     }
 
     public static long toLong(@Decimal long decimal) {
-        if (!DecimalImpl.isNull(decimal)) {
+        if (!Decimal64Impl.isNull(decimal)) {
             return Decimal64Utils.toLong(decimal);
         } else {
             return Numbers.LONG_NULL;

@@ -82,11 +82,11 @@ public class UnionRecord extends AbstractUnionRecord {
     }
 
     @Override
-    public @Decimal long getDecimal(int col) {
+    public @Decimal long getDecimal64(int col) {
         if (useA) {
-            return recordA.getDecimal(col);
+            return recordA.getDecimal64(col);
         }
-        return recordB.getDecimal(col);
+        return recordB.getDecimal64(col);
     }
 
     @Override

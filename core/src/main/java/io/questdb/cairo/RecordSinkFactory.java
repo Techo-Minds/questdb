@@ -227,7 +227,7 @@ public class RecordSinkFactory {
         final int rGetBin = asm.poolInterfaceMethod(Record.class, "getBin", "(I)Lio/questdb/std/BinarySequence;");
         final int rGetRecord = asm.poolInterfaceMethod(Record.class, "getRecord", "(I)Lio/questdb/cairo/sql/Record;");
         final int rGetInterval = asm.poolInterfaceMethod(Record.class, "getInterval", "(I)Lio/questdb/std/Interval;");
-        final int rGetDecimal = asm.poolInterfaceMethod(Record.class, "getDecimal", "(I)J;");
+        final int rGetDecimal64 = asm.poolInterfaceMethod(Record.class, "getDecimal64", "(I)J;");
 
         final int fGetInt = asm.poolInterfaceMethod(Function.class, "getInt", "(Lio/questdb/cairo/sql/Record;)I");
         final int fGetIPv4 = asm.poolInterfaceMethod(Function.class, "getIPv4", "(Lio/questdb/cairo/sql/Record;)I");
@@ -253,7 +253,7 @@ public class RecordSinkFactory {
         final int fGetBin = asm.poolInterfaceMethod(Function.class, "getBin", "(Lio/questdb/cairo/sql/Record;)Lio/questdb/std/BinarySequence;");
         final int fGetRecord = asm.poolInterfaceMethod(Function.class, "getRecord", "(Lio/questdb/cairo/sql/Record;)Lio/questdb/cairo/sql/Record;");
         final int fGetInterval = asm.poolInterfaceMethod(Function.class, "getInterval", "(Lio/questdb/cairo/sql/Record;)Lio/questdb/std/Interval;");
-        final int fGetDecimal = asm.poolInterfaceMethod(Function.class, "getDecimal", "(Lio/questdb/cairo/sql/Record;)J;");
+        final int fGetDecimal64 = asm.poolInterfaceMethod(Function.class, "getDecimal64", "(Lio/questdb/cairo/sql/Record;)J;");
 
         final int wSkip = asm.poolInterfaceMethod(RecordSinkSPI.class, "skip", "(I)V");
         final int wPutInt = asm.poolInterfaceMethod(RecordSinkSPI.class, "putInt", "(I)V");
@@ -275,7 +275,7 @@ public class RecordSinkFactory {
         final int wPutBin = asm.poolInterfaceMethod(RecordSinkSPI.class, "putBin", "(Lio/questdb/std/BinarySequence;)V");
         final int wPutRecord = asm.poolInterfaceMethod(RecordSinkSPI.class, "putRecord", "(Lio/questdb/cairo/sql/Record;)V");
         final int wPutInterval = asm.poolInterfaceMethod(RecordSinkSPI.class, "putInterval", "(Lio/questdb/std/Interval;)V");
-        final int wPutDecimal = asm.poolInterfaceMethod(RecordSinkSPI.class, "putDecimal", "(J)V;");
+        final int wPutDecimal64 = asm.poolInterfaceMethod(RecordSinkSPI.class, "putDecimal64", "(J)V;");
 
         int copyNameIndex = asm.poolUtf8("copy");
         int copySigIndex = asm.poolUtf8("(Lio/questdb/cairo/sql/Record;Lio/questdb/cairo/RecordSinkSPI;)V");
@@ -519,12 +519,12 @@ public class RecordSinkFactory {
                     asm.invokeInterface(rGetInterval, 1);
                     asm.invokeInterface(wPutInterval, 1);
                     break;
-                case ColumnType.DECIMAL:
+                case ColumnType.DECIMAL64:
                     asm.aload(2);
                     asm.aload(1);
                     asm.iconst(getSkewedIndex(index, skewIndex));
-                    asm.invokeInterface(rGetDecimal, 1);
-                    asm.invokeInterface(wPutDecimal, 2);
+                    asm.invokeInterface(rGetDecimal64, 1);
+                    asm.invokeInterface(wPutDecimal64, 2);
                     break;
                 case ColumnType.NULL:
                     break; // ignore
@@ -749,13 +749,13 @@ public class RecordSinkFactory {
                     asm.invokeInterface(fGetInterval, 1);
                     asm.invokeInterface(wPutInterval, 1);
                     break;
-                case ColumnType.DECIMAL:
+                case ColumnType.DECIMAL64:
                     asm.aload(2);
                     asm.aload(0);
                     asm.getfield(firstFieldIndex + (i * FIELD_POOL_OFFSET));
                     asm.aload(1);
-                    asm.invokeInterface(fGetDecimal, 1);
-                    asm.invokeInterface(wPutDecimal, 2);
+                    asm.invokeInterface(fGetDecimal64, 1);
+                    asm.invokeInterface(wPutDecimal64, 2);
                     break;
                 default:
                     throw new IllegalArgumentException("Unexpected function type: " + ColumnType.nameOf(type));

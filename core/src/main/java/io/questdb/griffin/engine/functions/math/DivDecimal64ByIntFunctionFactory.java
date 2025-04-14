@@ -22,68 +22,64 @@
  *
  ******************************************************************************/
 
-package io.questdb.griffin.engine.functions.cast;
+package io.questdb.griffin.engine.functions.math;
 
 import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.CairoConfiguration;
 import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
 import io.questdb.griffin.FunctionFactory;
+import io.questdb.griffin.PlanSink;
 import io.questdb.griffin.SqlExecutionContext;
-import io.questdb.griffin.engine.functions.constants.StrConstant;
-import io.questdb.std.DecimalImpl;
+import io.questdb.griffin.engine.functions.BinaryFunction;
+import io.questdb.griffin.engine.functions.Decimal64Function;
+import io.questdb.std.Decimal64Impl;
 import io.questdb.std.IntList;
 import io.questdb.std.ObjList;
-import io.questdb.std.str.Utf8Sequence;
-import io.questdb.std.str.Utf8StringSink;
 
-public class CastDecimalToVarcharFunctionFactory implements FunctionFactory {
+public class DivDecimal64ByIntFunctionFactory implements FunctionFactory {
     @Override
     public String getSignature() {
-        return "cast(Æø)";
+        return "/(ÆI)";
     }
 
     @Override
     public Function newInstance(int position, ObjList<Function> args, IntList argPositions, CairoConfiguration configuration, SqlExecutionContext sqlExecutionContext) {
-        Function func = args.getQuick(0);
-        if (func.isConstant()) {
-            @Decimal long decimal = func.getDecimal(null);
-            if (DecimalImpl.isNull(decimal)) {
-                return StrConstant.NULL;
-            }
-            return StrConstant.newInstance(DecimalImpl.toString(decimal));
-        }
-        return new Func(args.getQuick(0));
+        return new Func(args.getQuick(0), args.getQuick(1));
     }
 
-    public static class Func extends AbstractCastToVarcharFunction {
-        private final Utf8StringSink sinkA = new Utf8StringSink();
-        private final Utf8StringSink sinkB = new Utf8StringSink();
+    private static class Func extends Decimal64Function implements BinaryFunction {
+        private final Function left;
+        private final Function right;
 
-        public Func(Function arg) {
-            super(arg);
+        public Func(Function left, Function right) {
+            this.left = left;
+            this.right = right;
         }
 
         @Override
-        public Utf8Sequence getVarcharA(Record rec) {
-            @Decimal long decimal = arg.getDecimal(rec);
-            if (DecimalImpl.isNull(decimal)) {
-                return null;
+        public @Decimal long getDecimal64(Record rec) {
+            @Decimal long result = Decimal64Impl.divByInt(left.getDecimal64(rec), right.getInt(rec));
+            if (Decimal64Impl.isNaN(result)) {
+                return Decimal64Impl.NULL;
+            } else {
+                return result;
             }
-            sinkA.clear();
-            DecimalImpl.toSink(decimal, sinkA);
-            return sinkA;
         }
 
         @Override
-        public Utf8Sequence getVarcharB(Record rec) {
-            @Decimal long decimal = arg.getDecimal(rec);
-            if (DecimalImpl.isNull(decimal)) {
-                return null;
-            }
-            sinkB.clear();
-            DecimalImpl.toSink(decimal, sinkB);
-            return sinkB;
+        public Function getLeft() {
+            return left;
+        }
+
+        @Override
+        public Function getRight() {
+            return right;
+        }
+
+        @Override
+        public void toPlan(PlanSink sink) {
+            sink.val(left).val('/').val(right);
         }
     }
 }

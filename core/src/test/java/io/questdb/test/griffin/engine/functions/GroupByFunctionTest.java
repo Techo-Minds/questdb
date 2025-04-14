@@ -30,7 +30,7 @@ import io.questdb.cairo.sql.Record;
 import io.questdb.cairo.sql.RecordCursorFactory;
 import io.questdb.griffin.engine.functions.GroupByFunction;
 import io.questdb.std.BinarySequence;
-import io.questdb.std.DecimalImpl;
+import io.questdb.std.Decimal64Impl;
 import io.questdb.std.Interval;
 import io.questdb.std.Long256;
 import io.questdb.std.str.CharSink;
@@ -84,8 +84,8 @@ public class GroupByFunctionTest {
         }
 
         @Override
-        public long getDecimal(Record rec) {
-            return DecimalImpl.fromLong(0);
+        public long getDecimal64(Record rec) {
+            return Decimal64Impl.fromLong(0);
         }
 
         @Override

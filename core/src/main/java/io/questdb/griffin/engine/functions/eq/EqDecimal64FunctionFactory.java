@@ -22,25 +22,26 @@
  *
  ******************************************************************************/
 
-package io.questdb.griffin.engine.functions.math;
+package io.questdb.griffin.engine.functions.eq;
 
-import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.CairoConfiguration;
 import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
 import io.questdb.griffin.FunctionFactory;
-import io.questdb.griffin.PlanSink;
 import io.questdb.griffin.SqlExecutionContext;
-import io.questdb.griffin.engine.functions.BinaryFunction;
-import io.questdb.griffin.engine.functions.DecimalFunction;
-import io.questdb.std.DecimalImpl;
+import io.questdb.std.Decimal64Impl;
 import io.questdb.std.IntList;
 import io.questdb.std.ObjList;
 
-public class SubDecimalFunctionFactory implements FunctionFactory {
+public class EqDecimal64FunctionFactory implements FunctionFactory {
     @Override
     public String getSignature() {
-        return "-(ÆÆ)";
+        return "=(ÆÆ)";
+    }
+
+    @Override
+    public boolean isBoolean() {
+        return true;
     }
 
     @Override
@@ -48,38 +49,14 @@ public class SubDecimalFunctionFactory implements FunctionFactory {
         return new Func(args.getQuick(0), args.getQuick(1));
     }
 
-    private static class Func extends DecimalFunction implements BinaryFunction {
-        private final Function left;
-        private final Function right;
-
+    private static class Func extends AbstractEqBinaryFunction {
         public Func(Function left, Function right) {
-            this.left = left;
-            this.right = right;
+            super(left, right);
         }
 
         @Override
-        public @Decimal long getDecimal(Record rec) {
-            @Decimal long result = DecimalImpl.sub(left.getDecimal(rec), right.getDecimal(rec));
-            if (DecimalImpl.isNaN(result)) {
-                return DecimalImpl.NULL;
-            } else {
-                return result;
-            }
-        }
-
-        @Override
-        public Function getLeft() {
-            return left;
-        }
-
-        @Override
-        public Function getRight() {
-            return right;
-        }
-
-        @Override
-        public void toPlan(PlanSink sink) {
-            sink.val(left).val('-').val(right);
+        public boolean getBool(Record rec) {
+            return negated != Decimal64Impl.equals(left.getDecimal64(rec), right.getDecimal64(rec));
         }
     }
 }

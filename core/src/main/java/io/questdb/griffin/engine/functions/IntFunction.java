@@ -30,7 +30,7 @@ import io.questdb.cairo.sql.Record;
 import io.questdb.cairo.sql.RecordCursorFactory;
 import io.questdb.cairo.sql.ScalarFunction;
 import io.questdb.std.BinarySequence;
-import io.questdb.std.DecimalImpl;
+import io.questdb.std.Decimal64Impl;
 import io.questdb.std.Long256;
 import io.questdb.std.Numbers;
 import io.questdb.std.str.CharSink;
@@ -69,8 +69,8 @@ public abstract class IntFunction implements ScalarFunction {
     }
 
     @Override
-    public @Decimal long getDecimal(Record rec) {
-        return DecimalImpl.fromLong(getInt(rec));
+    public @Decimal long getDecimal64(Record rec) {
+        return Decimal64Impl.fromLong(getInt(rec));
     }
 
     @Override

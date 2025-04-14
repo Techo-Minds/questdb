@@ -46,7 +46,7 @@ public interface RecordSinkSPI {
 
     void putDate(long value);
 
-    void putDecimal(@Decimal long decimal);
+    void putDecimal64(@Decimal long decimal);
 
     void putDouble(double value);
 

@@ -86,8 +86,8 @@ public final class NullConstant implements ConstantFunction, ScalarFunction {
     }
 
     @Override
-    public @Decimal long getDecimal(Record rec) {
-        return DecimalConstant.ZERO.getDecimal(null);
+    public @Decimal long getDecimal64(Record rec) {
+        return Decimal64Constant.ZERO.getDecimal64(null);
     }
 
     @Override

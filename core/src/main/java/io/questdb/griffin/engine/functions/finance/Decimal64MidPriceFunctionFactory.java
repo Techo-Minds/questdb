@@ -22,64 +22,60 @@
  *
  ******************************************************************************/
 
-package io.questdb.griffin.engine.functions.math;
+package io.questdb.griffin.engine.functions.finance;
 
 import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.CairoConfiguration;
 import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
 import io.questdb.griffin.FunctionFactory;
-import io.questdb.griffin.PlanSink;
 import io.questdb.griffin.SqlExecutionContext;
 import io.questdb.griffin.engine.functions.BinaryFunction;
-import io.questdb.griffin.engine.functions.DecimalFunction;
-import io.questdb.std.DecimalImpl;
+import io.questdb.griffin.engine.functions.Decimal64Function;
 import io.questdb.std.IntList;
 import io.questdb.std.ObjList;
 
-public class DivDecimalFunctionFactory implements FunctionFactory {
+public class Decimal64MidPriceFunctionFactory implements FunctionFactory {
     @Override
     public String getSignature() {
-        return "/(ÆÆ)";
+        return "mid(ÆÆ)";
     }
 
     @Override
     public Function newInstance(int position, ObjList<Function> args, IntList argPositions, CairoConfiguration configuration, SqlExecutionContext sqlExecutionContext) {
-        return new Func(args.getQuick(0), args.getQuick(1));
+        return new MidPriceFunction(args.getQuick(0), args.getQuick(1));
     }
 
-    private static class Func extends DecimalFunction implements BinaryFunction {
-        private final Function left;
-        private final Function right;
+    private static class MidPriceFunction extends Decimal64Function implements BinaryFunction {
+        private final Function ask;
+        private final Function bid;
 
-        public Func(Function left, Function right) {
-            this.left = left;
-            this.right = right;
+        public MidPriceFunction(Function bid, Function ask) {
+            this.bid = bid;
+            this.ask = ask;
         }
 
         @Override
-        public @Decimal long getDecimal(Record rec) {
-            @Decimal long result = DecimalImpl.div(left.getDecimal(rec), right.getDecimal(rec));
-            if (DecimalImpl.isNaN(result)) {
-                return DecimalImpl.NULL;
-            } else {
-                return result;
-            }
+        public @Decimal long getDecimal64(Record rec) {
+            final @Decimal long b = bid.getDecimal64(rec);
+            final @Decimal long a = ask.getDecimal64(rec);
+            return FinanceUtils.mid(b, a);
         }
 
         @Override
         public Function getLeft() {
-            return left;
+            return bid;
+        }
+
+        @Override
+        public String getName() {
+            return "mid";
         }
 
         @Override
         public Function getRight() {
-            return right;
+            return ask;
         }
 
-        @Override
-        public void toPlan(PlanSink sink) {
-            sink.val(left).val('/').val(right);
-        }
     }
 }

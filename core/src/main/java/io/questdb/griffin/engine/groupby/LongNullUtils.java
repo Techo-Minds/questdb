@@ -26,7 +26,7 @@ package io.questdb.griffin.engine.groupby;
 
 import io.questdb.cairo.ColumnType;
 import io.questdb.cairo.GeoHashes;
-import io.questdb.std.DecimalImpl;
+import io.questdb.std.Decimal64Impl;
 import io.questdb.std.Numbers;
 
 public final class LongNullUtils {
@@ -44,9 +44,9 @@ public final class LongNullUtils {
                 case ColumnType.DATE:
                     LONG_NULLs[i] = Numbers.LONG_NULL;
                     break;
-                    
-                case ColumnType.DECIMAL:
-                    LONG_NULLs[i] = DecimalImpl.NULL;
+
+                case ColumnType.DECIMAL64:
+                    LONG_NULLs[i] = Decimal64Impl.NULL;
                     break;
 
                 case ColumnType.INT:

@@ -72,8 +72,8 @@ class SelectedRecord implements Record {
     }
 
     @Override
-    public @Decimal long getDecimal(int col) {
-        return base.getDecimal(getColumnIndex(col));
+    public @Decimal long getDecimal64(int col) {
+        return base.getDecimal64(getColumnIndex(col));
     }
 
     @Override

@@ -101,11 +101,11 @@ public final class ColumnType {
     public static final short IPv4 = LONG128 + 1;               // = 25
     public static final short VARCHAR = IPv4 + 1;               // = 26
     public static final short ARRAY = VARCHAR + 1;              // = 27
-    public static final short DECIMAL = ARRAY + 1;              // = 28
+    public static final short DECIMAL64 = ARRAY + 1;              // = 28
     // PG specific types to work with 3rd party software
     // with canned catalogue queries:
     // REGCLASS, REGPROCEDURE, ARRAY_STRING, PARAMETER
-    public static final short REGCLASS = DECIMAL + 1;           // = 29;
+    public static final short REGCLASS = DECIMAL64 + 1;           // = 29;
     public static final short REGPROCEDURE = REGCLASS + 1;      // = 30;
     public static final short ARRAY_STRING = REGPROCEDURE + 1;  // = 31;
     public static final short PARAMETER = ARRAY_STRING + 1;     // = 32;
@@ -234,7 +234,7 @@ public final class ColumnType {
             case GEOLONG:
             case UUID:
             case IPv4:
-            case DECIMAL:
+            case DECIMAL64:
                 return true;
             default:
                 return false;
@@ -490,7 +490,7 @@ public final class ColumnType {
                 /* 25 IPv4      */, {IPv4, STRING, VARCHAR}
                 /* 26 VARCHAR   */, {VARCHAR, STRING, CHAR, DOUBLE, LONG, INT, FLOAT, SHORT, BYTE, TIMESTAMP, DATE, SYMBOL, IPv4}
                 /* 27 ARRAY     */, {}
-                /* 28 DECIMAL   */, {DECIMAL}
+                /* 28 DECIMAL64   */, {DECIMAL64}
                 /* 29 unused    */, {}
                 /* 30 unused    */, {}
                 /* 31 unused    */, {}
@@ -550,7 +550,7 @@ public final class ColumnType {
         typeNameMap.put(IPv4, "IPv4");
         typeNameMap.put(INTERVAL, "INTERVAL");
         typeNameMap.put(NULL, "NULL");
-        typeNameMap.put(DECIMAL, "DECIMAL");
+        typeNameMap.put(DECIMAL64, "DECIMAL");
 
         nameTypeMap.put("boolean", BOOLEAN);
         nameTypeMap.put("byte", BYTE);
@@ -583,7 +583,7 @@ public final class ColumnType {
         nameTypeMap.put("text[]", ARRAY_STRING);
         nameTypeMap.put("IPv4", IPv4);
         nameTypeMap.put("interval", INTERVAL);
-        nameTypeMap.put("decimal", DECIMAL);
+        nameTypeMap.put("decimal", DECIMAL64);
 
         StringSink sink = new StringSink();
         for (int b = 1; b <= GEOLONG_MAX_BITS; b++) {
@@ -628,7 +628,7 @@ public final class ColumnType {
         TYPE_SIZE_POW2[LONG128] = 4;
         TYPE_SIZE_POW2[UUID] = 4;
         TYPE_SIZE_POW2[INTERVAL] = 4;
-        TYPE_SIZE_POW2[DECIMAL] = 3;
+        TYPE_SIZE_POW2[DECIMAL64] = 3;
 
         TYPE_SIZE[UNDEFINED] = -1;
         TYPE_SIZE[BOOLEAN] = Byte.BYTES;
@@ -659,7 +659,7 @@ public final class ColumnType {
         TYPE_SIZE[NULL] = 0;
         TYPE_SIZE[LONG128] = 2 * Long.BYTES;
         TYPE_SIZE[INTERVAL] = 2 * Long.BYTES;
-        TYPE_SIZE[DECIMAL] = Long.BYTES;
+        TYPE_SIZE[DECIMAL64] = Long.BYTES;
 
         nonPersistedTypes.add(UNDEFINED);
         nonPersistedTypes.add(INTERVAL);

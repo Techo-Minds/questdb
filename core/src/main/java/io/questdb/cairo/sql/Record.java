@@ -123,7 +123,7 @@ public interface Record {
         return getLong(col);
     }
 
-    default @Decimal long getDecimal(int col) {
+    default @Decimal long getDecimal64(int col) {
         return getLong(col);
     }
 

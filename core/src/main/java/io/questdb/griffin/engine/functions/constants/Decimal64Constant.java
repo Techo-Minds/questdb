@@ -27,42 +27,42 @@ package io.questdb.griffin.engine.functions.constants;
 import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.sql.Record;
 import io.questdb.griffin.PlanSink;
-import io.questdb.griffin.engine.functions.DecimalFunction;
-import io.questdb.std.DecimalImpl;
+import io.questdb.griffin.engine.functions.Decimal64Function;
+import io.questdb.std.Decimal64Impl;
 
-public class DecimalConstant extends DecimalFunction implements ConstantFunction {
-    public static final DecimalConstant NULL = new DecimalConstant(DecimalImpl.NULL);
-    public static final DecimalConstant ZERO = new DecimalConstant(DecimalImpl.ZERO);
+public class Decimal64Constant extends Decimal64Function implements ConstantFunction {
+    public static final Decimal64Constant NULL = new Decimal64Constant(Decimal64Impl.NULL);
+    public static final Decimal64Constant ZERO = new Decimal64Constant(Decimal64Impl.ZERO);
     private final @Decimal long decimal;
 
-    public DecimalConstant(@Decimal long decimal) {
+    public Decimal64Constant(@Decimal long decimal) {
         this.decimal = decimal;
     }
 
-    public static DecimalConstant newInstance(@Decimal long value) {
-        if (DecimalImpl.isZero(value)) {
+    public static Decimal64Constant newInstance(@Decimal long value) {
+        if (Decimal64Impl.isZero(value)) {
             return ZERO;
         }
 
-        if (DecimalImpl.isNull(value)) {
+        if (Decimal64Impl.isNull(value)) {
             return NULL;
 
         }
 
-        return new DecimalConstant(value);
+        return new Decimal64Constant(value);
     }
 
     @Override
-    public long getDecimal(Record rec) {
+    public long getDecimal64(Record rec) {
         return decimal;
     }
 
     @Override
     public boolean isNullConstant() {
-        return DecimalImpl.isNull(decimal);
+        return Decimal64Impl.isNull(decimal);
     }
 
     public void toPlan(PlanSink sink) {
-        sink.val(DecimalImpl.toString(decimal));
+        sink.val(Decimal64Impl.toString(decimal));
     }
 }

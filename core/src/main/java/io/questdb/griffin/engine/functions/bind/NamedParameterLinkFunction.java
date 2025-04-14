@@ -87,8 +87,8 @@ public class NamedParameterLinkFunction implements ScalarFunction {
     }
 
     @Override
-    public @Decimal long getDecimal(Record rec) {
-        return getBase().getDecimal(rec);
+    public @Decimal long getDecimal64(Record rec) {
+        return getBase().getDecimal64(rec);
     }
 
     @Override

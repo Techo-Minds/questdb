@@ -99,11 +99,11 @@ public class UnionCastRecord extends AbstractUnionRecord {
     }
 
     @Override
-    public @Decimal long getDecimal(int col) {
+    public @Decimal long getDecimal64(int col) {
         if (useA) {
-            return castFunctionsA.getQuick(col).getDecimal(recordA);
+            return castFunctionsA.getQuick(col).getDecimal64(recordA);
         }
-        return castFunctionsB.getQuick(col).getDecimal(recordB);
+        return castFunctionsB.getQuick(col).getDecimal64(recordB);
     }
 
     @Override

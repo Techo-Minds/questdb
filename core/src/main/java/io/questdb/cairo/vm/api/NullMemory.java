@@ -206,11 +206,11 @@ public class NullMemory implements MemoryMAR, MemoryCARW {
     }
 
     @Override
-    public void putDecimal(long value) {
+    public void putDecimal64(long value) {
     }
 
     @Override
-    public void putDecimal(long offset, @Decimal long decimal) {
+    public void putDecimal64(long offset, @Decimal long decimal) {
     }
 
     @Override

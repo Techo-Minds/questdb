@@ -26,23 +26,19 @@ package io.questdb.griffin.engine.functions.cast;
 
 import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.CairoConfiguration;
-import io.questdb.cairo.ColumnType;
-import io.questdb.cairo.ImplicitCastException;
 import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
 import io.questdb.griffin.FunctionFactory;
 import io.questdb.griffin.SqlExecutionContext;
-import io.questdb.griffin.SqlUtil;
-import io.questdb.std.DecimalImpl;
+import io.questdb.std.Decimal64Impl;
 import io.questdb.std.IntList;
-import io.questdb.std.NumericException;
+import io.questdb.std.Numbers;
 import io.questdb.std.ObjList;
-import io.questdb.std.str.Utf8Sequence;
 
-public class CastVarcharToDecimalFunctionFactory implements FunctionFactory {
+public class CastDoubleToDecimal64FunctionFactory implements FunctionFactory {
     @Override
     public String getSignature() {
-        return "cast(Øæ)";
+        return "cast(Dæ)";
     }
 
     @Override
@@ -56,23 +52,20 @@ public class CastVarcharToDecimalFunctionFactory implements FunctionFactory {
         return new Func(args.getQuick(0));
     }
 
-    private static class Func extends AbstractCastToDecimalFunction {
+    private static class Func extends AbstractCastToDecimal64Function {
         public Func(Function arg) {
             super(arg);
         }
 
         @Override
-        public @Decimal long getDecimal(Record rec) {
-            Utf8Sequence value = arg.getVarcharA(rec);
-            if (value == null) {
-                return DecimalImpl.NULL;
+        public @Decimal long getDecimal64(Record rec) {
+            double value = arg.getDouble(rec);
+
+            if (Numbers.isNull(value)) {
+                return Decimal64Impl.NULL;
             }
 
-            try {
-                return DecimalImpl.parse(value);
-            } catch (NumericException ex) {
-                throw ImplicitCastException.inconvertibleValue(value, ColumnType.VARCHAR, ColumnType.DECIMAL);
-            }
+            return Decimal64Impl.fromDouble(value);
         }
     }
 }

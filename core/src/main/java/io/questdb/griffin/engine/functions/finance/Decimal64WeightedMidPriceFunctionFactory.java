@@ -30,13 +30,13 @@ import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
 import io.questdb.griffin.FunctionFactory;
 import io.questdb.griffin.SqlExecutionContext;
-import io.questdb.griffin.engine.functions.DecimalFunction;
+import io.questdb.griffin.engine.functions.Decimal64Function;
 import io.questdb.griffin.engine.functions.QuaternaryFunction;
-import io.questdb.std.DecimalImpl;
+import io.questdb.std.Decimal64Impl;
 import io.questdb.std.IntList;
 import io.questdb.std.ObjList;
 
-public class DecimalWeightedMidPriceFunctionFactory implements FunctionFactory {
+public class Decimal64WeightedMidPriceFunctionFactory implements FunctionFactory {
     @Override
     public String getSignature() {
         return "wmid(ÆÆÆÆ)";
@@ -48,7 +48,7 @@ public class DecimalWeightedMidPriceFunctionFactory implements FunctionFactory {
         return new WeightedMidPriceFunction(args.getQuick(0), args.getQuick(1), args.getQuick(2), args.getQuick(3));
     }
 
-    private static class WeightedMidPriceFunction extends DecimalFunction implements QuaternaryFunction {
+    private static class WeightedMidPriceFunction extends Decimal64Function implements QuaternaryFunction {
         private final Function askPrice;
         private final Function askSize;
         private final Function bidPrice;
@@ -63,20 +63,20 @@ public class DecimalWeightedMidPriceFunctionFactory implements FunctionFactory {
         }
 
         @Override
-        public @Decimal long getDecimal(Record rec) {
-            final @Decimal long bs = bidSize.getDecimal(rec);
-            final @Decimal long bp = bidPrice.getDecimal(rec);
-            final @Decimal long ap = askPrice.getDecimal(rec);
-            final @Decimal long as = askSize.getDecimal(rec);
+        public @Decimal long getDecimal64(Record rec) {
+            final @Decimal long bs = bidSize.getDecimal64(rec);
+            final @Decimal long bp = bidPrice.getDecimal64(rec);
+            final @Decimal long ap = askPrice.getDecimal64(rec);
+            final @Decimal long as = askSize.getDecimal64(rec);
 
-            if (DecimalImpl.isNull(bp) || DecimalImpl.isNull(bs) || DecimalImpl.isNull(ap) || DecimalImpl.isNull(as)) {
-                return DecimalImpl.NULL;
+            if (Decimal64Impl.isNull(bp) || Decimal64Impl.isNull(bs) || Decimal64Impl.isNull(ap) || Decimal64Impl.isNull(as)) {
+                return Decimal64Impl.NULL;
             }
 
-            @Decimal long imbalance = DecimalImpl.div(bs, DecimalImpl.add(bs, as));
-            @Decimal long lhs = DecimalImpl.mul(ap, imbalance);
-            @Decimal long rhs = DecimalImpl.mul(bp, DecimalImpl.sub(DecimalImpl.ONE, imbalance));
-            return DecimalImpl.add(lhs, rhs);
+            @Decimal long imbalance = Decimal64Impl.div(bs, Decimal64Impl.add(bs, as));
+            @Decimal long lhs = Decimal64Impl.mul(ap, imbalance);
+            @Decimal long rhs = Decimal64Impl.mul(bp, Decimal64Impl.sub(Decimal64Impl.ONE, imbalance));
+            return Decimal64Impl.add(lhs, rhs);
         }
 
         @Override

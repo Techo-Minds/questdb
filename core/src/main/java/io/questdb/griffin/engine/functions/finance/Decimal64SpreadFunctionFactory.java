@@ -22,7 +22,7 @@
  *
  ******************************************************************************/
 
-package io.questdb.griffin.engine.functions.cast;
+package io.questdb.griffin.engine.functions.finance;
 
 import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.CairoConfiguration;
@@ -30,59 +30,52 @@ import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
 import io.questdb.griffin.FunctionFactory;
 import io.questdb.griffin.SqlExecutionContext;
-import io.questdb.griffin.engine.functions.constants.StrConstant;
-import io.questdb.std.DecimalImpl;
+import io.questdb.griffin.engine.functions.BinaryFunction;
+import io.questdb.griffin.engine.functions.Decimal64Function;
 import io.questdb.std.IntList;
 import io.questdb.std.ObjList;
-import io.questdb.std.str.StringSink;
 
-public class CastDecimalToStrFunctionFactory implements FunctionFactory {
+public class Decimal64SpreadFunctionFactory implements FunctionFactory {
     @Override
     public String getSignature() {
-        return "cast(Æs)";
+        return "spread(ÆÆ)";
     }
 
     @Override
     public Function newInstance(int position, ObjList<Function> args, IntList argPositions, CairoConfiguration configuration, SqlExecutionContext sqlExecutionContext) {
-        Function func = args.getQuick(0);
-        if (func.isConstant()) {
-            @Decimal long decimal = func.getDecimal(null);
-            if (DecimalImpl.isNull(decimal)) {
-                return StrConstant.NULL;
-            }
-            return StrConstant.newInstance(DecimalImpl.toString(decimal));
-        }
-        return new Func(args.getQuick(0));
+        return new SpreadFunction(args.getQuick(0), args.getQuick(1));
     }
 
-    public static class Func extends AbstractCastToStrFunction {
-        private final StringSink sinkA = new StringSink();
-        private final StringSink sinkB = new StringSink();
+    private static class SpreadFunction extends Decimal64Function implements BinaryFunction {
+        private final Function ask;
+        private final Function bid;
 
-        public Func(Function arg) {
-            super(arg);
+        public SpreadFunction(Function bid, Function ask) {
+            this.bid = bid;
+            this.ask = ask;
         }
 
         @Override
-        public CharSequence getStrA(Record rec) {
-            @Decimal long decimal = arg.getDecimal(rec);
-            if (DecimalImpl.isNull(decimal)) {
-                return null;
-            }
-            sinkA.clear();
-            DecimalImpl.toSink(decimal, sinkA);
-            return sinkA;
+        public @Decimal long getDecimal64(Record rec) {
+            final @Decimal long b = bid.getDecimal64(rec);
+            final @Decimal long a = ask.getDecimal64(rec);
+            return FinanceUtils.spread(b, a);
         }
 
         @Override
-        public CharSequence getStrB(Record rec) {
-            @Decimal long decimal = arg.getDecimal(rec);
-            if (DecimalImpl.isNull(decimal)) {
-                return null;
-            }
-            sinkB.clear();
-            DecimalImpl.toSink(decimal, sinkB);
-            return sinkB;
+        public Function getLeft() {
+            return bid;
         }
+
+        @Override
+        public String getName() {
+            return "spread";
+        }
+
+        @Override
+        public Function getRight() {
+            return ask;
+        }
+
     }
 }

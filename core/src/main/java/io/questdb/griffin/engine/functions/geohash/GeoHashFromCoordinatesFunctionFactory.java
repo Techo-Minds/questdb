@@ -102,7 +102,7 @@ public class GeoHashFromCoordinatesFunctionFactory implements FunctionFactory {
         }
 
         @Override
-        public long getDecimal(Record rec) {
+        public long getDecimal64(Record rec) {
             throw new UnsupportedOperationException();
         }
 

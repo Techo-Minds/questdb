@@ -37,7 +37,7 @@ import io.questdb.griffin.engine.functions.UndefinedFunction;
 import io.questdb.std.BinarySequence;
 import io.questdb.std.CharSequenceObjHashMap;
 import io.questdb.std.Chars;
-import io.questdb.std.DecimalImpl;
+import io.questdb.std.Decimal64Impl;
 import io.questdb.std.Long256;
 import io.questdb.std.Long256Impl;
 import io.questdb.std.Misc;
@@ -57,7 +57,7 @@ public class BindVariableServiceImpl implements BindVariableService {
     private final ObjectPool<ByteBindVariable> byteVarPool;
     private final ObjectPool<CharBindVariable> charVarPool;
     private final ObjectPool<DateBindVariable> dateVarPool;
-    private final ObjectPool<DecimalBindVariable> decimalVarPool;
+    private final ObjectPool<Decimal64BindVariable> decimal64VarPool;
     private final ObjectPool<DoubleBindVariable> doubleVarPool;
     private final ObjectPool<FloatBindVariable> floatVarPool;
     private final ObjectPool<GeoHashBindVariable> geoHashVarPool;
@@ -90,7 +90,7 @@ public class BindVariableServiceImpl implements BindVariableService {
         this.long256VarPool = new ObjectPool<>(Long256BindVariable::new, 8);
         this.uuidVarPool = new ObjectPool<>(UuidBindVariable::new, 8);
         this.varcharVarPool = new ObjectPool<>(VarcharBindVariable::new, poolSize);
-        this.decimalVarPool = new ObjectPool<>(DecimalBindVariable::new, poolSize);
+        this.decimal64VarPool = new ObjectPool<>(Decimal64BindVariable::new, poolSize);
     }
 
     @Override
@@ -181,8 +181,8 @@ public class BindVariableServiceImpl implements BindVariableService {
             case ColumnType.VARCHAR:
                 setVarchar(index);
                 return type;
-            case ColumnType.DECIMAL:
-                setDecimal(index);
+            case ColumnType.DECIMAL64:
+                setDecimal64(index);
             default:
                 throw SqlException.$(position, "bind variable cannot be used [contextType=").put(ColumnType.nameOf(type)).put(", index=").put(index).put(']');
         }
@@ -368,24 +368,24 @@ public class BindVariableServiceImpl implements BindVariableService {
     }
 
     @Override
-    public void setDecimal(int index, @Decimal long decimal) throws SqlException {
+    public void setDecimal64(int index, @Decimal long decimal) throws SqlException {
         indexedVariables.extendPos(index + 1);
         // variable exists
         Function function = indexedVariables.getQuick(index);
         if (function != null) {
             setDecimal0(function, decimal, index, null);
         } else {
-            indexedVariables.setQuick(index, function = decimalVarPool.next());
-            ((DecimalBindVariable) function).decimal = decimal;
+            indexedVariables.setQuick(index, function = decimal64VarPool.next());
+            ((Decimal64BindVariable) function).decimal = decimal;
         }
     }
 
     @Override
-    public void setDecimal(CharSequence name, @Decimal long decimal) throws SqlException {
+    public void setDecimal64(CharSequence name, @Decimal long decimal) throws SqlException {
         int index = namedVariables.keyIndex(name);
         if (index > -1) {
-            final DecimalBindVariable function;
-            namedVariables.putAt(index, name, function = decimalVarPool.next());
+            final Decimal64BindVariable function;
+            namedVariables.putAt(index, name, function = decimal64VarPool.next());
             function.decimal = decimal;
         } else {
             setDecimal0(namedVariables.valueAtQuick(index), decimal, -1, name);
@@ -393,8 +393,8 @@ public class BindVariableServiceImpl implements BindVariableService {
     }
 
     @Override
-    public void setDecimal(int index) throws SqlException {
-        setDecimal(index, DecimalImpl.NULL);
+    public void setDecimal64(int index) throws SqlException {
+        setDecimal64(index, Decimal64Impl.NULL);
     }
 
     @Override
@@ -909,15 +909,15 @@ public class BindVariableServiceImpl implements BindVariableService {
         final int functionType = ColumnType.tagOf(function.getType());
         switch (functionType) {
             case ColumnType.DOUBLE:
-                ((DoubleBindVariable) function).value = DecimalImpl.toDouble(decimal);
+                ((DoubleBindVariable) function).value = Decimal64Impl.toDouble(decimal);
             case ColumnType.STRING:
-                ((StrBindVariable) function).setValue(DecimalImpl.toString(decimal));
+                ((StrBindVariable) function).setValue(Decimal64Impl.toString(decimal));
             case ColumnType.VARCHAR:
-                ((VarcharBindVariable) function).setValue(DecimalImpl.toString(decimal));
-            case ColumnType.DECIMAL:
-                ((DecimalBindVariable) function).decimal = decimal;
+                ((VarcharBindVariable) function).setValue(Decimal64Impl.toString(decimal));
+            case ColumnType.DECIMAL64:
+                ((Decimal64BindVariable) function).decimal = decimal;
             default:
-                reportError(function, ColumnType.DECIMAL, index, name);
+                reportError(function, ColumnType.DECIMAL64, index, name);
         }
 
     }

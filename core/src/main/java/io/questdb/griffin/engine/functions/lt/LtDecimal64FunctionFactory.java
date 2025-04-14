@@ -22,9 +22,8 @@
  *
  ******************************************************************************/
 
-package io.questdb.griffin.engine.functions.math;
+package io.questdb.griffin.engine.functions.lt;
 
-import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.CairoConfiguration;
 import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
@@ -32,39 +31,45 @@ import io.questdb.griffin.FunctionFactory;
 import io.questdb.griffin.PlanSink;
 import io.questdb.griffin.SqlExecutionContext;
 import io.questdb.griffin.engine.functions.BinaryFunction;
-import io.questdb.griffin.engine.functions.DecimalFunction;
-import io.questdb.std.DecimalImpl;
+import io.questdb.griffin.engine.functions.NegatableBooleanFunction;
+import io.questdb.std.Decimal64Impl;
 import io.questdb.std.IntList;
 import io.questdb.std.ObjList;
 
-public class MulDecimalByIntFunctionFactory implements FunctionFactory {
+public class LtDecimal64FunctionFactory implements FunctionFactory {
     @Override
     public String getSignature() {
-        return "*(ÆI)";
+        return "<(ÆÆ)";
     }
 
     @Override
-    public Function newInstance(int position, ObjList<Function> args, IntList argPositions, CairoConfiguration configuration, SqlExecutionContext sqlExecutionContext) {
-        return new Func(args.getQuick(0), args.getQuick(1));
+    public boolean isBoolean() {
+        return true;
     }
 
-    private static final class Func extends DecimalFunction implements BinaryFunction {
+    @Override
+    public Function newInstance(
+            int position,
+            ObjList<Function> args,
+            IntList argPositions,
+            CairoConfiguration configuration,
+            SqlExecutionContext sqlExecutionContext
+    ) {
+        return new LtDecimal64Function(args.getQuick(0), args.getQuick(1));
+    }
+
+    private static class LtDecimal64Function extends NegatableBooleanFunction implements BinaryFunction {
         private final Function left;
         private final Function right;
 
-        public Func(Function left, Function right) {
+        public LtDecimal64Function(Function left, Function right) {
             this.left = left;
             this.right = right;
         }
 
         @Override
-        public @Decimal long getDecimal(Record rec) {
-            @Decimal long result = DecimalImpl.mulByInt(left.getDecimal(rec), right.getInt(rec));
-            if (DecimalImpl.isNaN(result)) {
-                return DecimalImpl.NULL;
-            } else {
-                return result;
-            }
+        public boolean getBool(Record rec) {
+            return negated != (Decimal64Impl.lessThan(left.getDecimal64(rec), right.getDecimal64(rec)));
         }
 
         @Override
@@ -79,7 +84,13 @@ public class MulDecimalByIntFunctionFactory implements FunctionFactory {
 
         @Override
         public void toPlan(PlanSink sink) {
-            sink.val(left).val('*').val(right);
+            sink.val(left);
+            if (negated) {
+                sink.val(">=");
+            } else {
+                sink.val('<');
+            }
+            sink.val(right);
         }
     }
 }

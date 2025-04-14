@@ -182,7 +182,7 @@ public class FunctionFactoryDescriptor {
                 sigArgType = ColumnType.INTERVAL;
                 break;
             case 'æ':
-                sigArgType = ColumnType.DECIMAL;
+                sigArgType = ColumnType.DECIMAL64;
                 break;
             default:
                 sigArgType = -1;

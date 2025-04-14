@@ -26,13 +26,13 @@ package io.questdb.griffin.engine.functions.cast;
 
 import io.questdb.cairo.sql.Function;
 import io.questdb.griffin.PlanSink;
-import io.questdb.griffin.engine.functions.DecimalFunction;
+import io.questdb.griffin.engine.functions.Decimal64Function;
 import io.questdb.griffin.engine.functions.UnaryFunction;
 
-public abstract class AbstractCastToDecimalFunction extends DecimalFunction implements UnaryFunction {
+public abstract class AbstractCastToDecimal64Function extends Decimal64Function implements UnaryFunction {
     protected final Function arg;
 
-    public AbstractCastToDecimalFunction(Function arg) {
+    public AbstractCastToDecimal64Function(Function arg) {
         this.arg = arg;
     }
 

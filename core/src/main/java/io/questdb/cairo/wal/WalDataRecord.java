@@ -80,10 +80,10 @@ public class WalDataRecord implements Record, Sinkable {
     }
 
     @Override
-    public @Decimal long getDecimal(int col) {
+    public @Decimal long getDecimal64(int col) {
         final long offset = recordIndex * Long.BYTES;
         final int absoluteColumnIndex = getPrimaryColumnIndex(col);
-        return reader.getColumn(absoluteColumnIndex).getDecimal(offset);
+        return reader.getColumn(absoluteColumnIndex).getDecimal64(offset);
     }
 
     // only for tests

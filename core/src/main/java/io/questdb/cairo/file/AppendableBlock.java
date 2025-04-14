@@ -49,7 +49,7 @@ public interface AppendableBlock {
 
     void putChar(char value);
 
-    void putDecimal(@Decimal long value);
+    void putDecimal64(@Decimal long value);
 
     void putDouble(double value);
 

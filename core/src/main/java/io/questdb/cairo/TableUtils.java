@@ -58,7 +58,7 @@ import io.questdb.log.Log;
 import io.questdb.log.LogFactory;
 import io.questdb.mp.MPSequence;
 import io.questdb.std.Chars;
-import io.questdb.std.DecimalImpl;
+import io.questdb.std.Decimal64Impl;
 import io.questdb.std.Files;
 import io.questdb.std.FilesFacade;
 import io.questdb.std.IntList;
@@ -766,8 +766,8 @@ public final class TableUtils {
                 // Long128, UUID, and INTERVAL are null when all 2 longs are NaNs
                 // Long256 is null when all 4 longs are NaNs
                 return Numbers.LONG_NULL;
-            case ColumnType.DECIMAL:
-                return DecimalImpl.NULL;
+            case ColumnType.DECIMAL64:
+                return Decimal64Impl.NULL;
             case ColumnType.GEOBYTE:
             case ColumnType.GEOLONG:
             case ColumnType.GEOSHORT:

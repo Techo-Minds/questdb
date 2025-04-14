@@ -68,7 +68,7 @@ public abstract class FloatFunction implements ScalarFunction {
     }
 
     @Override
-    public @Decimal long getDecimal(Record rec) {
+    public @Decimal long getDecimal64(Record rec) {
         throw new UnsupportedOperationException();
     }
 

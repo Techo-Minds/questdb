@@ -69,7 +69,7 @@ import io.questdb.std.BinarySequence;
 import io.questdb.std.BoolList;
 import io.questdb.std.CharSequenceIntHashMap;
 import io.questdb.std.Chars;
-import io.questdb.std.DecimalImpl;
+import io.questdb.std.Decimal64Impl;
 import io.questdb.std.Files;
 import io.questdb.std.FilesFacade;
 import io.questdb.std.IntList;
@@ -712,8 +712,8 @@ public class WalWriter implements TableWriterAPI {
                 case ColumnType.UUID:
                     nullers.add(() -> dataMem.putLong128(Numbers.LONG_NULL, Numbers.LONG_NULL));
                     break;
-                case ColumnType.DECIMAL:
-                    nullers.add(() -> dataMem.putDecimal(DecimalImpl.NULL));
+                case ColumnType.DECIMAL64:
+                    nullers.add(() -> dataMem.putDecimal64(Decimal64Impl.NULL));
                     break;
                 default:
                     throw new UnsupportedOperationException("unsupported column type: " + ColumnType.nameOf(type));
@@ -2262,7 +2262,7 @@ public class WalWriter implements TableWriterAPI {
         }
 
         @Override
-        public void putDecimal(int columnIndex, @Decimal long value) {
+        public void putDecimal64(int columnIndex, @Decimal long value) {
             putLong(columnIndex, value);
         }
 

@@ -574,7 +574,7 @@ public class Unordered8Map implements Map, Reopenable {
         }
 
         @Override
-        public void putDecimal(@Decimal long decimal) {
+        public void putDecimal64(@Decimal long decimal) {
             putLong(decimal);
         }
 

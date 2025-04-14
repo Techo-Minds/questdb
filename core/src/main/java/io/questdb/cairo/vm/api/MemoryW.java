@@ -46,7 +46,7 @@ public interface MemoryW extends Closeable {
 
     void putChar(long offset, char value);
 
-    void putDecimal(long offset, @Decimal long value);
+    void putDecimal64(long offset, @Decimal long value);
 
     void putDouble(long offset, double value);
 

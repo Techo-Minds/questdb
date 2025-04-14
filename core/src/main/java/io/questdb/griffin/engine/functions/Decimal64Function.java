@@ -29,12 +29,12 @@ import io.questdb.cairo.sql.Record;
 import io.questdb.cairo.sql.RecordCursorFactory;
 import io.questdb.cairo.sql.ScalarFunction;
 import io.questdb.std.BinarySequence;
-import io.questdb.std.DecimalImpl;
+import io.questdb.std.Decimal64Impl;
 import io.questdb.std.Long256;
 import io.questdb.std.str.CharSink;
 import io.questdb.std.str.Utf8Sequence;
 
-public abstract class DecimalFunction implements ScalarFunction {
+public abstract class Decimal64Function implements ScalarFunction {
 
     @Override
     public final BinarySequence getBin(Record rec) {
@@ -68,7 +68,7 @@ public abstract class DecimalFunction implements ScalarFunction {
 
     @Override
     public double getDouble(Record rec) {
-        return DecimalImpl.toDouble(getDecimal(rec));
+        return Decimal64Impl.toDouble(getDecimal64(rec));
     }
 
     @Override
@@ -103,12 +103,12 @@ public abstract class DecimalFunction implements ScalarFunction {
 
     @Override
     public final int getInt(Record rec) {
-        return DecimalImpl.toInt(getDecimal(rec));
+        return Decimal64Impl.toInt(getDecimal64(rec));
     }
 
     @Override
     public long getLong(Record rec) {
-        return DecimalImpl.toLong(getDecimal(rec));
+        return Decimal64Impl.toLong(getDecimal64(rec));
     }
 
     @Override
@@ -178,7 +178,7 @@ public abstract class DecimalFunction implements ScalarFunction {
 
     @Override
     public final int getType() {
-        return ColumnType.DECIMAL;
+        return ColumnType.DECIMAL64;
     }
 
     @Override

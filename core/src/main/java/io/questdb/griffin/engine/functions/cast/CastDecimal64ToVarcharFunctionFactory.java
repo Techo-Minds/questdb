@@ -22,64 +22,68 @@
  *
  ******************************************************************************/
 
-package io.questdb.griffin.engine.functions.math;
+package io.questdb.griffin.engine.functions.cast;
 
 import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.CairoConfiguration;
 import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
 import io.questdb.griffin.FunctionFactory;
-import io.questdb.griffin.PlanSink;
 import io.questdb.griffin.SqlExecutionContext;
-import io.questdb.griffin.engine.functions.BinaryFunction;
-import io.questdb.griffin.engine.functions.DecimalFunction;
-import io.questdb.std.DecimalImpl;
+import io.questdb.griffin.engine.functions.constants.StrConstant;
+import io.questdb.std.Decimal64Impl;
 import io.questdb.std.IntList;
 import io.questdb.std.ObjList;
+import io.questdb.std.str.Utf8Sequence;
+import io.questdb.std.str.Utf8StringSink;
 
-public class MulDecimalFunctionFactory implements FunctionFactory {
+public class CastDecimal64ToVarcharFunctionFactory implements FunctionFactory {
     @Override
     public String getSignature() {
-        return "*(ÆÆ)";
+        return "cast(Æø)";
     }
 
     @Override
     public Function newInstance(int position, ObjList<Function> args, IntList argPositions, CairoConfiguration configuration, SqlExecutionContext sqlExecutionContext) {
-        return new Func(args.getQuick(0), args.getQuick(1));
+        Function func = args.getQuick(0);
+        if (func.isConstant()) {
+            @Decimal long decimal = func.getDecimal64(null);
+            if (Decimal64Impl.isNull(decimal)) {
+                return StrConstant.NULL;
+            }
+            return StrConstant.newInstance(Decimal64Impl.toString(decimal));
+        }
+        return new Func(args.getQuick(0));
     }
 
-    private static final class Func extends DecimalFunction implements BinaryFunction {
-        private final Function left;
-        private final Function right;
+    public static class Func extends AbstractCastToVarcharFunction {
+        private final Utf8StringSink sinkA = new Utf8StringSink();
+        private final Utf8StringSink sinkB = new Utf8StringSink();
 
-        public Func(Function left, Function right) {
-            this.left = left;
-            this.right = right;
+        public Func(Function arg) {
+            super(arg);
         }
 
         @Override
-        public @Decimal long getDecimal(Record rec) {
-            @Decimal long result = DecimalImpl.mul(left.getDecimal(rec), right.getDecimal(rec));
-            if (DecimalImpl.isNaN(result)) {
-                return DecimalImpl.NULL;
-            } else {
-                return result;
+        public Utf8Sequence getVarcharA(Record rec) {
+            @Decimal long decimal = arg.getDecimal64(rec);
+            if (Decimal64Impl.isNull(decimal)) {
+                return null;
             }
+            sinkA.clear();
+            Decimal64Impl.toSink(decimal, sinkA);
+            return sinkA;
         }
 
         @Override
-        public Function getLeft() {
-            return left;
-        }
-
-        @Override
-        public Function getRight() {
-            return right;
-        }
-
-        @Override
-        public void toPlan(PlanSink sink) {
-            sink.val(left).val('*').val(right);
+        public Utf8Sequence getVarcharB(Record rec) {
+            @Decimal long decimal = arg.getDecimal64(rec);
+            if (Decimal64Impl.isNull(decimal)) {
+                return null;
+            }
+            sinkB.clear();
+            Decimal64Impl.toSink(decimal, sinkB);
+            return sinkB;
         }
     }
 }

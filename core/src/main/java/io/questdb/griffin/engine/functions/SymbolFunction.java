@@ -81,7 +81,7 @@ public abstract class SymbolFunction implements ScalarFunction, SymbolTable {
     }
 
     @Override
-    public @Decimal long getDecimal(Record rec) {
+    public @Decimal long getDecimal64(Record rec) {
         throw new UnsupportedOperationException();
     }
 

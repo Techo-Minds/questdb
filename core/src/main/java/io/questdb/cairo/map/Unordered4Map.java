@@ -574,7 +574,7 @@ public class Unordered4Map implements Map, Reopenable {
         }
 
         @Override
-        public void putDecimal(@Decimal long decimal) {
+        public void putDecimal64(@Decimal long decimal) {
             throw new UnsupportedOperationException();
         }
 

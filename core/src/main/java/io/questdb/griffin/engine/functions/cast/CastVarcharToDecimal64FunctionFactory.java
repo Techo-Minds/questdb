@@ -22,41 +22,56 @@
  *
  ******************************************************************************/
 
-package io.questdb.griffin.engine.functions.eq;
+package io.questdb.griffin.engine.functions.cast;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.CairoConfiguration;
+import io.questdb.cairo.ColumnType;
+import io.questdb.cairo.ImplicitCastException;
 import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
 import io.questdb.griffin.FunctionFactory;
 import io.questdb.griffin.SqlExecutionContext;
-import io.questdb.std.DecimalImpl;
+import io.questdb.std.Decimal64Impl;
 import io.questdb.std.IntList;
+import io.questdb.std.NumericException;
 import io.questdb.std.ObjList;
+import io.questdb.std.str.Utf8Sequence;
 
-public class EqDecimalFunctionFactory implements FunctionFactory {
+public class CastVarcharToDecimal64FunctionFactory implements FunctionFactory {
     @Override
     public String getSignature() {
-        return "=(ÆÆ)";
+        return "cast(Øæ)";
     }
 
     @Override
-    public boolean isBoolean() {
-        return true;
+    public Function newInstance(
+            int position,
+            ObjList<Function> args,
+            IntList argPositions,
+            CairoConfiguration configuration,
+            SqlExecutionContext sqlExecutionContext
+    ) {
+        return new Func(args.getQuick(0));
     }
 
-    @Override
-    public Function newInstance(int position, ObjList<Function> args, IntList argPositions, CairoConfiguration configuration, SqlExecutionContext sqlExecutionContext) {
-        return new Func(args.getQuick(0), args.getQuick(1));
-    }
-
-    private static class Func extends AbstractEqBinaryFunction {
-        public Func(Function left, Function right) {
-            super(left, right);
+    private static class Func extends AbstractCastToDecimal64Function {
+        public Func(Function arg) {
+            super(arg);
         }
 
         @Override
-        public boolean getBool(Record rec) {
-            return negated != DecimalImpl.equals(left.getDecimal(rec), right.getDecimal(rec));
+        public @Decimal long getDecimal64(Record rec) {
+            Utf8Sequence value = arg.getVarcharA(rec);
+            if (value == null) {
+                return Decimal64Impl.NULL;
+            }
+
+            try {
+                return Decimal64Impl.parse(value);
+            } catch (NumericException ex) {
+                throw ImplicitCastException.inconvertibleValue(value, ColumnType.VARCHAR, ColumnType.DECIMAL64);
+            }
         }
     }
 }

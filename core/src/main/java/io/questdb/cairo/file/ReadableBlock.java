@@ -47,7 +47,7 @@ public interface ReadableBlock {
     char getChar(long offset);
 
     @Decimal
-    long getDecimal(long offset);
+    long getDecimal64(long offset);
 
     double getDouble(long offset);
 

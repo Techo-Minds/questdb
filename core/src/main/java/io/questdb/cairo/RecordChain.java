@@ -225,7 +225,7 @@ public class RecordChain implements Closeable, RecordCursor, RecordSinkSPI, Wind
     }
 
     @Override
-    public void putDecimal(@Decimal long decimal) {
+    public void putDecimal64(@Decimal long decimal) {
         mem.putLong(decimal);
     }
 

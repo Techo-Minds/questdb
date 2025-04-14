@@ -25,17 +25,17 @@
 package io.questdb.test.griffin.engine.functions;
 
 import io.questdb.cairo.sql.Record;
-import io.questdb.griffin.engine.functions.DecimalFunction;
-import io.questdb.std.DecimalImpl;
+import io.questdb.griffin.engine.functions.Decimal64Function;
+import io.questdb.std.Decimal64Impl;
 import org.junit.Test;
 
-public class DecimalFunctionTest {
+public class Decimal64FunctionTest {
     // assert that all type casts that are not possible will throw exception
 
-    private static final DecimalFunction function = new DecimalFunction() {
+    private static final Decimal64Function function = new Decimal64Function() {
         @Override
-        public long getDecimal(Record rec) {
-            return DecimalImpl.fromLong(123);
+        public long getDecimal64(Record rec) {
+            return Decimal64Impl.fromLong(123);
         }
 
         @Override

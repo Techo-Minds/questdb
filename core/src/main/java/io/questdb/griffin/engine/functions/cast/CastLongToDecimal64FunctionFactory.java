@@ -30,12 +30,12 @@ import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
 import io.questdb.griffin.FunctionFactory;
 import io.questdb.griffin.SqlExecutionContext;
-import io.questdb.std.DecimalImpl;
+import io.questdb.std.Decimal64Impl;
 import io.questdb.std.IntList;
 import io.questdb.std.Numbers;
 import io.questdb.std.ObjList;
 
-public class CastLongToDecimalFunctionFactory implements FunctionFactory {
+public class CastLongToDecimal64FunctionFactory implements FunctionFactory {
     @Override
     public String getSignature() {
         return "cast(Læ)";
@@ -52,20 +52,20 @@ public class CastLongToDecimalFunctionFactory implements FunctionFactory {
         return new Func(args.getQuick(0));
     }
 
-    public static class Func extends AbstractCastToDecimalFunction {
+    public static class Func extends AbstractCastToDecimal64Function {
         public Func(Function arg) {
             super(arg);
         }
 
         @Override
-        public @Decimal long getDecimal(Record rec) {
+        public @Decimal long getDecimal64(Record rec) {
             long value = arg.getLong(rec);
 
             if (value == Numbers.LONG_NULL) {
-                return DecimalImpl.NULL;
+                return Decimal64Impl.NULL;
             }
 
-            return DecimalImpl.fromLong(value);
+            return Decimal64Impl.fromLong(value);
         }
     }
 }

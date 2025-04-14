@@ -73,7 +73,7 @@ public interface MemoryCR extends MemoryC, MemoryR {
         return Unsafe.getUnsafe().getChar(addressOf(offset));
     }
 
-    default @Decimal long getDecimal(long offset) {
+    default @Decimal long getDecimal64(long offset) {
         return getLong(offset);
     }
 

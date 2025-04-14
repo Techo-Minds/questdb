@@ -242,12 +242,12 @@ public class MemoryCMARWImpl extends AbstractMemoryCR implements MemoryCMARW, Me
     }
 
     @Override
-    public void putDecimal(long offset, @Decimal long value) {
+    public void putDecimal64(long offset, @Decimal long value) {
         putLong(offset, value);
     }
 
     @Override
-    public void putDecimal(@Decimal long value) {
+    public void putDecimal64(@Decimal long value) {
         putLong(value);
     }
 

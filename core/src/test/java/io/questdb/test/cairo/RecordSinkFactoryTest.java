@@ -36,7 +36,7 @@ import io.questdb.cairo.sql.RecordCursorFactory;
 import io.questdb.std.BinarySequence;
 import io.questdb.std.BitSet;
 import io.questdb.std.BytecodeAssembler;
-import io.questdb.std.DecimalImpl;
+import io.questdb.std.Decimal64Impl;
 import io.questdb.std.IntList;
 import io.questdb.std.Interval;
 import io.questdb.std.Long256;
@@ -352,10 +352,10 @@ public class RecordSinkFactoryTest extends AbstractCairoTest {
         }
 
         @Override
-        public long getDecimal(Record rec) {
-            Assert.assertEquals(ColumnType.DECIMAL, type);
+        public long getDecimal64(Record rec) {
+            Assert.assertEquals(ColumnType.DECIMAL64, type);
             callCount++;
-            return DecimalImpl.fromLong(123);
+            return Decimal64Impl.fromLong(123);
         }
 
         @Override
@@ -755,8 +755,8 @@ public class RecordSinkFactoryTest extends AbstractCairoTest {
         }
 
         @Override
-        public void putDecimal(long decimal) {
-            recordedTypes.add(ColumnType.DECIMAL);
+        public void putDecimal64(long decimal) {
+            recordedTypes.add(ColumnType.DECIMAL64);
         }
 
         @Override

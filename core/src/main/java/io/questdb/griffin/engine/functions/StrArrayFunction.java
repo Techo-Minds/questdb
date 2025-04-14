@@ -38,7 +38,7 @@ import io.questdb.std.str.Utf8Sequence;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class StrArrayFunction implements Function {
-    
+
     @Override
     public final BinarySequence getBin(Record rec) {
         throw new UnsupportedOperationException();
@@ -70,7 +70,7 @@ public abstract class StrArrayFunction implements Function {
     }
 
     @Override
-    public @Decimal long getDecimal(Record rec) {
+    public @Decimal long getDecimal64(Record rec) {
         throw new UnsupportedOperationException();
     }
 

@@ -88,8 +88,8 @@ public class VirtualRecord implements ColumnTypes, Record {
     }
 
     @Override
-    public @Decimal long getDecimal(int col) {
-        return getFunction(col).getDecimal(base);
+    public @Decimal long getDecimal64(int col) {
+        return getFunction(col).getDecimal64(base);
     }
 
     @Override

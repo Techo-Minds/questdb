@@ -28,7 +28,7 @@ import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.ColumnType;
 import io.questdb.cairo.TableWriter;
 import io.questdb.griffin.SqlKeywords;
-import io.questdb.std.DecimalImpl;
+import io.questdb.std.Decimal64Impl;
 import io.questdb.std.Numbers;
 import io.questdb.std.NumericException;
 import io.questdb.std.str.DirectUtf8Sequence;
@@ -40,8 +40,8 @@ public final class LongAdapter extends AbstractTypeAdapter implements TimestampC
     private LongAdapter() {
     }
 
-    public @Decimal long getDecimal(DirectUtf8Sequence value) throws NumericException {
-        return DecimalImpl.parse(value);
+    public @Decimal long getDecimal64(DirectUtf8Sequence value) throws NumericException {
+        return Decimal64Impl.parse(value);
     }
 
     public long getLong(DirectUtf8Sequence value) throws Exception {

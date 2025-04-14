@@ -52,7 +52,7 @@ import io.questdb.griffin.engine.functions.columns.BooleanColumn;
 import io.questdb.griffin.engine.functions.columns.ByteColumn;
 import io.questdb.griffin.engine.functions.columns.CharColumn;
 import io.questdb.griffin.engine.functions.columns.DateColumn;
-import io.questdb.griffin.engine.functions.columns.DecimalColumn;
+import io.questdb.griffin.engine.functions.columns.Decimal64Column;
 import io.questdb.griffin.engine.functions.columns.DoubleColumn;
 import io.questdb.griffin.engine.functions.columns.FloatColumn;
 import io.questdb.griffin.engine.functions.columns.GeoByteColumn;
@@ -79,7 +79,7 @@ import io.questdb.griffin.engine.functions.constants.CharTypeConstant;
 import io.questdb.griffin.engine.functions.constants.ConstantFunction;
 import io.questdb.griffin.engine.functions.constants.Constants;
 import io.questdb.griffin.engine.functions.constants.DateConstant;
-import io.questdb.griffin.engine.functions.constants.DecimalConstant;
+import io.questdb.griffin.engine.functions.constants.Decimal64Constant;
 import io.questdb.griffin.engine.functions.constants.DoubleConstant;
 import io.questdb.griffin.engine.functions.constants.FloatConstant;
 import io.questdb.griffin.engine.functions.constants.GeoByteConstant;
@@ -118,7 +118,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayDeque;
 
-import static io.questdb.cairo.ColumnType.DECIMAL;
+import static io.questdb.cairo.ColumnType.DECIMAL64;
 import static io.questdb.griffin.SqlKeywords.*;
 
 public class FunctionParser implements PostOrderTreeTraversalAlgo.Visitor, Mutable {
@@ -214,8 +214,8 @@ public class FunctionParser implements PostOrderTreeTraversalAlgo.Visitor, Mutab
             case ColumnType.INTERVAL:
                 // we cannot use a pooled IntervalColumn instance, because it is not thread-safe
                 return new IntervalColumn(index);
-            case ColumnType.DECIMAL:
-                return DecimalColumn.newInstance(index);
+            case ColumnType.DECIMAL64:
+                return Decimal64Column.newInstance(index);
             default:
                 throw SqlException.position(position)
                         .put("unsupported column type ")
@@ -658,7 +658,7 @@ public class FunctionParser implements PostOrderTreeTraversalAlgo.Visitor, Mutab
                         || columnType == ColumnType.IPv4
                         || columnType == ColumnType.VARCHAR
                         || columnType == ColumnType.INTERVAL
-                        || columnType == DECIMAL
+                        || columnType == DECIMAL64
         ) {
             return Constants.getTypeConstant(columnType);
         }
@@ -1218,11 +1218,11 @@ public class FunctionParser implements PostOrderTreeTraversalAlgo.Visitor, Mutab
                 } else {
                     return IPv4Constant.newInstance(function.getIPv4(null));
                 }
-            case ColumnType.DECIMAL:
-                if (function instanceof DecimalConstant) {
+            case ColumnType.DECIMAL64:
+                if (function instanceof Decimal64Constant) {
                     return function;
                 } else {
-                    return DecimalConstant.newInstance(function.getDecimal(null));
+                    return Decimal64Constant.newInstance(function.getDecimal64(null));
                 }
             default:
                 return function;

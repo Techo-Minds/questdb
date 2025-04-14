@@ -52,7 +52,7 @@ import io.questdb.network.NoSpaceLeftInResponseBufferException;
 import io.questdb.network.PeerDisconnectedException;
 import io.questdb.network.PeerIsSlowToReadException;
 import io.questdb.std.Chars;
-import io.questdb.std.DecimalImpl;
+import io.questdb.std.Decimal64Impl;
 import io.questdb.std.IntList;
 import io.questdb.std.Interval;
 import io.questdb.std.Misc;
@@ -394,13 +394,13 @@ public class JsonQueryProcessorState implements Mutable, Closeable {
         response.putAscii('"').putISODateMillis(d).putAscii('"');
     }
 
-    private static void putDecimalValue(HttpChunkedResponse response, Record rec, int col) {
-        final @Decimal long decimal = rec.getDecimal(col);
-        if (DecimalImpl.isNull(decimal)) {
+    private static void putDecimal64Value(HttpChunkedResponse response, Record rec, int col) {
+        final @Decimal long decimal = rec.getDecimal64(col);
+        if (Decimal64Impl.isNull(decimal)) {
             response.putAscii("null");
             return;
         }
-        DecimalImpl.toSink(decimal, response);
+        Decimal64Impl.toSink(decimal, response);
     }
 
     private static void putGeoHashStringByteValue(HttpChunkedResponse response, Record rec, int col, int bitFlags) {
@@ -583,7 +583,7 @@ public class JsonQueryProcessorState implements Mutable, Closeable {
             case ColumnType.UUID:
             case ColumnType.IPv4:
             case ColumnType.INTERVAL:
-            case ColumnType.DECIMAL:
+            case ColumnType.DECIMAL64:
                 break;
             default:
                 throw CairoException.nonCritical().put("column type not supported [column=").put(columnName).put(", type=").put(ColumnType.nameOf(columnType)).put(']');
@@ -736,8 +736,8 @@ public class JsonQueryProcessorState implements Mutable, Closeable {
                 case ColumnType.INTERVAL:
                     putIntervalValue(response, record, columnIdx);
                     break;
-                case ColumnType.DECIMAL:
-                    putDecimalValue(response, record, columnIdx);
+                case ColumnType.DECIMAL64:
+                    putDecimal64Value(response, record, columnIdx);
                     break;
                 default:
                     // this should never happen since metadata are already validated

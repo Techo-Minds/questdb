@@ -120,7 +120,7 @@ public interface Function extends Closeable, StatefulAtom, Plannable {
     long getDate(Record rec);
 
     @Decimal
-    long getDecimal(Record rec);
+    long getDecimal64(Record rec);
 
     double getDouble(Record rec);
 

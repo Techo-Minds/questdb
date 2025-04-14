@@ -25,7 +25,7 @@
 package io.questdb.griffin.engine.functions.finance;
 
 import com.epam.deltix.dfp.Decimal;
-import io.questdb.std.DecimalImpl;
+import io.questdb.std.Decimal64Impl;
 import io.questdb.std.Numbers;
 
 public class FinanceUtils {
@@ -38,10 +38,10 @@ public class FinanceUtils {
     }
 
     public static @Decimal long mid(@Decimal long bid, @Decimal long ask) {
-        if (DecimalImpl.isNull(bid) || DecimalImpl.isNull(ask)) {
-            return DecimalImpl.NULL;
+        if (Decimal64Impl.isNull(bid) || Decimal64Impl.isNull(ask)) {
+            return Decimal64Impl.NULL;
         }
-        return DecimalImpl.divByInt(DecimalImpl.add(bid, ask), 2);
+        return Decimal64Impl.divByInt(Decimal64Impl.add(bid, ask), 2);
     }
 
     public static double spread(double bid, double ask) {
@@ -53,10 +53,10 @@ public class FinanceUtils {
     }
 
     public static @Decimal long spread(@Decimal long bid, @Decimal long ask) {
-        if (DecimalImpl.isNull(bid) || DecimalImpl.isNull(ask)) {
-            return DecimalImpl.NULL;
+        if (Decimal64Impl.isNull(bid) || Decimal64Impl.isNull(ask)) {
+            return Decimal64Impl.NULL;
         }
-        return DecimalImpl.sub(bid, ask);
+        return Decimal64Impl.sub(bid, ask);
     }
 
 }

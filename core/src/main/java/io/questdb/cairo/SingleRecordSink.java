@@ -119,7 +119,7 @@ public final class SingleRecordSink implements RecordSinkSPI, Mutable, Reopenabl
     }
 
     @Override
-    public void putDecimal(@Decimal long decimal) {
+    public void putDecimal64(@Decimal long decimal) {
         checkCapacity(8);
         Unsafe.getUnsafe().putLong(appendAddress, decimal);
         appendAddress += 8;

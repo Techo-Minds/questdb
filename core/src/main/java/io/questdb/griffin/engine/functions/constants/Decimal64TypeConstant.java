@@ -27,14 +27,14 @@ package io.questdb.griffin.engine.functions.constants;
 import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.sql.Record;
 import io.questdb.griffin.TypeConstant;
-import io.questdb.griffin.engine.functions.DecimalFunction;
-import io.questdb.std.DecimalImpl;
+import io.questdb.griffin.engine.functions.Decimal64Function;
+import io.questdb.std.Decimal64Impl;
 
-public class DecimalTypeConstant extends DecimalFunction implements TypeConstant {
-    public static final DecimalTypeConstant INSTANCE = new DecimalTypeConstant();
+public class Decimal64TypeConstant extends Decimal64Function implements TypeConstant {
+    public static final Decimal64TypeConstant INSTANCE = new Decimal64TypeConstant();
 
     @Override
-    public @Decimal long getDecimal(Record rec) {
-        return DecimalImpl.NULL;
+    public @Decimal long getDecimal64(Record rec) {
+        return Decimal64Impl.NULL;
     }
 }
