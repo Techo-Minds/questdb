@@ -24,7 +24,6 @@
 
 package io.questdb.griffin;
 
-import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.ColumnType;
 import io.questdb.cairo.GeoHashes;
 import io.questdb.cairo.ImplicitCastException;
@@ -37,7 +36,6 @@ import io.questdb.griffin.model.QueryColumn;
 import io.questdb.griffin.model.QueryModel;
 import io.questdb.std.CharSequenceHashSet;
 import io.questdb.std.Chars;
-import io.questdb.std.DecimalImpl;
 import io.questdb.std.GenericLexer;
 import io.questdb.std.Long256;
 import io.questdb.std.Long256Acceptor;
@@ -326,15 +324,6 @@ public class SqlUtil {
         throw ImplicitCastException.inconvertibleValue(value, ColumnType.FLOAT, ColumnType.BYTE);
     }
 
-    // todo: precision check this cast
-    public static @Decimal long implicitCastDoubleAsDecimal(double value) {
-        if (Numbers.isNull(value)) {
-            return DecimalImpl.NULL;
-        }
-
-        return DecimalImpl.fromDouble(value);
-    }
-
 
     @SuppressWarnings("unused")
     // used by the row copier
@@ -451,14 +440,6 @@ public class SqlUtil {
         return 0;
     }
 
-    public static @Decimal long implicitCastIntAsDecimal(int value) {
-        if (value == Numbers.INT_NULL) {
-            return DecimalImpl.NULL;
-        }
-
-        return DecimalImpl.fromLong(value);
-    }
-
     @SuppressWarnings("unused")
     // used by the row copier
     public static short implicitCastIntAsShort(int value) {
@@ -483,18 +464,6 @@ public class SqlUtil {
             return implicitCastAsByte(value, ColumnType.LONG);
         }
         return 0;
-    }
-
-    public static @Decimal long implicitCastLongAsDecimal(long value) {
-        if (value == Numbers.LONG_NULL) {
-            return DecimalImpl.NULL;
-        }
-
-        if (value >= -999999999999999L && value <= 999999999999999L) {
-            return DecimalImpl.fromLong(value);
-        }
-
-        throw ImplicitCastException.inconvertibleValue(value, ColumnType.LONG, ColumnType.DECIMAL);
     }
 
     @SuppressWarnings("unused")
@@ -549,18 +518,6 @@ public class SqlUtil {
 
     public static long implicitCastStrAsDate(CharSequence value) {
         return implicitCastStrVarcharAsDate0(value, ColumnType.STRING);
-    }
-
-    public static @Decimal long implicitCastStrAsDecimal(CharSequence value) {
-        if (value == null) {
-            return DecimalImpl.NULL;
-        }
-
-        try {
-            return DecimalImpl.parse(value);
-        } catch (NumericException ex) {
-            throw ImplicitCastException.inconvertibleValue(value, ColumnType.STRING, ColumnType.DECIMAL);
-        }
     }
 
     public static double implicitCastStrAsDouble(CharSequence value) {
@@ -733,18 +690,6 @@ public class SqlUtil {
 
     public static long implicitCastVarcharAsDate(CharSequence value) {
         return implicitCastStrVarcharAsDate0(value, ColumnType.VARCHAR);
-    }
-
-    public static @Decimal long implicitCastVarcharAsDecimal(Utf8Sequence value) {
-        if (value == null) {
-            return DecimalImpl.NULL;
-        }
-
-        try {
-            return DecimalImpl.parse(value);
-        } catch (NumericException ex) {
-            throw ImplicitCastException.inconvertibleValue(value, ColumnType.VARCHAR, ColumnType.DECIMAL);
-        }
     }
 
     public static double implicitCastVarcharAsDouble(Utf8Sequence value) {

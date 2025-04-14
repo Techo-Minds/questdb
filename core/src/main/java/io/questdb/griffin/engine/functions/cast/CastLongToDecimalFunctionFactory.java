@@ -30,8 +30,9 @@ import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
 import io.questdb.griffin.FunctionFactory;
 import io.questdb.griffin.SqlExecutionContext;
-import io.questdb.griffin.SqlUtil;
+import io.questdb.std.DecimalImpl;
 import io.questdb.std.IntList;
+import io.questdb.std.Numbers;
 import io.questdb.std.ObjList;
 
 public class CastLongToDecimalFunctionFactory implements FunctionFactory {
@@ -51,14 +52,20 @@ public class CastLongToDecimalFunctionFactory implements FunctionFactory {
         return new Func(args.getQuick(0));
     }
 
-    private static class Func extends AbstractCastToDecimalFunction {
+    public static class Func extends AbstractCastToDecimalFunction {
         public Func(Function arg) {
             super(arg);
         }
 
         @Override
         public @Decimal long getDecimal(Record rec) {
-            return SqlUtil.implicitCastLongAsDecimal(arg.getLong(rec));
+            long value = arg.getLong(rec);
+
+            if (value == Numbers.LONG_NULL) {
+                return DecimalImpl.NULL;
+            }
+
+            return DecimalImpl.fromLong(value);
         }
     }
 }

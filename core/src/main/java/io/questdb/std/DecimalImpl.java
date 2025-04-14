@@ -33,6 +33,7 @@ import org.jetbrains.annotations.NotNull;
 public class DecimalImpl {
 
     public static @Decimal long NULL = Decimal64Utils.NULL;
+    public static @Decimal long ONE = Decimal64Utils.ONE;
     public static @Decimal long ZERO = Decimal64Utils.ZERO;
 
     public static @Decimal long add(@Decimal long l, @Decimal long r) {
@@ -41,6 +42,22 @@ public class DecimalImpl {
 
     public static @Decimal long ceiling(@Decimal long decimal) {
         return Decimal64Utils.ceiling(decimal);
+    }
+
+    public static @Decimal long div(@Decimal long l, @Decimal long r) {
+        return Decimal64Utils.divide(l, r);
+    }
+
+    public static @Decimal long divByInt(@Decimal long l, long r) {
+        return Decimal64Utils.divideByInteger(l, r);
+    }
+
+    public static @Decimal long divByInt(@Decimal long l, int r) {
+        return Decimal64Utils.divideByInteger(l, r);
+    }
+
+    public static boolean equals(@Decimal long left, @Decimal long right) {
+        return Decimal64Utils.equals(left, right);
     }
 
     public static @Decimal long floor(@Decimal long decimal) {
@@ -71,6 +88,22 @@ public class DecimalImpl {
         return Decimal64Utils.isZero(value);
     }
 
+    public static boolean lessThan(@Decimal long left, @Decimal long right) {
+        return Decimal64Utils.isLess(left, right);
+    }
+
+    public static @Decimal long mul(@Decimal long l, @Decimal long r) {
+        return Decimal64Utils.multiply(l, r);
+    }
+
+    public static @Decimal long mulByInt(@Decimal long l, long r) {
+        return Decimal64Utils.multiplyByInteger(l, r);
+    }
+
+    public static @Decimal long mulByInt(@Decimal long l, int r) {
+        return Decimal64Utils.multiplyByInteger(l, r);
+    }
+
     public static @Decimal long parse(CharSequence value) throws NumericException {
         try {
             return Decimal64Utils.parse(value);
@@ -89,6 +122,10 @@ public class DecimalImpl {
 
     public static @Decimal long round(@Decimal long decimal) {
         return Decimal64Utils.round(decimal);
+    }
+
+    public static @Decimal long sub(@Decimal long l, @Decimal long r) {
+        return Decimal64Utils.subtract(l, r);
     }
 
     public static double toDouble(@Decimal long decimal) {
@@ -122,6 +159,6 @@ public class DecimalImpl {
     public static String toString(@Decimal long decimal) {
         return Decimal64Utils.toString(decimal);
     }
-    
+
 }
 

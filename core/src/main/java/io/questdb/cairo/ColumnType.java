@@ -190,8 +190,7 @@ public final class ColumnType {
                 // Same with bytes and bools
                 || (fromType == BYTE && toType == BOOLEAN)
                 || (fromType == TIMESTAMP && toType == LONG)
-                || (fromType == STRING && (toType >= BYTE && toType <= DOUBLE)
-                || (fromType == LONG && toType == DECIMAL));
+                || (fromType == STRING && (toType >= BYTE && toType <= DOUBLE));
     }
 
     public static boolean isChar(int columnType) {
@@ -468,13 +467,13 @@ public final class ColumnType {
                 /* 2  BYTE      */, {BYTE, SHORT, INT, LONG, FLOAT, DOUBLE}
                 /* 3  SHORT     */, {SHORT, INT, LONG, FLOAT, DOUBLE, CHAR}
                 /* 4  CHAR      */, {CHAR, STRING, VARCHAR, SHORT, INT, LONG, FLOAT, DOUBLE}
-                /* 5  INT       */, {INT, LONG, FLOAT, DOUBLE, TIMESTAMP, DATE, DECIMAL}
-                /* 6  LONG      */, {LONG, DOUBLE, TIMESTAMP, DATE, DECIMAL}
+                /* 5  INT       */, {INT, LONG, FLOAT, DOUBLE, TIMESTAMP, DATE}
+                /* 6  LONG      */, {LONG, DOUBLE, TIMESTAMP, DATE}
                 /* 7  DATE      */, {DATE, TIMESTAMP, LONG, DOUBLE}
                 /* 8  TIMESTAMP */, {TIMESTAMP, LONG, DATE, DOUBLE}
                 /* 9  FLOAT     */, {FLOAT, DOUBLE}
                 /* 10 DOUBLE    */, {DOUBLE}
-                /* 11 STRING    */, {STRING, VARCHAR, CHAR, DOUBLE, LONG, INT, FLOAT, SHORT, BYTE, TIMESTAMP, DATE, SYMBOL, IPv4, DECIMAL}
+                /* 11 STRING    */, {STRING, VARCHAR, CHAR, DOUBLE, LONG, INT, FLOAT, SHORT, BYTE, TIMESTAMP, DATE, SYMBOL, IPv4}
                 /* 12 SYMBOL    */, {SYMBOL, STRING, VARCHAR, CHAR, INT, TIMESTAMP}
                 /* 13 LONG256   */, {LONG256, LONG}
                 /* 14 GEOBYTE   */, {GEOBYTE, GEOSHORT, GEOINT, GEOLONG, GEOHASH}
@@ -489,9 +488,9 @@ public final class ColumnType {
                 /* 23 unused    */, {}
                 /* 24 LONG128   */, {LONG128}
                 /* 25 IPv4      */, {IPv4, STRING, VARCHAR}
-                /* 26 VARCHAR   */, {VARCHAR, STRING, CHAR, DOUBLE, LONG, INT, FLOAT, SHORT, BYTE, TIMESTAMP, DATE, SYMBOL, IPv4, DECIMAL}
+                /* 26 VARCHAR   */, {VARCHAR, STRING, CHAR, DOUBLE, LONG, INT, FLOAT, SHORT, BYTE, TIMESTAMP, DATE, SYMBOL, IPv4}
                 /* 27 ARRAY     */, {}
-                /* 28 DECIMAL   */, {DECIMAL, DOUBLE, LONG}
+                /* 28 DECIMAL   */, {DECIMAL}
                 /* 29 unused    */, {}
                 /* 30 unused    */, {}
                 /* 31 unused    */, {}

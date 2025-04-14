@@ -172,13 +172,6 @@ public class RecordToRowCopierUtils {
         int transferVarcharToDateCol = asm.poolMethod(RecordToRowCopierUtils.class, "transferVarcharToDateCol", "(Lio/questdb/cairo/TableWriter$Row;ILio/questdb/std/str/Utf8Sequence;)V");
         int transferStrToVarcharCol = asm.poolMethod(RecordToRowCopierUtils.class, "transferStrToVarcharCol", "(Lio/questdb/cairo/TableWriter$Row;ILjava/lang/CharSequence;)V");
 
-        int implicitCastDoubleAsDecimal = asm.poolMethod(SqlUtil.class, "implicitCastDoubleAsDecimal", "(D)J");
-        int implicitCastStrAsDecimal = asm.poolMethod(SqlUtil.class, "implicitCastStrAsDecimal", "(Ljava/lang/CharSequence;)J");
-        int implicitCastVarcharAsDecimal = asm.poolMethod(SqlUtil.class, "implicitCastVarcharAsDecimal", "(Lio/questdb/std/str/Utf8Sequence;)J");
-        int implicitCastLongAsDecimal = asm.poolMethod(SqlUtil.class, "implicitCastLongAsDecimal", "(J)J");
-        int implicitCastIntAsDecimal = asm.poolMethod(SqlUtil.class, "implicitCastIntAsDecimal", "(I)J");
-
-
         // in case of Geo Hashes column type can overflow short and asm.iconst() will not provide
         // the correct value.
         int n = toColumnFilter.getColumnCount();
@@ -273,10 +266,6 @@ public class RecordToRowCopierUtils {
                             asm.i2d();
                             asm.invokeInterface(wPutDouble, 3);
                             break;
-                        case ColumnType.DECIMAL:
-                            asm.invokeStatic(implicitCastIntAsDecimal);
-                            asm.invokeInterface(wPutDecimal, 3);
-                            break;
                         default:
                             assert false;
                             break;
@@ -318,10 +307,6 @@ public class RecordToRowCopierUtils {
                         case ColumnType.DOUBLE:
                             asm.l2d();
                             asm.invokeInterface(wPutDouble, 3);
-                            break;
-                        case ColumnType.DECIMAL:
-                            asm.invokeStatic(implicitCastLongAsDecimal);
-                            asm.invokeInterface(wPutDecimal, 3);
                             break;
                         default:
                             assert false;
@@ -558,10 +543,6 @@ public class RecordToRowCopierUtils {
                         case ColumnType.DOUBLE:
                             asm.invokeInterface(wPutDouble, 3);
                             break;
-                        case ColumnType.DECIMAL:
-                            asm.invokeStatic(implicitCastDoubleAsDecimal);
-                            asm.invokeInterface(wPutDecimal, 3);
-                            break;
                         default:
                             assert false;
                             break;
@@ -732,11 +713,6 @@ public class RecordToRowCopierUtils {
                             asm.invokeInterface(rGetVarchar);
                             asm.invokeInterface(wPutLong256Utf8, 2);
                             break;
-                        case ColumnType.DECIMAL:
-                            asm.invokeInterface(rGetVarchar);
-                            asm.invokeStatic(implicitCastVarcharAsDecimal);
-                            asm.invokeInterface(wPutDecimal, 3);
-                            break;
                         default:
                             assert false;
                     }
@@ -824,11 +800,6 @@ public class RecordToRowCopierUtils {
                             asm.invokeInterface(rGetStrA);
                             asm.invokeStatic(implicitCastStrAsLong256);
                             asm.invokeInterface(wPutLong256, 2);
-                            break;
-                        case ColumnType.DECIMAL:
-                            asm.invokeInterface(rGetStrA);
-                            asm.invokeStatic(implicitCastStrAsDecimal);
-                            asm.invokeInterface(wPutDecimal, 3);
                             break;
                         default:
                             assert false;

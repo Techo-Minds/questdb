@@ -29,7 +29,6 @@ import io.questdb.cairo.ColumnType;
 import io.questdb.cairo.sql.Record;
 import io.questdb.cairo.sql.RecordCursorFactory;
 import io.questdb.cairo.sql.ScalarFunction;
-import io.questdb.griffin.SqlUtil;
 import io.questdb.std.BinarySequence;
 import io.questdb.std.Long256;
 import io.questdb.std.Numbers;
@@ -70,7 +69,7 @@ public abstract class LongFunction implements ScalarFunction {
 
     @Override
     public @Decimal long getDecimal(Record rec) {
-        return SqlUtil.implicitCastLongAsDecimal(getLong(rec));
+        throw new UnsupportedOperationException();
     }
 
     @Override

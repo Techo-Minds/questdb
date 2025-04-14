@@ -24,6 +24,7 @@
 
 package io.questdb.griffin.engine.union;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.sql.Function;
 import io.questdb.std.BinarySequence;
 import io.questdb.std.Interval;
@@ -95,6 +96,14 @@ public class UnionCastRecord extends AbstractUnionRecord {
             return castFunctionsA.getQuick(col).getDate(recordA);
         }
         return castFunctionsB.getQuick(col).getDate(recordB);
+    }
+
+    @Override
+    public @Decimal long getDecimal(int col) {
+        if (useA) {
+            return castFunctionsA.getQuick(col).getDecimal(recordA);
+        }
+        return castFunctionsB.getQuick(col).getDecimal(recordB);
     }
 
     @Override

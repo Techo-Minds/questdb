@@ -43,6 +43,7 @@ import io.questdb.griffin.engine.functions.columns.BooleanColumn;
 import io.questdb.griffin.engine.functions.columns.ByteColumn;
 import io.questdb.griffin.engine.functions.columns.CharColumn;
 import io.questdb.griffin.engine.functions.columns.DateColumn;
+import io.questdb.griffin.engine.functions.columns.DecimalColumn;
 import io.questdb.griffin.engine.functions.columns.DoubleColumn;
 import io.questdb.griffin.engine.functions.columns.FloatColumn;
 import io.questdb.griffin.engine.functions.columns.GeoByteColumn;
@@ -368,6 +369,9 @@ public class GroupByUtils {
                 break;
             case ColumnType.INTERVAL:
                 func = IntervalColumn.newInstance(keyColumnIndex - 1);
+                break;
+            case ColumnType.DECIMAL:
+                func = DecimalColumn.newInstance(keyColumnIndex - 1);
                 break;
             default:
                 func = BinColumn.newInstance(keyColumnIndex - 1);

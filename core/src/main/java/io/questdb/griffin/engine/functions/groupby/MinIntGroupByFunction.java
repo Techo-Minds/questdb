@@ -24,6 +24,7 @@
 
 package io.questdb.griffin.engine.functions.groupby;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.ArrayColumnTypes;
 import io.questdb.cairo.ColumnType;
 import io.questdb.cairo.map.MapValue;
@@ -56,6 +57,11 @@ public class MinIntGroupByFunction extends IntFunction implements GroupByFunctio
     @Override
     public Function getArg() {
         return arg;
+    }
+
+    @Override
+    public @Decimal long getDecimal(Record rec) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

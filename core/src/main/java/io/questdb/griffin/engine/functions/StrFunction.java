@@ -74,7 +74,7 @@ public abstract class StrFunction implements ScalarFunction {
 
     @Override
     public @Decimal long getDecimal(Record rec) {
-        return SqlUtil.implicitCastStrAsDecimal(getStrA(rec));
+        throw new UnsupportedOperationException();
     }
 
     @Override

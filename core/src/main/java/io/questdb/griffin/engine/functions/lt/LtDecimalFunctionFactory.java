@@ -22,27 +22,29 @@
  *
  ******************************************************************************/
 
-package io.questdb.griffin.engine.functions.cast;
+package io.questdb.griffin.engine.functions.lt;
 
-import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.CairoConfiguration;
-import io.questdb.cairo.ColumnType;
-import io.questdb.cairo.ImplicitCastException;
 import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
 import io.questdb.griffin.FunctionFactory;
+import io.questdb.griffin.PlanSink;
 import io.questdb.griffin.SqlExecutionContext;
-import io.questdb.griffin.SqlUtil;
+import io.questdb.griffin.engine.functions.BinaryFunction;
+import io.questdb.griffin.engine.functions.NegatableBooleanFunction;
 import io.questdb.std.DecimalImpl;
 import io.questdb.std.IntList;
-import io.questdb.std.NumericException;
 import io.questdb.std.ObjList;
-import io.questdb.std.str.Utf8Sequence;
 
-public class CastVarcharToDecimalFunctionFactory implements FunctionFactory {
+public class LtDecimalFunctionFactory implements FunctionFactory {
     @Override
     public String getSignature() {
-        return "cast(Øæ)";
+        return "<(ÆÆ)";
+    }
+
+    @Override
+    public boolean isBoolean() {
+        return true;
     }
 
     @Override
@@ -53,26 +55,42 @@ public class CastVarcharToDecimalFunctionFactory implements FunctionFactory {
             CairoConfiguration configuration,
             SqlExecutionContext sqlExecutionContext
     ) {
-        return new Func(args.getQuick(0));
+        return new LtDecimalFunction(args.getQuick(0), args.getQuick(1));
     }
 
-    private static class Func extends AbstractCastToDecimalFunction {
-        public Func(Function arg) {
-            super(arg);
+    private static class LtDecimalFunction extends NegatableBooleanFunction implements BinaryFunction {
+        private final Function left;
+        private final Function right;
+
+        public LtDecimalFunction(Function left, Function right) {
+            this.left = left;
+            this.right = right;
         }
 
         @Override
-        public @Decimal long getDecimal(Record rec) {
-            Utf8Sequence value = arg.getVarcharA(rec);
-            if (value == null) {
-                return DecimalImpl.NULL;
-            }
+        public boolean getBool(Record rec) {
+            return negated != (DecimalImpl.lessThan(left.getDecimal(rec), right.getDecimal(rec)));
+        }
 
-            try {
-                return DecimalImpl.parse(value);
-            } catch (NumericException ex) {
-                throw ImplicitCastException.inconvertibleValue(value, ColumnType.VARCHAR, ColumnType.DECIMAL);
+        @Override
+        public Function getLeft() {
+            return left;
+        }
+
+        @Override
+        public Function getRight() {
+            return right;
+        }
+
+        @Override
+        public void toPlan(PlanSink sink) {
+            sink.val(left);
+            if (negated) {
+                sink.val(">=");
+            } else {
+                sink.val('<');
             }
+            sink.val(right);
         }
     }
 }

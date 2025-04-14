@@ -22,57 +22,68 @@
  *
  ******************************************************************************/
 
-package io.questdb.griffin.engine.functions.cast;
+package io.questdb.griffin.engine.functions.finance;
 
 import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.CairoConfiguration;
-import io.questdb.cairo.ColumnType;
-import io.questdb.cairo.ImplicitCastException;
 import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
 import io.questdb.griffin.FunctionFactory;
 import io.questdb.griffin.SqlExecutionContext;
-import io.questdb.griffin.SqlUtil;
+import io.questdb.griffin.engine.functions.BinaryFunction;
+import io.questdb.griffin.engine.functions.DecimalFunction;
 import io.questdb.std.DecimalImpl;
 import io.questdb.std.IntList;
-import io.questdb.std.NumericException;
 import io.questdb.std.ObjList;
-import io.questdb.std.str.Utf8Sequence;
 
-public class CastVarcharToDecimalFunctionFactory implements FunctionFactory {
+public class DecimalSpreadBpsFunctionFactory implements FunctionFactory {
+
+    // (bid, ask)
     @Override
     public String getSignature() {
-        return "cast(Øæ)";
+        return "spread_bps(ÆÆ)";
     }
 
     @Override
-    public Function newInstance(
-            int position,
-            ObjList<Function> args,
-            IntList argPositions,
-            CairoConfiguration configuration,
-            SqlExecutionContext sqlExecutionContext
-    ) {
-        return new Func(args.getQuick(0));
+    public Function newInstance(int position, ObjList<Function> args, IntList argPositions, CairoConfiguration configuration, SqlExecutionContext sqlExecutionContext) {
+        return new SpreadBpsFunction(args.getQuick(0), args.getQuick(1));
     }
 
-    private static class Func extends AbstractCastToDecimalFunction {
-        public Func(Function arg) {
-            super(arg);
+    private static class SpreadBpsFunction extends DecimalFunction implements BinaryFunction {
+        private final Function ask;
+        private final Function bid;
+
+        public SpreadBpsFunction(Function bid, Function ask) {
+            this.bid = bid;
+            this.ask = ask;
         }
 
         @Override
         public @Decimal long getDecimal(Record rec) {
-            Utf8Sequence value = arg.getVarcharA(rec);
-            if (value == null) {
-                return DecimalImpl.NULL;
-            }
+            final @Decimal long b = bid.getDecimal(rec);
+            final @Decimal long a = ask.getDecimal(rec);
 
-            try {
-                return DecimalImpl.parse(value);
-            } catch (NumericException ex) {
-                throw ImplicitCastException.inconvertibleValue(value, ColumnType.VARCHAR, ColumnType.DECIMAL);
-            }
+            @Decimal long spread = FinanceUtils.spread(b, a);
+            @Decimal long mid = FinanceUtils.mid(b, a);
+            @Decimal long interim = DecimalImpl.div(spread, mid);
+            @Decimal long result = DecimalImpl.mulByInt(interim, 10_000);
+
+            return result;
+        }
+
+        @Override
+        public Function getLeft() {
+            return bid;
+        }
+
+        @Override
+        public String getName() {
+            return "spread_bps";
+        }
+
+        @Override
+        public Function getRight() {
+            return ask;
         }
     }
 }

@@ -59,12 +59,12 @@ public class AddDecimalFunctionFactory implements FunctionFactory {
 
         @Override
         public long getDecimal(Record rec) {
-            final @Decimal long l = left.getDecimal(rec);
-            final @Decimal long r = right.getDecimal(rec);
-            if (DecimalImpl.isNull(l) || DecimalImpl.isNull(r)) {
+            @Decimal long result = DecimalImpl.add(left.getDecimal(rec), right.getDecimal(rec));
+            if (DecimalImpl.isNaN(result)) {
                 return DecimalImpl.NULL;
+            } else {
+                return result;
             }
-            return DecimalImpl.add(l, r);
         }
 
         @Override

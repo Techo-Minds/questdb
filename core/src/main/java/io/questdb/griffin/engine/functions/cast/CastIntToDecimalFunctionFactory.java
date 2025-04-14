@@ -22,41 +22,50 @@
  *
  ******************************************************************************/
 
-package io.questdb.griffin.engine.functions.finance;
+package io.questdb.griffin.engine.functions.cast;
 
 import com.epam.deltix.dfp.Decimal;
+import io.questdb.cairo.CairoConfiguration;
+import io.questdb.cairo.sql.Function;
+import io.questdb.cairo.sql.Record;
+import io.questdb.griffin.FunctionFactory;
+import io.questdb.griffin.SqlExecutionContext;
 import io.questdb.std.DecimalImpl;
+import io.questdb.std.IntList;
 import io.questdb.std.Numbers;
+import io.questdb.std.ObjList;
 
-public class FinanceUtils {
-
-    public static double mid(double bid, double ask) {
-        if (Numbers.isNull(bid) || Numbers.isNull(ask)) {
-            return Double.NaN;
-        }
-        return ((ask + bid) / 2.0);
+public class CastIntToDecimalFunctionFactory implements FunctionFactory {
+    @Override
+    public String getSignature() {
+        return "cast(Iæ)";
     }
 
-    public static @Decimal long mid(@Decimal long bid, @Decimal long ask) {
-        if (DecimalImpl.isNull(bid) || DecimalImpl.isNull(ask)) {
-            return DecimalImpl.NULL;
-        }
-        return DecimalImpl.divByInt(DecimalImpl.add(bid, ask), 2);
+    @Override
+    public Function newInstance(
+            int position,
+            ObjList<Function> args,
+            IntList argPositions,
+            CairoConfiguration configuration,
+            SqlExecutionContext sqlExecutionContext
+    ) {
+        return new Func(args.getQuick(0));
     }
 
-    public static double spread(double bid, double ask) {
-        if (Numbers.isNull(bid) || Numbers.isNull(ask)) {
-            return Double.NaN;
-        } else {
-            return (ask - bid);
+    private static class Func extends AbstractCastToDecimalFunction {
+        public Func(Function arg) {
+            super(arg);
+        }
+
+        @Override
+        public @Decimal long getDecimal(Record rec) {
+            int value = arg.getInt(rec);
+
+            if (value == Numbers.INT_NULL) {
+                return DecimalImpl.NULL;
+            }
+
+            return DecimalImpl.fromLong(value);
         }
     }
-
-    public static @Decimal long spread(@Decimal long bid, @Decimal long ask) {
-        if (DecimalImpl.isNull(bid) || DecimalImpl.isNull(ask)) {
-            return DecimalImpl.NULL;
-        }
-        return DecimalImpl.sub(bid, ask);
-    }
-
 }

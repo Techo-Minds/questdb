@@ -24,6 +24,7 @@
 
 package io.questdb.griffin.engine.join;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.sql.Record;
 import io.questdb.std.BinarySequence;
 import io.questdb.std.Interval;
@@ -86,6 +87,14 @@ public class JoinRecord implements Record {
             return master.getDate(col);
         }
         return slave.getDate(col - split);
+    }
+
+    @Override
+    public @Decimal long getDecimal(int col) {
+        if (col < split) {
+            return master.getDecimal(col);
+        }
+        return slave.getDecimal(col - split);
     }
 
     @Override

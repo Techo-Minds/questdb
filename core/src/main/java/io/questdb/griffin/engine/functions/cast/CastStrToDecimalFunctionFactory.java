@@ -26,12 +26,15 @@ package io.questdb.griffin.engine.functions.cast;
 
 import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.CairoConfiguration;
+import io.questdb.cairo.ColumnType;
+import io.questdb.cairo.ImplicitCastException;
 import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
 import io.questdb.griffin.FunctionFactory;
 import io.questdb.griffin.SqlExecutionContext;
-import io.questdb.griffin.SqlUtil;
+import io.questdb.std.DecimalImpl;
 import io.questdb.std.IntList;
+import io.questdb.std.NumericException;
 import io.questdb.std.ObjList;
 
 public class CastStrToDecimalFunctionFactory implements FunctionFactory {
@@ -58,7 +61,16 @@ public class CastStrToDecimalFunctionFactory implements FunctionFactory {
 
         @Override
         public @Decimal long getDecimal(Record rec) {
-            return SqlUtil.implicitCastStrAsDecimal(arg.getStrA(rec));
+            CharSequence value = arg.getStrA(rec);
+            if (value == null) {
+                return DecimalImpl.NULL;
+            }
+
+            try {
+                return DecimalImpl.parse(value);
+            } catch (NumericException ex) {
+                throw ImplicitCastException.inconvertibleValue(value, ColumnType.STRING, ColumnType.DECIMAL);
+            }
         }
     }
 }

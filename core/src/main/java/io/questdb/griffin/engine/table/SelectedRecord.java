@@ -24,6 +24,7 @@
 
 package io.questdb.griffin.engine.table;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.sql.Record;
 import io.questdb.std.BinarySequence;
 import io.questdb.std.IntList;
@@ -68,6 +69,11 @@ class SelectedRecord implements Record {
     @Override
     public long getDate(int col) {
         return base.getDate(getColumnIndex(col));
+    }
+
+    @Override
+    public @Decimal long getDecimal(int col) {
+        return base.getDecimal(getColumnIndex(col));
     }
 
     @Override

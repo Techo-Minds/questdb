@@ -24,6 +24,7 @@
 
 package io.questdb.griffin.engine.groupby;
 
+import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
 import io.questdb.griffin.engine.functions.groupby.InterpolationGroupByFunction;
@@ -84,6 +85,11 @@ public class SplitVirtualRecord implements Record {
     @Override
     public long getDate(int col) {
         return getFunction(col).getDate(base);
+    }
+
+    @Override
+    public @Decimal long getDecimal(int col) {
+        return getFunction(col).getDecimal(base);
     }
 
     @Override

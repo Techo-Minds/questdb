@@ -22,43 +22,41 @@
  *
  ******************************************************************************/
 
-package io.questdb.griffin.engine.functions.cast;
+package io.questdb.griffin.engine.functions.eq;
 
-import com.epam.deltix.dfp.Decimal;
 import io.questdb.cairo.CairoConfiguration;
 import io.questdb.cairo.sql.Function;
 import io.questdb.cairo.sql.Record;
 import io.questdb.griffin.FunctionFactory;
 import io.questdb.griffin.SqlExecutionContext;
-import io.questdb.griffin.SqlUtil;
+import io.questdb.std.DecimalImpl;
 import io.questdb.std.IntList;
 import io.questdb.std.ObjList;
 
-public class CastIntoDecimalFunctionFactory implements FunctionFactory {
+public class EqDecimalFunctionFactory implements FunctionFactory {
     @Override
     public String getSignature() {
-        return "cast(Iæ)";
+        return "=(ÆÆ)";
     }
 
     @Override
-    public Function newInstance(
-            int position,
-            ObjList<Function> args,
-            IntList argPositions,
-            CairoConfiguration configuration,
-            SqlExecutionContext sqlExecutionContext
-    ) {
-        return new Func(args.getQuick(0));
+    public boolean isBoolean() {
+        return true;
     }
 
-    private static class Func extends AbstractCastToDecimalFunction {
-        public Func(Function arg) {
-            super(arg);
+    @Override
+    public Function newInstance(int position, ObjList<Function> args, IntList argPositions, CairoConfiguration configuration, SqlExecutionContext sqlExecutionContext) {
+        return new Func(args.getQuick(0), args.getQuick(1));
+    }
+
+    private static class Func extends AbstractEqBinaryFunction {
+        public Func(Function left, Function right) {
+            super(left, right);
         }
 
         @Override
-        public @Decimal long getDecimal(Record rec) {
-            return SqlUtil.implicitCastIntAsDecimal(arg.getInt(rec));
+        public boolean getBool(Record rec) {
+            return negated != DecimalImpl.equals(left.getDecimal(rec), right.getDecimal(rec));
         }
     }
 }
