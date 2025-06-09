@@ -357,17 +357,12 @@ public class SqlCompilerImpl implements SqlCompiler, Closeable, SqlParserCallbac
     @Override
     @NotNull
     public CompiledQuery compile(@NotNull CharSequence sqlText, @NotNull SqlExecutionContext executionContext) throws SqlException {
-        return compile(sqlText, executionContext, true);
-    }
-
-    @NotNull
-    public CompiledQuery compile(@NotNull CharSequence sqlText, @NotNull SqlExecutionContext executionContext, boolean generateProgressLogger) throws SqlException {
         clear();
         // these are quick executions that do not require building of a model
         lexer.of(sqlText);
         isSingleQueryMode = true;
 
-        compileInner(executionContext, sqlText, generateProgressLogger);
+        compileInner(executionContext, sqlText, true);
         return compiledQuery;
     }
 
@@ -2306,9 +2301,7 @@ public class SqlCompilerImpl implements SqlCompiler, Closeable, SqlParserCallbac
                 executor.execute(executionContext, sqlText);
                 // executor might decide that SQL contains secret, otherwise we're logging it
                 this.sqlText = executionContext.containsSecret() ? "** redacted for privacy **" : sqlText;
-                if (!generateProgressLogger) {
-                    QueryProgress.logEnd(-1, this.sqlText, executionContext, beginNanos);
-                }
+                QueryProgress.logEnd(-1, this.sqlText, executionContext, beginNanos);
             } catch (Throwable th) {
                 // Executor is all-in-one, it parses SQL text and executes it right away. The convention is
                 // that before parsing secrets the executor will notify the execution context. In that, even if
@@ -2944,6 +2937,7 @@ public class SqlCompilerImpl implements SqlCompiler, Closeable, SqlParserCallbac
                             renamePath,
                             GenericLexer.unquote(rtm.getTo().token)
                     );
+                    QueryProgress.logEnd(sqlId, sqlText, executionContext, beginNanos);
                     compiledQuery.ofRenameTable();
                     break;
                 case ExecutionModel.UPDATE:
@@ -2975,7 +2969,6 @@ public class SqlCompilerImpl implements SqlCompiler, Closeable, SqlParserCallbac
                         compiledQuery.ofInsert(compileInsert(insertModel, executionContext), false);
                         QueryProgress.logEnd(sqlId, sqlText, executionContext, beginNanos);
                     }
-
                     break;
             }
 
@@ -3551,13 +3544,16 @@ public class SqlCompilerImpl implements SqlCompiler, Closeable, SqlParserCallbac
             long firstPartition = reader.getTxFile().getPartitionFloor(reader.getPartitionTimestampByIndex(0));
             long lastPartition = reader.getTxFile().getPartitionFloor(reader.getPartitionTimestampByIndex(partitionCount - 1));
 
+            long lastLogicalPartition = Long.MIN_VALUE;
             for (int partitionIndex = 1; partitionIndex < partitionCount - 1; partitionIndex++) {
                 long physicalTimestamp = reader.getPartitionTimestampByIndex(partitionIndex);
                 long logicalTimestamp = reader.getTxFile().getPartitionFloor(physicalTimestamp);
-                if (physicalTimestamp != logicalTimestamp || logicalTimestamp == firstPartition || logicalTimestamp == lastPartition) {
-                    continue;
+                if (logicalTimestamp != lastLogicalPartition && logicalTimestamp != firstPartition && logicalTimestamp != lastPartition) {
+                    if (filterApply(filter, filterPosition, changePartitionStatement, logicalTimestamp) > 0) {
+                        affectedPartitions++;
+                        lastLogicalPartition = logicalTimestamp;
+                    }
                 }
-                affectedPartitions += filterApply(filter, filterPosition, changePartitionStatement, logicalTimestamp);
             }
 
             // perform the action on the first and last partition, dropping them have to read min/max timestamp of the next first/last partition

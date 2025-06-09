@@ -30,6 +30,7 @@ import io.questdb.HttpClientConfiguration;
 import io.questdb.cairo.TableUtils;
 import io.questdb.client.Sender;
 import io.questdb.cutlass.http.HttpConstants;
+import io.questdb.cutlass.http.HttpKeywords;
 import io.questdb.cutlass.http.client.Fragment;
 import io.questdb.cutlass.http.client.HttpClient;
 import io.questdb.cutlass.http.client.HttpClientException;
@@ -190,23 +191,28 @@ public abstract class AbstractLineHttpSender implements Sender {
             }
             try {
                 HttpClient.Request req = cli.newRequest(host, port).GET();
-                HttpClient.ResponseHeaders responseHeaders = req.url(clientConfiguration.getSettingsPath()).send();
-                responseHeaders.await();
-                if (Utf8s.equalsNcAscii("200", responseHeaders.getStatusCode())) {
+                HttpClient.ResponseHeaders response = req.url(clientConfiguration.getSettingsPath()).send();
+                response.await();
+                DirectUtf8Sequence statusCode = response.getStatusCode();
+                if (Utf8s.equalsNcAscii("200", statusCode)) {
                     try (JsonSettingsParser parser = new JsonSettingsParser()) {
-                        parser.parse(responseHeaders.getResponse());
+                        parser.parse(response.getResponse());
                         protocolVersion = parser.getDefaultProtocolVersion();
                         if (parser.getMaxNameLen() != 0) {
                             maxNameLength = parser.getMaxNameLen();
                         }
                     }
-                } else if (Utf8s.equalsNcAscii("404", responseHeaders.getStatusCode())) {
+                } else if (Utf8s.equalsNcAscii("404", statusCode)) {
                     // The client is unable to differentiate between a server shutdown and connecting to an older version.
                     // So, the protocol is set to PROTOCOL_VERSION_V1 here for both scenarios.
                     protocolVersion = PROTOCOL_VERSION_V1;
                 } else {
-                    throw new LineSenderException("Failed to detect server line protocol version, http status code: ")
-                            .put(responseHeaders.getStatusCode());
+                    StringSink sink = new StringSink();
+                    chunkedResponseToSink(response, sink);
+                    throw new LineSenderException(
+                            "Failed to detect server line protocol version [http-status=").put(statusCode)
+                            .put(", http-message=").put(sink)
+                            .put(']');
                 }
             } catch (LineSenderException e) {
                 Misc.free(cli);
@@ -427,7 +433,7 @@ public abstract class AbstractLineHttpSender implements Sender {
 
     private static boolean keepAliveDisabled(HttpClient.ResponseHeaders response) {
         DirectUtf8Sequence connectionHeader = response.getHeader(HttpConstants.HEADER_CONNECTION);
-        return connectionHeader != null && Utf8s.equalsAscii("close", connectionHeader);
+        return HttpKeywords.isClose(connectionHeader);
     }
 
 
@@ -443,6 +449,7 @@ public abstract class AbstractLineHttpSender implements Sender {
             return;
         }
         Response chunkedRsp = response.getResponse();
+        //noinspection StatementWithEmptyBody
         while ((chunkedRsp.recv()) != null) {
             // we don't care about the response, just consume it, so it won't stay in the socket receive buffer
         }
