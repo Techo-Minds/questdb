@@ -2638,7 +2638,6 @@ public class SqlParser {
      * Parse expressions of the form:
      * <p>
      * `tableName` PIVOT (sum(value) FOR name IN ('a', 'b', 'c') GROUP BY something);
-     *
      */
     private CharSequence parsePivot(GenericLexer lexer, QueryModel model, SqlParserCallback sqlParserCallback, @Nullable SqlExecutionContext executionContext) throws SqlException {
         /*

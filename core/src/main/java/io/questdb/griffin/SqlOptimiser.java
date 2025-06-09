@@ -5076,7 +5076,6 @@ public class SqlOptimiser implements Mutable {
      * <p>
      * If an ELSE clause is present, then we must not add it to the WHERE clause. Instead, we need to
      * invert the IN expression with NOT, and then stash it for later.
-     *
      */
     private void rewritePivotFinaliseInExprAndAddToWhere(ExpressionNode forInExpr, QueryModel nested, @Nullable QueryColumn elseColumn) {
         /*
@@ -5125,7 +5124,6 @@ public class SqlOptimiser implements Mutable {
      * This adds aliases to the `PIVOT` aggregate columns if deemed necessary.
      * If they are all already aliased, no actions are taken.
      * If there are duplicate aggregates i.e. multiple SUMs in one PIVOT, an alias will be added.
-     *
      */
     private void rewritePivotGenerateAliases(QueryModel nested) {
         assert nested.getPivotColumns() != null;

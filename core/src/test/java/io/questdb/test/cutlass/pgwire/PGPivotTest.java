@@ -29,6 +29,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -114,8 +115,7 @@ public class PGPivotTest extends BasePGTest {
                     if (mode != Mode.SIMPLE) {
                         Assert.fail("should not be supported");
                     }
-                }
-                catch (SQLException e) {
+                } catch (SQLException e) {
                     Assert.assertEquals("ERROR: cannot use bind variables in a PIVOT query\n" +
                             "  Position: 80", e.getMessage());
                 }
@@ -172,10 +172,9 @@ public class PGPivotTest extends BasePGTest {
                     if (mode != Mode.SIMPLE) {
                         Assert.fail("should not be supported");
                     }
-                }
-                catch (SQLException e) {
+                } catch (SQLException e) {
                     Assert.assertEquals("ERROR: literal IN list must must only contain constants\n" +
-                            "  Position: 31",e.getMessage());
+                            "  Position: 31", e.getMessage());
                 }
             }
         });
