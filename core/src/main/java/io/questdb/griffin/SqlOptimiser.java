@@ -227,22 +227,6 @@ public class SqlOptimiser implements Mutable {
         return appearsInArgs;
     }
 
-    public static @Nullable ExpressionNode rewritePivotGetAppropriateArgFromInExpr(ExpressionNode forInExpr, int slot) {
-        if (forInExpr.paramCount == 2) {
-            assert slot == 0;
-            return forInExpr.rhs;
-        }
-        assert slot < forInExpr.paramCount - 1;
-        return forInExpr.args.getQuick(slot);
-    }
-
-    public static @Nullable ExpressionNode rewritePivotGetAppropriateNameFromInExpr(ExpressionNode forInExpr) {
-        if (forInExpr.paramCount == 2) {
-            return forInExpr.lhs;
-        }
-        return forInExpr.args.getLast();
-    }
-
     public void clear() {
         clearForUnionModelInJoin();
         contextPool.clear();
@@ -5093,8 +5077,6 @@ public class SqlOptimiser implements Mutable {
      * If an ELSE clause is present, then we must not add it to the WHERE clause. Instead, we need to
      * invert the IN expression with NOT, and then stash it for later.
      *
-     * @param forInExpr
-     * @param nested
      */
     private void rewritePivotFinaliseInExprAndAddToWhere(ExpressionNode forInExpr, QueryModel nested, @Nullable QueryColumn elseColumn) {
         /*
@@ -5144,7 +5126,6 @@ public class SqlOptimiser implements Mutable {
      * If they are all already aliased, no actions are taken.
      * If there are duplicate aggregates i.e. multiple SUMs in one PIVOT, an alias will be added.
      *
-     * @param nested
      */
     private void rewritePivotGenerateAliases(QueryModel nested) {
         assert nested.getPivotColumns() != null;
@@ -5226,11 +5207,7 @@ public class SqlOptimiser implements Mutable {
 
     /**
      * Lifts the group by expressions originated from `model`'s nested `QueryModel` to columns on both input models.
-     * Additionally moves the group by expression themselves from the nested model to `groupByModel`.
-     *
-     * @param model
-     * @param groupByModel
-     * @throws SqlException
+     * Additionally, moves the group by expression themselves from the nested model to `groupByModel`.
      */
     private void rewritePivotLiftGroupByExpressionsToColumns(QueryModel model, QueryModel groupByModel) throws SqlException {
         ObjList<ExpressionNode> nestedGroupBy = model.getNestedModel().getGroupBy();
@@ -6699,7 +6676,6 @@ public class SqlOptimiser implements Mutable {
                         && model.getJoinModels().size() == 1
                         && model.getWhereClause() == null
                         && model.getLatestBy().size() == 0
-                        && model.getUnpivotFor() == null
         ) {
             model = model.getNestedModel();
         }

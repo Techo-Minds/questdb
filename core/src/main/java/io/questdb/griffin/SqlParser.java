@@ -2068,7 +2068,6 @@ public class SqlParser {
                                 && proposedNested.getLimitLo() == null
                                 && proposedNested.getLimitHi() == null
                                 && target.getPivotFor() == null
-                                && target.getUnpivotFor() == null
                 ) {
                     model.setTableNameExpr(target.getTableNameExpr());
                     model.setAlias(target.getAlias());
@@ -2104,9 +2103,6 @@ public class SqlParser {
         }
 
         if (tok != null && isPivotKeyword(tok)) {
-            if (model.getUnpivotFor() != null && model.getUnpivotFor().size() > 0) {
-                throw SqlException.$((lexer.lastTokenPosition()), "only a single PIVOT or UNPIVOT clause can be used in an individual query");
-            }
             try {
                 pivotMode = true;
                 tok = parsePivot(lexer, model, sqlParserCallback, executionContext);
@@ -2114,13 +2110,6 @@ public class SqlParser {
                 pivotMode = false;
             }
 
-        }
-
-        if (tok != null && isUnpivotKeyword(tok)) {
-            if (model.getPivotFor() != null && model.getPivotFor().size() > 0) {
-                throw SqlException.$((lexer.lastTokenPosition()), "only a single PIVOT or UNPIVOT clause can be used in an individual query");
-            }
-            tok = parseUnpivot(lexer, model, sqlParserCallback);
         }
 
         // expect multiple [[inner | outer | cross] join]
@@ -2951,12 +2940,6 @@ public class SqlParser {
 
     /**
      * Parses a column expression, plus an optional alias.
-     *
-     * @param lexer
-     * @param model
-     * @param sqlParserCallback
-     * @return
-     * @throws SqlException
      */
     private QueryColumn parsePivotParseColumn(GenericLexer lexer, QueryModel model, SqlParserCallback sqlParserCallback, String expectedList, String expressionMessage) throws SqlException {
         CharSequence tok;
@@ -3720,50 +3703,6 @@ public class SqlParser {
             return result;
         }
         return null;
-    }
-
-    private CharSequence parseUnpivot(GenericLexer lexer, QueryModel model, SqlParserCallback sqlParserCallback) throws SqlException {
-        // monthly_sales UNPIVOT (
-        //      sales
-        //      FOR month IN (jan, feb, mar, apr, may, jun)
-        CharSequence tok;
-        tok = tok(lexer, "'include' or 'exclude' or '('");
-
-        // Check for include/exclude nulls syntax
-        if (isIncludeKeyword(tok) || isExcludeKeyword(tok)) {
-            model.setUnpivotIncludeNulls(isIncludeKeyword(tok));
-            expectTok(lexer, "nulls");
-            expectTok(lexer, '(');
-        }
-
-        // Get column expr
-        ExpressionNode expr = expr(lexer, model, sqlParserCallback);
-
-        if (expr == null) {
-            throw SqlException.$(lexer.lastTokenPosition(), "missing column expression");
-        }
-
-        QueryColumn col = queryColumnPool.next().of(expr.token, expr);
-        model.addUnpivotColumn(col);
-
-        tok = SqlUtil.fetchNext(lexer);
-
-        if (tok != null && !isForKeyword(tok)) {
-            throw SqlException.$(lexer.lastTokenPosition(), "expected `FOR`");
-        }
-
-        // get FOR expr
-        expr = expr(lexer, model, sqlParserCallback);
-
-        if (expr.type != ExpressionNode.FUNCTION || !Chars.equalsIgnoreCase(expr.token, "in")) {
-            throw SqlException.$(expr.position, "expected `IN` clause");
-        }
-
-        model.addUnpivotFor(expr);
-        expectTok(lexer, ')');
-
-        tok = SqlUtil.fetchNext(lexer);
-        return tok;
     }
 
     private ExecutionModel parseUpdate(
@@ -4539,7 +4478,6 @@ public class SqlParser {
         tableAliasStop.add("intersect");
         tableAliasStop.add("from");
         tableAliasStop.add("pivot");
-        tableAliasStop.add("unpivot");
         //
         columnAliasStop.add("from");
         columnAliasStop.add(",");

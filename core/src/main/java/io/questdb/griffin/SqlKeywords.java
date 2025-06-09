@@ -29,7 +29,7 @@ import io.questdb.std.LowerCaseCharSequenceHashSet;
 import io.questdb.std.str.Utf8Sequence;
 import org.jetbrains.annotations.NotNull;
 
-@SuppressWarnings("BooleanMethodIsAlwaysInverted")
+@SuppressWarnings({"BooleanMethodIsAlwaysInverted", "unused"})
 public class SqlKeywords {
     public static final int CAST_KEYWORD_LENGTH = 4;
     public static final String CONCAT_FUNC_NAME = "concat";
@@ -2032,17 +2032,6 @@ public class SqlKeywords {
                 && (tok.charAt(2) | 32) == 'i'
                 && (tok.charAt(3) | 32) == 'o'
                 && (tok.charAt(4) | 32) == 'n';
-    }
-
-    public static boolean isUnpivotKeyword(CharSequence tok) {
-        return tok.length() == 7
-                && (tok.charAt(0) | 32) == 'u'
-                && (tok.charAt(1) | 32) == 'n'
-                && (tok.charAt(2) | 32) == 'p'
-                && (tok.charAt(3) | 32) == 'i'
-                && (tok.charAt(4) | 32) == 'v'
-                && (tok.charAt(5) | 32) == 'o'
-                && (tok.charAt(6) | 32) == 't';
     }
 
     public static boolean isUpdateKeyword(CharSequence tok) {
