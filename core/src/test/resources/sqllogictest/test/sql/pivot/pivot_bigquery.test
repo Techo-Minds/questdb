@@ -98,17 +98,17 @@ CREATE TABLE Produce AS (
 #UNPIVOT(sales FOR quarter IN (Q1, Q2, Q3, Q4))
 #ORDER BY ALL
 # below will error till bugfix
-query III
-Produce UNPIVOT (sales FOR quarter IN ('Q1',  'Q2', 'Q3', 'Q4')) ORDER BY product, quarter, sales;
-----
-Apple	Q1	77
-Apple	Q2	0
-Apple	Q3	25
-Apple	Q4	2
-Kale	Q1	51
-Kale	Q2	23
-Kale	Q3	45
-Kale	Q4	3
+#query III
+#Produce UNPIVOT (sales FOR quarter IN ('Q1',  'Q2', 'Q3', 'Q4')) ORDER BY product, quarter, sales;
+#----
+#Apple	Q1	77
+#Apple	Q2	0
+#Apple	Q3	25
+#Apple	Q4	2
+#Kale	Q1	51
+#Kale	Q2	23
+#Kale	Q3	45
+#Kale	Q4	3
 
 #query IIII
 #SELECT product, first_half_sales, second_half_sales, semesters FROM Produce

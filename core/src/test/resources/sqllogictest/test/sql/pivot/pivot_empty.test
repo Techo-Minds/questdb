@@ -1,9 +1,12 @@
 statement ok
 CREATE TABLE Cities(Country VARCHAR, Name VARCHAR, Year INT, Population INT);
 
-#query II
 #PIVOT Cities ON Country USING SUM(Population);
-#----
+statement error
+cities PIVOT (sum(population) FOR country IN (SELECT DISTINCT Country FROM Cities);
+----
+db error: ERROR: query returned no results [query=SELECT DISTINCT Country FROM Cities]
+
 #
 #query I
 #PIVOT Cities ON Country, Name USING SUM(Population);

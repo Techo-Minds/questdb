@@ -83,10 +83,10 @@ public class SqlParser {
     private static final LowerCaseAsciiCharSequenceHashSet columnAliasStop = new LowerCaseAsciiCharSequenceHashSet();
     private static final LowerCaseAsciiCharSequenceHashSet groupByStopSet = new LowerCaseAsciiCharSequenceHashSet();
     private static final LowerCaseAsciiCharSequenceIntHashMap joinStartSet = new LowerCaseAsciiCharSequenceIntHashMap();
+    private static final LowerCaseAsciiCharSequenceHashSet pivotForStop = new LowerCaseAsciiCharSequenceHashSet();
     private static final RewriteDeclaredVariablesInExpressionVisitor rewriteDeclaredVariablesInExpressionVisitor = new RewriteDeclaredVariablesInExpressionVisitor();
     private static final LowerCaseAsciiCharSequenceHashSet setOperations = new LowerCaseAsciiCharSequenceHashSet();
     private static final LowerCaseAsciiCharSequenceHashSet tableAliasStop = new LowerCaseAsciiCharSequenceHashSet();
-    private static final LowerCaseAsciiCharSequenceHashSet pivotForStop = new LowerCaseAsciiCharSequenceHashSet();
     private static final IntList tableNamePositions = new IntList();
     private static final LowerCaseCharSequenceHashSet tableNames = new LowerCaseCharSequenceHashSet();
     private final IntList accumulatedColumnPositions = new IntList();
@@ -119,8 +119,8 @@ public class SqlParser {
     private final ObjectPool<WithClauseModel> withClauseModelPool;
     private int digit;
     private boolean overClauseMode = false;
-    private boolean subQueryMode = false;
     private boolean pivotMode = false;
+    private boolean subQueryMode = false;
 
     SqlParser(
             CairoConfiguration configuration,
@@ -710,16 +710,16 @@ public class SqlParser {
         return model;
     }
 
-    private ExpressionNode nextLiteral(CharSequence token, int position) {
-        return SqlUtil.nextLiteral(expressionNodePool, token, position);
+    private QueryColumn nextColumn(CharSequence alias, CharSequence column, int position) {
+        return SqlUtil.nextColumn(queryColumnPool, expressionNodePool, alias, column, position);
     }
 
     private ExpressionNode nextConstant(CharSequence token, int position) {
         return SqlUtil.nextConstant(expressionNodePool, token, position);
     }
 
-    private QueryColumn nextColumn(CharSequence alias, CharSequence column, int position) {
-        return SqlUtil.nextColumn(queryColumnPool, expressionNodePool, alias, column, position);
+    private ExpressionNode nextLiteral(CharSequence token, int position) {
+        return SqlUtil.nextLiteral(expressionNodePool, token, position);
     }
 
     private CharSequence notTermTok(GenericLexer lexer) throws SqlException {
@@ -2725,7 +2725,7 @@ public class SqlParser {
                 /*
                     We need to figure out the end of the subquery.
                  */
-                parseAsSubQuery(lexer, model.getWithClauses(), false, sqlParserCallback, model.getDecls());
+                ExecutionModel executionModel = parseAsSubQuery(lexer, model.getWithClauses(), true, sqlParserCallback, model.getDecls());
 
                 /*
                     Now eagerly compile and execute the query so we can get our IN keys-list.
@@ -2734,14 +2734,15 @@ public class SqlParser {
                 final SqlExecutionContext innerExecutionContext =
                         new SqlExecutionContextImpl(compiler.getEngine(), executionContext != null ? executionContext.getWorkerCount() : 1);
 
+                executionModel = compiler.compileExecutionModel0(innerExecutionContext, executionModel);
+
                 /*
                     This query must be re-run, so the final execution plan cannot be cached.
                  */
                 model.setCacheable(false);
 
                 try (RecordCursorFactory inListFactory = compiler
-                        .getEngine()
-                        .select(lexer.getContent().subSequence(start, lexer.lastTokenPosition()), innerExecutionContext)) {
+                        .generateSelectOneShot(executionModel.getQueryModel(), innerExecutionContext, true);) {
 
                     final RecordMetadata inListMetadata = inListFactory.getMetadata();
 

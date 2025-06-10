@@ -21,18 +21,17 @@ INSERT INTO Cities VALUES ('NL', 'Amsterdam', 2000, 1005),
 # PIVOT Cities ON Year IN (SELECT Year FROM Cities ORDER BY Year DESC) USING SUM(Population);
 # We don't support dynamic SQL like this yet
 # order the pivot columns
-#query IIIII rowsort
-statement error
+query IIIII rowsort
 Cities PIVOT (
     sum(population)
-    FOR Year IN (SELECT YEAR FROM Cities ORDER BY YEAR DESC)
+    FOR Year IN (SELECT DISTINCT YEAR FROM Cities ORDER BY YEAR DESC)
     GROUP BY Country, Name
     ORDER BY Country, Name
 );
-#----
-#NL	Amsterdam	1158	1065	1005
-#US	New York City	8772	8175	8015
-#US	Seattle	738	608	564
+----
+NL	Amsterdam	1158	1065	1005
+US	New York City	8772	8175	8015
+US	Seattle	738	608	564
 
 #query IIIII rowsort
 #PIVOT Cities ON Year IN (SELECT YEAR FROM (SELECT Year, SUM(POPULATION) AS popsum FROM Cities GROUP BY Year ORDER BY popsum DESC)) USING SUM(Population);
