@@ -2657,8 +2657,8 @@ public class SqlParser {
         do {
             final QueryColumn nextAggregateCol = parsePivotParseColumn(lexer, model, sqlParserCallback, "'FOR' or ',' or ')'", "missing aggregate function expression");
 
-            if (nextAggregateCol.getAst().type != ExpressionNode.FUNCTION) {
-                throw SqlException.$(lexer.lastTokenPosition(), "expected aggregate function");
+            if (nextAggregateCol.getAst().type != ExpressionNode.FUNCTION || (nextAggregateCol.getAst().paramCount == 0 && !isCountKeyword(nextAggregateCol.getAst().token))) {
+                throw SqlException.$(nextAggregateCol.getAst().position, "expected aggregate function [col=").put(nextAggregateCol.getAst()).put(']');
             }
 
             model.addPivotColumn(nextAggregateCol);
@@ -2742,7 +2742,7 @@ public class SqlParser {
                 model.setCacheable(false);
 
                 try (RecordCursorFactory inListFactory = compiler
-                        .generateSelectOneShot(executionModel.getQueryModel(), innerExecutionContext, true);) {
+                        .generateSelectOneShot(executionModel.getQueryModel(), innerExecutionContext, true)) {
 
                     final RecordMetadata inListMetadata = inListFactory.getMetadata();
 

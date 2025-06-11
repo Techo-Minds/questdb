@@ -17,29 +17,52 @@ INSERT INTO Cities (Country, Name, Year, Population) VALUES ('NL', 'Amsterdam', 
 #
 #loop i 0 2
 
-#statement ok
+
 #PIVOT Cities ON Country, Name IN ('xx') USING SUM(Population);
+query II
+Cities PIVOT (SUM(Population) FOR Country IN (SELECT DISTINCT Country FROM Cities) Name IN ('xx'));
+----
+NULL NULL
 
-#query IIIII rowsort
 #PIVOT Cities ON Year USING SUM(Population);
-#----
-#NL	Amsterdam	1005	1065	1158
-#US	New York City	8015	8175	8772
-#US	Seattle	564	608	738
+query IIIII rowsort
+Cities PIVOT (
+    SUM(Population)
+    FOR Year IN (SELECT DISTINCT Year FROM Cities ORDER BY Year)
+    GROUP BY Country, Name
+    ORDER BY Country, Name
+);
+----
+NL Amsterdam 1005 1065 1158
+US New York City 8015 8175 8772
+US Seattle 564 608 738
 
-#query IIIII rowsort
 #SELECT Country, Name, "2000_total_pop", "2010_total_pop", "2020_total_pop" FROM (PIVOT Cities ON Year USING SUM(Population) as total_pop)
-#----
-#NL	Amsterdam	1005	1065	1158
-#US	New York City	8015	8175	8772
-#US	Seattle	564	608	738
-#
-#query IIIII rowsort
+query IIIII rowsort
+Cities PIVOT (
+    SUM(Population) as total_pop
+    FOR Year IN (SELECT DISTINCT Year FROM Cities ORDER BY Year)
+    GROUP BY Country, Name
+    ORDER BY Country, Name
+);
+----
+NL Amsterdam 1005 1065 1158
+US New York City 8015 8175 8772
+US Seattle 564 608 738
+
 #PIVOT_WIDER Cities ON Year USING SUM(Population);
-#----
-#NL	Amsterdam	1005	1065	1158
-#US	New York City	8015	8175	8772
-#US	Seattle	564	608	738
+query IIIII rowsort
+----
+Cities PIVOT (
+    SUM(Population)
+    FOR Year IN (SELECT DISTINCT Year FROM Cities ORDER BY Year)
+    GROUP BY Country, Name
+    ORDER BY Country, Name
+);
+----
+NL Amsterdam 1005 1065 1158
+US New York City 8015 8175 8772
+US Seattle 564 608 738
 
 # sql syntax
 #FROM Cities PIVOT (SUM(Population) FOR Year IN (2000, 2010, 2020));
@@ -58,17 +81,24 @@ NL	Amsterdam	1005	1158
 US	New York City	8015	8772
 US	Seattle	564	738
 
-#query IIII rowsort
 #PIVOT Cities ON Year USING SUM(Population) GROUP BY Country;
-#----
-#NL	1005	1065	1158
-#US	8579	8783	9510
+query IIII rowsort
+Cities PIVOT (SUM(population) FOR Year IN (SELECT DISTINCT Year FROM Cities ORDER BY Year) GROUP BY Country;
+----
+NL	1005	1065	1158
+US	8579	8783	9510
 
 # use pivots in a set operation
 #statement ok
 #PIVOT Cities ON Year USING SUM(Population)
 #UNION ALL BY NAME
 #PIVOT Cities ON Name USING SUM(Population);
+#
+#statement ok
+#Cities PIVOT (SUM(Population) FOR Year IN (SELECT DISTINCT Year FROM Cities ORDER BY Year) GROUP BY Country, Name)
+#UNION ALL
+#Cities PIVOT (SUM(Population) FOR Name IN (SELECT DISTINCT Name FROM Cities ORDER BY Name) GROUP BY Country, Year)
+
 
 # join on pivots
 #FROM
@@ -87,60 +117,79 @@ ON (Country);
 NL 1005 1065 1158 NL 3228 NULL NULL
 US 8579 8783 9510 US NULL 1910 24962
 
+
 #query II rowsort
 #PIVOT Cities ON (Country, Name) IN ('xx') USING SUM(Population);
+#SELECT Year, xx_xx AS 'xx' FROM (
+#  Cities PIVOT (SUM(Population) FOR Country IN ('xx') Name IN ('xx') GROUP BY Year)
+#);
 #----
 #2000	NULL
 #2010	NULL
 #2020	NULL
 
-#query IIIIIII rowsort
 #PIVOT (SELECT Country, Population, Year FROM Cities) ON Year USING SUM(Population) as sum_pop, count(population) as count_pop,;
-#----
-#NL	1005	1	1065	1	1158	1
-#US	8579	2	8783	2	9510	2
-#
+query IIIIIII rowsort
+Cities
+PIVOT (
+    SUM(Population) as sum_pop,
+    count(population) as count_pop
+    FOR Year IN (SELECT DISTINCT Year FROM Cities ORDER BY Year)
+    GROUP BY Country
+    ORDER BY Country
+);
+----
+NL	1005	1	1065	1	1158	1
+US	8579	2	8783	2	9510	2
+
+
 ## multiple pivots
-#query IIIIIII rowsort
 #PIVOT Cities ON Year USING SUM(Population) as sum_pop, count(population) as count_pop, GROUP BY Country;
-#----
-#NL	1005	1	1065	1	1158	1
-#US	8579	2	8783	2	9510	2
-#
-#
-#query IIIIIII rowsort
+query IIIIIII rowsort
+Cities PIVOT (SUM(Population) as sum_pop, count(population) as count_pop FOR Year IN (SELECT DISTINCT Year FROM Cities ORDER BY Year) GROUP BY Country ORDER BY Country);
+----
+NL	1005	1	1065	1	1158	1
+US	8579	2	8783	2	9510	2
+
 #PIVOT Cities ON Year USING SUM(Population), count(population) GROUP BY Country;
-#----
-#NL	1005	1	1065	1	1158	1
-#US	8579	2	8783	2	9510	2
+query IIIIIII rowsort
+Cities PIVOT (SUM(Population), count(population) FOR Year IN (SELECT DISTINCT Year FROM Cities ORDER BY Year) GROUP BY Country ORDER BY Country);
+----
+NL	1005	1	1065	1	1158	1
+US	8579	2	8783	2	9510	2
 
 # pivot order by/limit
-#query IIII
 #PIVOT Cities ON Year USING SUM(Population) GROUP BY country ORDER BY country desc
-#----
-#US	8579	8783	9510
-#NL	1005	1065	1158
-#
-#query IIII
+query IIII
+Cities PIVOT (SUM(Population) FOR Year IN (SELECT DISTINCT Year FROM Cities ORDER BY Year) GROUP BY Country ORDER BY Country DESC);
+----
+US	8579	8783	9510
+NL	1005	1065	1158
+
 #PIVOT Cities ON Year USING SUM(Population) GROUP BY country ORDER BY country desc LIMIT 1
-#----
-#US	8579	8783	9510
-#
-#query IIII
+query IIII
+Cities PIVOT (SUM(Population) FOR Year IN (SELECT DISTINCT Year FROM Cities ORDER BY Year) GROUP BY Country ORDER BY Country DESC LIMIT 1);
+----
+US	8579	8783	9510
+
 #PIVOT Cities ON Year USING SUM(Population) GROUP BY country ORDER BY country LIMIT 1
-#----
-#NL	1005	1065	1158
-#
-#query IIII
+query IIII
+Cities PIVOT (SUM(Population) FOR Year IN (SELECT DISTINCT Year FROM Cities ORDER BY Year) GROUP BY Country ORDER BY Country LIMIT 1);
+----
+NL	1005	1065	1158
+
 #PIVOT Cities ON Year USING SUM(Population) GROUP BY country ORDER BY country LIMIT 1 OFFSET 1
-#----
-#US	8579	8783	9510
-#
-#query IIII
+query IIII
+Cities PIVOT (SUM(Population) FOR Year IN (SELECT DISTINCT Year FROM Cities ORDER BY Year) GROUP BY Country ORDER BY Country LIMIT 1, 2);
+----
+US	8579	8783	9510
+
 #PIVOT Cities ON Year USING SUM(Population) GROUP BY country ORDER BY ALL
-#----
-#NL	1005	1065	1158
-#US	8579	8783	9510
+query IIII
+SELECT * FROM (Cities PIVOT (SUM(Population) FOR Year IN (SELECT DISTINCT Year FROM Cities ORDER BY Year) GROUP BY Country)) ORDER BY 1,2,3,4;
+----
+NL	1005	1065	1158
+US	8579	8783	9510
 
 
 # unpivot

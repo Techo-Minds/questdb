@@ -8161,6 +8161,13 @@ public class SqlParserTest extends AbstractSqlParserTest {
     }
 
     @Test
+    public void testPivotWithNonAggregateFunction() throws Exception {
+        assertSyntaxError(
+                "cities PIVOT (now() FOR county IN ('NL', 'US'));", 14, "expected aggregate function [col=now()]", citiesModel
+        );
+    }
+
+    @Test
     public void testPublicSchemaRemovalCreateTable() throws SqlException {
         assertModel(
                 "create atomic table tab (a INT)",

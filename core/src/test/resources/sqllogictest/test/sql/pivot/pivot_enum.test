@@ -1,9 +1,5 @@
-# todo: unsupported, closest we have is a dimension table with symbol
-# you can materialise that in a table (or soon, a view)
-
 statement ok
 CREATE TABLE monthly_sales (empid INT, amount INT, month TEXT);
-
 
 statement ok
 INSERT INTO monthly_sales VALUES
