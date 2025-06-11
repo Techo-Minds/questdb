@@ -3249,6 +3249,18 @@ public class SqlCodeGenerator implements Mutable, Closeable {
                     final CharSequence column = orderByColumnNames.getQuick(i);
                     int index = metadata.getColumnIndexQuiet(column);
 
+                    if (index < 0) {
+                        ObjList<ExpressionNode> nodes = model.getOrderBy();
+                        int position = 0;
+                        for (int j = 0, y = nodes.size(); j < y; j++) {
+                            if (Chars.equals(column, nodes.getQuick(i).token)) {
+                                position = nodes.getQuick(i).position;
+                                break;
+                            }
+                        }
+                        throw SqlException.$(position, "ORDER BY column is not present in select fields [name=").put(column).put(']');
+                    }
+
                     // check if the column type is supported
                     final int columnType = metadata.getColumnType(index);
                     if (!ColumnType.isComparable(columnType)) {

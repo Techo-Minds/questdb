@@ -31,6 +31,7 @@ public class PivotTest extends AbstractSqlParserTest {
     public static String ddlCities = "CREATE TABLE cities (\n" +
             "    country VARCHAR, name VARCHAR, year INT, population INT\n" +
             ");";
+    public static String ddlMonthlySales = "CREATE TABLE monthly_sales (empid INT, amount INT, month TEXT);";
     public static String ddlSensors = "CREATE TABLE IF NOT EXISTS sensors (\n" +
             "  timestamp TIMESTAMP,\n" +
             "  vehicle_id SYMBOL,\n" +
@@ -56,6 +57,23 @@ public class PivotTest extends AbstractSqlParserTest {
                     "    ('US', 'New York City', 2000, 8015),\n" +
                     "    ('US', 'New York City', 2010, 8175),\n" +
                     "    ('US', 'New York City', 2020, 8772);";
+    public static String dmlMonthlySales = " INSERT INTO monthly_sales VALUES\n" +
+            "            (1, 10000, 'JAN'),\n" +
+            "    (1, 400, 'JAN'),\n" +
+            "            (2, 4500, 'JAN'),\n" +
+            "            (2, 35000, 'JAN'),\n" +
+            "            (1, 5000, 'FEB'),\n" +
+            "            (1, 3000, 'FEB'),\n" +
+            "            (2, 200, 'FEB'),\n" +
+            "            (2, 90500, 'FEB'),\n" +
+            "            (1, 6000, 'MAR'),\n" +
+            "            (1, 5000, 'MAR'),\n" +
+            "            (2, 2500, 'MAR'),\n" +
+            "            (2, 9500, 'MAR'),\n" +
+            "            (1, 8000, 'APR'),\n" +
+            "            (1, 10000, 'APR'),\n" +
+            "            (2, 800, 'APR'),\n" +
+            "            (2, 4500, 'APR');";
     public static String dmlSensors = "INSERT INTO sensors\n" +
             "SELECT\n" +
             "    date_trunc('milliseconds', timestamp_sequence('2025-01-01', 1L) + (x / 2000)) AS timestamp,\n" +
@@ -1445,6 +1463,26 @@ public class PivotTest extends AbstractSqlParserTest {
                         "            PageFrame\n" +
                         "                Row forward scan\n" +
                         "                Frame forward scan on: cities\n");
+    }
+
+    @Test
+    public void testPivotWithOrderByNotPresentInForOrGroupBy() throws Exception {
+        /*
+            If the column does not appear in the FOR list or GROUP BY, it won't be in the output columns.
+         */
+        assertMemoryLeak(() -> {
+            execute(ddlMonthlySales);
+            execute(dmlMonthlySales);
+
+            assertException("monthly_sales \n" +
+                            "PIVOT (\n" +
+                            "  SUM(amount) \n" +
+                            "  FOR MONTH IN ('JAN' AS '1', 'FEB' AS '2', 'MAR' AS '3') ELSE '4' \n" +
+                            "  ORDER BY EMPID\n" +
+                            ");",
+                    117,
+                    "ORDER BY column is not present in select fields [name=EMPID]");
+        });
     }
 
     @Test

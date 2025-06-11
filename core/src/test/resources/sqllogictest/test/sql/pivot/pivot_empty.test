@@ -4,22 +4,31 @@ CREATE TABLE Cities(Country VARCHAR, Name VARCHAR, Year INT, Population INT);
 #PIVOT Cities ON Country USING SUM(Population);
 statement error
 cities PIVOT (sum(population) FOR country IN (SELECT DISTINCT Country FROM Cities);
-----
 db error: ERROR: query returned no results [query=SELECT DISTINCT Country FROM Cities]
 
-#
-#query I
 #PIVOT Cities ON Country, Name USING SUM(Population);
-#----
-#
-#query III
+statement error
+cities PIVOT (
+    sum(population)
+    FOR Country IN (SELECT DISTINCT COUNTRY FROM Cities)
+        Name IN (SELECT DISTINCT NAME FROM Cities)
+    );
+db error: ERROR: query returned no results [query=SELECT DISTINCT Country FROM Cities]
+
 #PIVOT Cities ON Country IN ('xx') USING SUM(Population);
-#----
-#
-#query II
+query III
+cities PIVOT (sum(population) FOR Country IN ('xx'));
+----
+NULL
+
 #PIVOT Cities ON (Country, Name) IN ('xx') USING SUM(Population);
-#----
-#
-#query IIII
+query II
+cities PIVOT (sum(population) FOR Country IN ('xx') Name IN ('xx'));
+----
+NULL
+
 #PIVOT Cities ON Country IN ('xx', 'yy') USING SUM(Population);
-#----
+query IIII
+Cities PIVOT (sum(population) FOR Country IN ('xx', 'yy'));
+----
+NULL NULL
