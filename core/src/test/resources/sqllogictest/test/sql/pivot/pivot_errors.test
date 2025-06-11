@@ -31,8 +31,7 @@ db error: ERROR: expected FOR
 #PIVOT test ON j IN ('a', 'b') USING sum(sum(41) over ());
 query error
 test PIVOT (sum(sum(41) over()) FOR j IN ('a', 'b'));
-----
-db error: ERROR: dangling literal
+db error: ERROR Nested window functions' context are not currently supported.
 
 
 
