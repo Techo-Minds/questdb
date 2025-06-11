@@ -1388,7 +1388,8 @@ public class PivotTest extends AbstractSqlParserTest {
                     "    sum(price)\n" +
                     "    FOR symbol IN (select symbol from trades)\n" +
                     "        side IN ('buy', 'sell')\n" +
-                    "    GROUP BY  timestamp\n" +
+                    "    GROUP BY timestamp\n" +
+                    "    ORDER BY timestamp" +
                     ")\n" +
                     ")";
 

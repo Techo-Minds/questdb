@@ -243,6 +243,9 @@ public class SqlKeywordsTest {
         specialCases.put("isRespectKeyword", "respect");
         specialCases.put("isIgnoreKeyword", "ignore");
         specialCases.put("isNullsKeyword", "nulls");
+        specialCases.put("isComma", ",");
+        specialCases.put("isLeftParen", "(");
+        specialCases.put("isRightParen", ")");
 
         excludedCases.add("isPublicKeyword");
     }
