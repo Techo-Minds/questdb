@@ -1408,24 +1408,47 @@ public class PivotTest extends AbstractSqlParserTest {
                     true,
                     false);
 
-            assertPlanNoLeakCheck(query,
-                    "VirtualRecord\n" +
-                            "  functions: [timestamp,ADA-USD_buy,ADA-USD_sell,ADA-USD_buy,ADA-USD_sell,ADA-USD_buy,ADA-USD_sell,ADA-USDT_buy,ADA-USDT_sell,ADA-USDT_buy,ADA-USDT_sell,ADA-USDT_buy,ADA-USDT_sell,BTC-USD_buy,BTC-USD_sell,BTC-USD_buy,BTC-USD_sell,BTC-USD_buy,BTC-USD_sell,BTC-USD_buy,BTC-USD_sell]\n" +
-                            "    Radix sort light\n" +
-                            "      keys: [timestamp]\n" +
-                            "        GroupBy vectorized: false\n" +
-                            "          keys: [timestamp]\n" +
-                            "          values: [sum(case([(symbol='ADA-USD' and side='buy'),sum,null])),sum(case([(symbol='ADA-USD' and side='sell'),sum,null])),sum(case([(symbol='ADA-USDT' and side='buy'),sum,null])),sum(case([(symbol='ADA-USDT' and side='sell'),sum,null])),sum(case([(symbol='BTC-USD' and side='buy'),sum,null])),sum(case([(symbol='BTC-USD' and side='sell'),sum,null]))]\n" +
-                            "            GroupBy vectorized: false\n" +
-                            "              keys: [timestamp,symbol,side]\n" +
-                            "              values: [sum(price)]\n" +
-                            "                Async Group By workers: 1\n" +
-                            "                  keys: [timestamp,symbol,side]\n" +
-                            "                  values: [avg(price)]\n" +
-                            "                  filter: (symbol in [ADA-USD,ADA-USDT,BTC-USD] and side in [buy,sell])\n" +
-                            "                    PageFrame\n" +
-                            "                        Row forward scan\n" +
-                            "                        Frame forward scan on: trades\n");
+
+            try {
+                assertPlanNoLeakCheck(query,
+                        "VirtualRecord\n" +
+                                "  functions: [timestamp,ADA-USD_buy,ADA-USD_sell,ADA-USD_buy,ADA-USD_sell,ADA-USD_buy,ADA-USD_sell,ADA-USDT_buy,ADA-USDT_sell,ADA-USDT_buy,ADA-USDT_sell,ADA-USDT_buy,ADA-USDT_sell,BTC-USD_buy,BTC-USD_sell,BTC-USD_buy,BTC-USD_sell,BTC-USD_buy,BTC-USD_sell,BTC-USD_buy,BTC-USD_sell]\n" +
+                                "    Radix sort light\n" +
+                                "      keys: [timestamp]\n" +
+                                "        GroupBy vectorized: false\n" +
+                                "          keys: [timestamp]\n" +
+                                "          values: [sum(case([(symbol='ADA-USD' and side='buy'),sum,null])),sum(case([(symbol='ADA-USD' and side='sell'),sum,null])),sum(case([(symbol='ADA-USDT' and side='buy'),sum,null])),sum(case([(symbol='ADA-USDT' and side='sell'),sum,null])),sum(case([(symbol='BTC-USD' and side='buy'),sum,null])),sum(case([(symbol='BTC-USD' and side='sell'),sum,null]))]\n" +
+                                "            GroupBy vectorized: false\n" +
+                                "              keys: [timestamp,symbol,side]\n" +
+                                "              values: [sum(price)]\n" +
+                                "                Async Group JIT By workers: 1\n" +
+                                "                  keys: [timestamp,symbol,side]\n" +
+                                "                  values: [avg(price)]\n" +
+                                "                  filter: (symbol in [ADA-USD,ADA-USDT,BTC-USD] and side in [buy,sell])\n" +
+                                "                    PageFrame\n" +
+                                "                        Row forward scan\n" +
+                                "                        Frame forward scan on: trades\n");
+            } catch (AssertionError ignore) {
+                assertPlanNoLeakCheck(query,
+                        "VirtualRecord\n" +
+                                "  functions: [timestamp,ADA-USD_buy,ADA-USD_sell,ADA-USD_buy,ADA-USD_sell,ADA-USD_buy,ADA-USD_sell,ADA-USDT_buy,ADA-USDT_sell,ADA-USDT_buy,ADA-USDT_sell,ADA-USDT_buy,ADA-USDT_sell,BTC-USD_buy,BTC-USD_sell,BTC-USD_buy,BTC-USD_sell,BTC-USD_buy,BTC-USD_sell,BTC-USD_buy,BTC-USD_sell]\n" +
+                                "    Radix sort light\n" +
+                                "      keys: [timestamp]\n" +
+                                "        GroupBy vectorized: false\n" +
+                                "          keys: [timestamp]\n" +
+                                "          values: [sum(case([(symbol='ADA-USD' and side='buy'),sum,null])),sum(case([(symbol='ADA-USD' and side='sell'),sum,null])),sum(case([(symbol='ADA-USDT' and side='buy'),sum,null])),sum(case([(symbol='ADA-USDT' and side='sell'),sum,null])),sum(case([(symbol='BTC-USD' and side='buy'),sum,null])),sum(case([(symbol='BTC-USD' and side='sell'),sum,null]))]\n" +
+                                "            GroupBy vectorized: false\n" +
+                                "              keys: [timestamp,symbol,side]\n" +
+                                "              values: [sum(price)]\n" +
+                                "                Async Group By workers: 1\n" +
+                                "                  keys: [timestamp,symbol,side]\n" +
+                                "                  values: [avg(price)]\n" +
+                                "                  filter: (symbol in [ADA-USD,ADA-USDT,BTC-USD] and side in [buy,sell])\n" +
+                                "                    PageFrame\n" +
+                                "                        Row forward scan\n" +
+                                "                        Frame forward scan on: trades\n");
+            }
+
         });
     }
 

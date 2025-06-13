@@ -2725,7 +2725,7 @@ public class SqlParser {
                 /*
                     We need to figure out the end of the subquery.
                  */
-                ExecutionModel executionModel = parseAsSubQuery(lexer, model.getWithClauses(), true, sqlParserCallback, model.getDecls());
+                ExecutionModel executionModel = parseAsSubQueryAndExpectClosingBrace(lexer, model.getWithClauses(), true, sqlParserCallback, model.getDecls());
 
                 /*
                     Now eagerly compile and execute the query so we can get our IN keys-list.
@@ -2806,10 +2806,6 @@ public class SqlParser {
                 }
 
                 tok = optTok(lexer);
-
-                if (tok != null && isRightParen(tok)) {
-                    tok = optTok(lexer);
-                }
             } else {
                 /*
                     We were checking for `SELECT`, but now we need to unparse and go back to the start of the expression.
@@ -2868,7 +2864,11 @@ public class SqlParser {
             */
             if (tok != null && isElseKeyword(tok)) {
                 tok = optTok(lexer);
-                QueryColumn elseCol = nextColumn(unquote(GenericLexer.immutableOf(tok)), SqlUtil.PIVOT_ELSE_TOKEN, lexer.lastTokenPosition());
+                QueryColumn elseCol = nextColumn(
+                        unquote(GenericLexer.immutableOf(tok)),
+                        SqlUtil.PIVOT_ELSE_TOKEN,
+                        lexer.lastTokenPosition()
+                );
                 model.addPivotFor(elseCol);
                 tok = optTok(lexer);
             }
