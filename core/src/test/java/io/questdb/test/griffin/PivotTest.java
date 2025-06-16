@@ -1408,7 +1408,6 @@ public class PivotTest extends AbstractSqlParserTest {
                     true,
                     false);
 
-
             try {
                 assertPlanNoLeakCheck(query,
                         "VirtualRecord\n" +
@@ -1448,7 +1447,6 @@ public class PivotTest extends AbstractSqlParserTest {
                                 "                        Row forward scan\n" +
                                 "                        Frame forward scan on: trades\n");
             }
-
         });
     }
 
