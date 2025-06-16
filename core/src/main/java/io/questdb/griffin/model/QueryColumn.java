@@ -66,10 +66,6 @@ public class QueryColumn implements Mutable, Sinkable {
         return ast;
     }
 
-    public void setAst(ExpressionNode ast) {
-        this.ast = ast;
-    }
-
     public int getColumnType() {
         return columnType;
     }
@@ -109,6 +105,10 @@ public class QueryColumn implements Mutable, Sinkable {
 
     public void setAlias(CharSequence alias) {
         this.alias = alias;
+    }
+
+    public void setAst(ExpressionNode ast) {
+        this.ast = ast;
     }
 
     @Override

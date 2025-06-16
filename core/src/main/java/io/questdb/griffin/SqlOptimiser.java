@@ -88,6 +88,7 @@ import static io.questdb.griffin.model.ExpressionNode.*;
 import static io.questdb.griffin.model.QueryModel.*;
 
 public class SqlOptimiser implements Mutable {
+    public static final int PIVOT_MAX_ALIAS_INTEGER = 500;
     private static final int JOIN_OP_AND = 2;
     private static final int JOIN_OP_EQUAL = 1;
     private static final int JOIN_OP_OR = 3;
@@ -102,7 +103,6 @@ public class SqlOptimiser implements Mutable {
     private static final int NOT_OP_NOT = 1;
     private static final int NOT_OP_NOT_EQ = 9;
     private static final int NOT_OP_OR = 3;
-    public static final int PIVOT_MAX_ALIAS_INTEGER = 500;
     // these are bit flags
     private static final int SAMPLE_BY_REWRITE_NO_WRAP = 0;
     private static final int SAMPLE_BY_REWRITE_WRAP_ADD_TIMESTAMP_COPIES = 2;
@@ -130,6 +130,7 @@ public class SqlOptimiser implements Mutable {
     private final ObjectPool<CharSequenceIntHashMap> csIntHashMapPool = new ObjectPool<>(CharSequenceIntHashMap::new, 16);
     private final IntHashSet deletedContexts = new IntHashSet();
     private final CharSequenceHashSet existsDependedTokens = new CharSequenceHashSet();
+    private final ObjectPool<ObjList<ExpressionNode>> expressionNodeListPool = new ObjectPool<>(ObjList::new, 16);
     private final ObjectPool<ExpressionNode> expressionNodePool;
     private final FunctionParser functionParser;
     // list of group-by-model-level expressions with prefixes
@@ -139,7 +140,6 @@ public class SqlOptimiser implements Mutable {
     private final BoolList groupByUsed = new BoolList();
     private final ObjectPool<IntHashSet> intHashSetPool = new ObjectPool<>(IntHashSet::new, 16);
     private final ObjectPool<IntList> intListPool = new ObjectPool<>(IntList::new, 16);
-    private final ObjectPool<ObjList<ExpressionNode>> expressionNodeListPool = new ObjectPool<>(ObjList::new, 16);
     private final ObjList<JoinContext> joinClausesSwap1 = new ObjList<>();
     private final ObjList<JoinContext> joinClausesSwap2 = new ObjList<>();
     private final LiteralCheckingVisitor literalCheckingVisitor = new LiteralCheckingVisitor();

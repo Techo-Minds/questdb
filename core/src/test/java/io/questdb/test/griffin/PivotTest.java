@@ -24,6 +24,7 @@
 
 package io.questdb.test.griffin;
 
+import io.questdb.jit.JitUtil;
 import org.junit.Test;
 
 public class PivotTest extends AbstractSqlParserTest {
@@ -1393,7 +1394,8 @@ public class PivotTest extends AbstractSqlParserTest {
                     ")\n" +
                     ")";
 
-            assertQueryNoLeakCheck("timestamp\tADA-USD_buy\tADA-USD_sell\tADA-USD_buy0\tADA-USD_sell0\tADA-USD_buy1\tADA-USD_sell1\tADA-USDT_buy\tADA-USDT_sell\tADA-USDT_buy0\tADA-USDT_sell0\tADA-USDT_buy1\tADA-USDT_sell1\tBTC-USD_buy\tBTC-USD_sell\tBTC-USD_buy0\tBTC-USD_sell0\tBTC-USD_buy1\tBTC-USD_sell1\tBTC-USD_buy2\tBTC-USD_sell2\n" +
+            assertQueryNoLeakCheck(
+                    "timestamp\tADA-USD_buy\tADA-USD_sell\tADA-USD_buy0\tADA-USD_sell0\tADA-USD_buy1\tADA-USD_sell1\tADA-USDT_buy\tADA-USDT_sell\tADA-USDT_buy0\tADA-USDT_sell0\tADA-USDT_buy1\tADA-USDT_sell1\tBTC-USD_buy\tBTC-USD_sell\tBTC-USD_buy0\tBTC-USD_sell0\tBTC-USD_buy1\tBTC-USD_sell1\tBTC-USD_buy2\tBTC-USD_sell2\n" +
                             "2024-12-19T08:10:00.000000Z\tnull\t0.9716\tnull\t0.9716\tnull\t0.9716\tnull\t0.9716\tnull\t0.9716\tnull\t0.9716\tnull\tnull\tnull\tnull\tnull\tnull\tnull\tnull\n" +
                             "2024-12-19T08:10:00.100000Z\tnull\tnull\tnull\tnull\tnull\tnull\tnull\tnull\tnull\tnull\tnull\tnull\t101502.2\t101502.1\t101502.2\t101502.1\t101502.2\t101502.1\t101502.2\t101502.1\n" +
                             "2024-12-19T08:10:00.200000Z\tnull\tnull\tnull\tnull\tnull\tnull\tnull\tnull\tnull\tnull\tnull\tnull\t101502.2\tnull\t101502.2\tnull\t101502.2\tnull\t101502.2\tnull\n" +
@@ -1406,9 +1408,10 @@ public class PivotTest extends AbstractSqlParserTest {
                     "timestamp",
                     true,
                     true,
-                    false);
+                    false
+            );
 
-            try {
+            if (JitUtil.isJitSupported()) {
                 assertPlanNoLeakCheck(query,
                         "VirtualRecord\n" +
                                 "  functions: [timestamp,ADA-USD_buy,ADA-USD_sell,ADA-USD_buy,ADA-USD_sell,ADA-USD_buy,ADA-USD_sell,ADA-USDT_buy,ADA-USDT_sell,ADA-USDT_buy,ADA-USDT_sell,ADA-USDT_buy,ADA-USDT_sell,BTC-USD_buy,BTC-USD_sell,BTC-USD_buy,BTC-USD_sell,BTC-USD_buy,BTC-USD_sell,BTC-USD_buy,BTC-USD_sell]\n" +
@@ -1420,14 +1423,14 @@ public class PivotTest extends AbstractSqlParserTest {
                                 "            GroupBy vectorized: false\n" +
                                 "              keys: [timestamp,symbol,side]\n" +
                                 "              values: [sum(price)]\n" +
-                                "                Async Group JIT By workers: 1\n" +
+                                "                Async JIT Group By workers: 1\n" +
                                 "                  keys: [timestamp,symbol,side]\n" +
                                 "                  values: [avg(price)]\n" +
                                 "                  filter: (symbol in [ADA-USD,ADA-USDT,BTC-USD] and side in [buy,sell])\n" +
                                 "                    PageFrame\n" +
                                 "                        Row forward scan\n" +
                                 "                        Frame forward scan on: trades\n");
-            } catch (AssertionError ignore) {
+            } else {
                 assertPlanNoLeakCheck(query,
                         "VirtualRecord\n" +
                                 "  functions: [timestamp,ADA-USD_buy,ADA-USD_sell,ADA-USD_buy,ADA-USD_sell,ADA-USD_buy,ADA-USD_sell,ADA-USDT_buy,ADA-USDT_sell,ADA-USDT_buy,ADA-USDT_sell,ADA-USDT_buy,ADA-USDT_sell,BTC-USD_buy,BTC-USD_sell,BTC-USD_buy,BTC-USD_sell,BTC-USD_buy,BTC-USD_sell,BTC-USD_buy,BTC-USD_sell]\n" +
