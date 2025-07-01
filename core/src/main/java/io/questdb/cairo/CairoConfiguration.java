@@ -142,9 +142,7 @@ public interface CairoConfiguration {
 
     int getColumnPurgeTaskPoolCapacity();
 
-    default long getCommitLatency() {
-        return 30_000_000; // 30s
-    }
+    long getCommitLatency();
 
     int getCommitMode();
 
@@ -280,8 +278,6 @@ public interface CairoConfiguration {
     long getMatViewRefreshOomRetryTimeout();
 
     int getMatViewRowsPerQueryEstimate();
-
-    long getMatViewTimerStartEpsilon();
 
     int getMaxCrashFiles();
 
@@ -439,6 +435,10 @@ public interface CairoConfiguration {
     long getSpinLockTimeout();
 
     int getSqlAsOfJoinLookAhead();
+
+    int getSqlAsOfJoinMapEvacuationThreshold();
+
+    int getSqlAsOfJoinShortCircuitCacheCapacity();
 
     int getSqlCharacterStoreCapacity();
 
@@ -668,6 +668,8 @@ public interface CairoConfiguration {
     boolean isGroupByPresizeEnabled();
 
     boolean isIOURingEnabled();
+
+    boolean isMatViewDebugEnabled();
 
     boolean isMatViewEnabled();
 

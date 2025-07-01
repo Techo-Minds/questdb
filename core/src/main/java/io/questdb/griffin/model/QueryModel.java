@@ -152,6 +152,7 @@ public class QueryModel implements Mutable, ExecutionModel, AliasTranslator, Sin
     // this is used for negative limits optimisations
     private boolean allowPropagationOfOrderByAdvice = true;
     private boolean artificialStar;
+    private ExpressionNode asOfJoinTolerance = null;
     // Used to store a deep copy of the whereClause field
     // since whereClause can be changed during optimization/generation stage.
     private ExpressionNode backupWhereClause;
@@ -512,6 +513,7 @@ public class QueryModel implements Mutable, ExecutionModel, AliasTranslator, Sin
         orderDescendingByDesignatedTimestampOnly = false;
         forceBackwardScan = false;
         hintsMap.clear();
+        asOfJoinTolerance = null;
     }
 
     public void clearColumnMapStructs() {
@@ -736,6 +738,8 @@ public class QueryModel implements Mutable, ExecutionModel, AliasTranslator, Sin
                 && Objects.equals(updateTableModel, that.updateTableModel)
                 && Objects.equals(updateTableToken, that.updateTableToken)
                 && Objects.equals(decls, that.decls)
+                && Objects.equals(asOfJoinTolerance, that.asOfJoinTolerance)
+                && Objects.equals(decls, that.decls)
                 && Objects.equals(pivotColumns, that.pivotColumns)
                 && Objects.equals(pivotFor, that.pivotFor);
     }
@@ -764,6 +768,11 @@ public class QueryModel implements Mutable, ExecutionModel, AliasTranslator, Sin
 
     public boolean getAllowPropagationOfOrderByAdvice() {
         return allowPropagationOfOrderByAdvice;
+    }
+
+    @Nullable
+    public ExpressionNode getAsOfJoinTolerance() {
+        return asOfJoinTolerance;
     }
 
     public ObjList<QueryColumn> getBottomUpColumns() {
@@ -1342,6 +1351,10 @@ public class QueryModel implements Mutable, ExecutionModel, AliasTranslator, Sin
         this.artificialStar = artificialStar;
     }
 
+    public void setAsOfJoinTolerance(ExpressionNode asOfJoinTolerance) {
+        this.asOfJoinTolerance = asOfJoinTolerance;
+    }
+
     public void setBackupWhereClause(ExpressionNode backupWhereClause) {
         this.backupWhereClause = backupWhereClause;
     }
@@ -1863,6 +1876,12 @@ public class QueryModel implements Mutable, ExecutionModel, AliasTranslator, Sin
                                 sink.putAscii(" = ");
                                 jc.bNodes.getQuick(k).toSink(sink);
                             }
+                        }
+
+                        if (model.asOfJoinTolerance != null) {
+                            assert model.joinType == JOIN_ASOF;
+                            sink.putAscii(" tolerance ");
+                            model.asOfJoinTolerance.toSink(sink);
                         }
 
                         if (model.getOuterJoinExpressionClause() != null) {
